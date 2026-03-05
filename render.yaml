@@ -1,12 +1,8 @@
-databases:
-  - name: sqlite
-    databaseName: db.sqlite3
-
 services:
   - type: web
     name: blue-falcon
     runtime: python
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
     startCommand: gunicorn airport_sim.wsgi:application --workers 4 --bind 0.0.0.0:$PORT
     envVars:
       - key: PYTHON_VERSION
@@ -19,3 +15,5 @@ services:
         value: django.db.backends.sqlite3
       - key: DATABASE_NAME
         value: db.sqlite3
+      - key: ALLOWED_HOSTS
+        value: "blue-falcon.onrender.com"
