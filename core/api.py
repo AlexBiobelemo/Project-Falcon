@@ -1,0 +1,669 @@
+"""Django REST Framework API views and serializers for versioned API.
+
+This module provides API endpoints with versioning support (/api/v1/)
+using Django REST Framework for better API documentation and client support.
+
+Honeypot Protection:
+- API honeypot endpoints trap automated scanners
+- Request validation middleware blocks suspicious patterns
+- Rate limiting prevents API abuse
+"""
+
+import django_filters
+import logging
+import secrets
+import hashlib
+import time
+from rest_framework import viewsets, status
+from rest_framework.decorators import api_view, authentication_classes, permission_classes, action
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated, AllowAny, BasePermission
+from rest_framework.authentication import (
+    SessionAuthentication,
+    TokenAuthentication,
+)
+from django.db.models import Count, Sum, Avg
+from django.utils import timezone
+from datetime import timedelta
+from django.conf import settings
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+
+from .models import (
+    Airport, Gate, Flight, Passenger, Staff, StaffAssignment,
+    EventLog, FiscalAssessment, Aircraft, CrewMember, MaintenanceLog, IncidentReport,
+    Report, Document
+)
+from .serializers import (
+    AirportSerializer, GateSerializer, FlightSerializer,
+    PassengerSerializer, StaffSerializer, EventLogSerializer,
+    FiscalAssessmentSerializer, DashboardSummarySerializer,
+    AircraftSerializer, CrewMemberSerializer, MaintenanceLogSerializer,
+    IncidentReportSerializer, ReportSerializer, DocumentSerializer
+)
+from .permissions import (
+    AirportPermissions,
+    GatePermissions,
+    FlightPermissions,
+    StaffPermissions,
+    FiscalAssessmentPermissions,
+    ReportPermissions,
+    DocumentPermissions,
+    MaintenanceLogPermissions,
+    IncidentReportPermissions,
+)
+
+# Honeypot logger
+honeypot_logger = logging.getLogger('honeypot')
+
+
+# Custom authentication class for API endpoints
+# Uses TokenAuthentication (CSRF exempt) + SessionAuthentication (CSRF required)
+# Token auth takes precedence - if valid token, CSRF is exempt
+class APITokenAuthentication(TokenAuthentication):
+    """
+    Token-based authentication for API endpoints.
+    Provides CSRF exemption for stateless token authentication.
+    """
+    keyword = 'Bearer'
+
+
+class AirportViewSet(viewsets.ModelViewSet):
+    """API endpoint for airports."""
+    
+    queryset = Airport.objects.all()
+    serializer_class = AirportSerializer
+    permission_classes = [AirportPermissions]
+    # Use TokenAuthentication for stateless API access (CSRF exempt)
+    # SessionAuthentication still available for browser clients (CSRF required)
+    authentication_classes = [TokenAuthentication, SessionAuthentication]
+    search_fields = ['code', 'name', 'city']
+    ordering_fields = ['code', 'name', 'city', 'created_at']
+    ordering = ['code']
+
+
+class GateViewSet(viewsets.ModelViewSet):
+    """API endpoint for gates."""
+    
+    queryset = Gate.objects.all()
+    serializer_class = GateSerializer
+    permission_classes = [GatePermissions]
+    filter_backends = [django_filters.rest_framework.DjangoFilterBackend]
+    filterset_fields = ['terminal', 'status', 'capacity']
+    search_fields = ['gate_id', 'terminal']
+    ordering_fields = ['gate_id', 'terminal', 'status']
+    ordering = ['gate_id']
+
+
+class FlightViewSet(viewsets.ModelViewSet):
+    """API endpoint for flights."""
+    
+    queryset = Flight.objects.select_related('gate').all()
+    serializer_class = FlightSerializer
+    permission_classes = [FlightPermissions]
+    filter_backends = [django_filters.rest_framework.DjangoFilterBackend]
+    filterset_fields = ['status', 'airline', 'origin', 'destination']
+    search_fields = ['flight_number', 'airline', 'origin', 'destination']
+    ordering_fields = ['scheduled_departure', 'scheduled_arrival', 'status']
+    ordering = ['scheduled_departure']
+    
+    def get_queryset(self):
+        """Filter flights based on query parameters."""
+        queryset = super().get_queryset()
+        
+        # Filter by date range
+        date_from = self.request.query_params.get('date_from')
+        date_to = self.request.query_params.get('date_to')
+        
+        if date_from:
+            queryset = queryset.filter(scheduled_departure__date__gte=date_from)
+        if date_to:
+            queryset = queryset.filter(scheduled_departure__date__lte=date_to)
+        
+        # Filter by gate
+        gate_id = self.request.query_params.get('gate')
+        if gate_id:
+            queryset = queryset.filter(gate_id=gate_id)
+        
+        return queryset
+
+
+class PassengerViewSet(viewsets.ModelViewSet):
+    """API endpoint for passengers."""
+    queryset = Passenger.objects.select_related('flight').all()
+    serializer_class = PassengerSerializer
+    permission_classes = [IsAuthenticated]
+    filterset_fields = ['status', 'flight']
+    search_fields = ['first_name', 'last_name', 'passport_number', 'email']
+    ordering_fields = ['last_name', 'first_name', 'created_at']
+    ordering = ['last_name', 'first_name']
+
+
+class StaffViewSet(viewsets.ModelViewSet):
+    """API endpoint for staff."""
+    queryset = Staff.objects.all()
+    serializer_class = StaffSerializer
+    permission_classes = [StaffPermissions]
+    filter_backends = [django_filters.rest_framework.DjangoFilterBackend]
+    filterset_fields = ['role', 'is_available']
+    search_fields = ['first_name', 'last_name', 'employee_number', 'email']
+    ordering_fields = ['last_name', 'first_name', 'role']
+    ordering = ['last_name', 'first_name']
+
+
+class StaffAssignmentViewSet(viewsets.ModelViewSet):
+    """API endpoint for staff assignments."""
+    
+    queryset = StaffAssignment.objects.select_related('staff', 'flight').all()
+    permission_classes = [IsAuthenticated]
+    filterset_fields = ['staff', 'flight', 'assignment_type']
+    ordering_fields = ['assigned_at']
+    ordering = ['-assigned_at']
+    
+    def get_serializer_class(self):
+        """Return appropriate serializer based on action."""
+        from .serializers import StaffAssignmentSerializer
+        return StaffAssignmentSerializer
+
+
+class EventLogViewSet(viewsets.ModelViewSet):
+    """API endpoint for event logs."""
+    
+    queryset = EventLog.objects.select_related('flight').all()
+    serializer_class = EventLogSerializer
+    permission_classes = [IsAuthenticated]
+    filterset_fields = ['event_type', 'severity', 'flight']
+    search_fields = ['event_type', 'description']
+    ordering_fields = ['timestamp', 'event_type', 'severity']
+    ordering = ['-timestamp']
+    
+    def get_queryset(self):
+        """Filter events based on query parameters."""
+        queryset = super().get_queryset()
+        
+        # Filter by flight
+        flight_id = self.request.query_params.get('flight')
+        if flight_id:
+            queryset = queryset.filter(flight_id=flight_id)
+        
+        # Filter by date range
+        date_from = self.request.query_params.get('date_from')
+        date_to = self.request.query_params.get('date_to')
+        
+        if date_from:
+            queryset = queryset.filter(timestamp__date__gte=date_from)
+        if date_to:
+            queryset = queryset.filter(timestamp__date__lte=date_to)
+        
+        return queryset
+
+
+class FiscalAssessmentViewSet(viewsets.ModelViewSet):
+    """API endpoint for fiscal assessments.
+    
+    SECURITY: This endpoint enforces strict role-based access control.
+    - DELETE operations require admin (superuser) privileges
+    - CREATE/UPDATE operations require editor role
+    - READ operations are allowed for any authenticated user
+    """
+    
+    queryset = FiscalAssessment.objects.select_related('airport').all()
+    serializer_class = FiscalAssessmentSerializer
+    permission_classes = [FiscalAssessmentPermissions]
+    filter_backends = [django_filters.rest_framework.DjangoFilterBackend]
+    filterset_fields = ['status', 'period_type', 'airport']
+    ordering_fields = ['start_date', 'end_date', 'status']
+    ordering = ['-start_date']
+    
+    def get_queryset(self):
+        """Filter assessments based on query parameters."""
+        queryset = super().get_queryset()
+        
+        # Filter by airport
+        airport_code = self.request.query_params.get('airport_code')
+        if airport_code:
+            queryset = queryset.filter(airport__code=airport_code)
+        
+        # Filter by date range
+        date_from = self.request.query_params.get('date_from')
+        date_to = self.request.query_params.get('date_to')
+        
+        if date_from:
+            queryset = queryset.filter(start_date__gte=date_from)
+        if date_to:
+            queryset = queryset.filter(end_date__lte=date_to)
+        
+        return queryset
+
+
+class AircraftViewSet(viewsets.ModelViewSet):
+    """API endpoint for aircraft."""
+    
+    queryset = Aircraft.objects.all()
+    serializer_class = AircraftSerializer
+    permission_classes = [IsAuthenticated]
+    filterset_fields = ['aircraft_type', 'status', 'manufacturer']
+    search_fields = ['tail_number', 'model', 'manufacturer', 'registration_country']
+    ordering_fields = ['tail_number', 'model', 'manufacturer', 'status']
+    ordering = ['tail_number']
+
+
+class CrewMemberViewSet(viewsets.ModelViewSet):
+    """API endpoint for crew members."""
+    
+    queryset = CrewMember.objects.select_related('base_airport').all()
+    serializer_class = CrewMemberSerializer
+    permission_classes = [IsAuthenticated]
+    filterset_fields = ['crew_type', 'status', 'base_airport']
+    search_fields = ['first_name', 'last_name', 'employee_id', 'license_number', 'email']
+    ordering_fields = ['last_name', 'first_name', 'crew_type', 'status']
+    ordering = ['last_name', 'first_name']
+
+
+class MaintenanceLogViewSet(viewsets.ModelViewSet):
+    """API endpoint for maintenance logs."""
+    
+    queryset = MaintenanceLog.objects.select_related('performed_by').all()
+    serializer_class = MaintenanceLogSerializer
+    permission_classes = [MaintenanceLogPermissions]
+    filterset_fields = ['equipment_type', 'maintenance_type', 'status']
+    ordering_fields = ['started_at', 'status', 'cost']
+    ordering = ['-started_at']
+    
+    def get_queryset(self):
+        """Filter maintenance logs based on query parameters."""
+        queryset = super().get_queryset()
+        
+        # Filter by equipment
+        equipment_id = self.request.query_params.get('equipment_id')
+        if equipment_id:
+            queryset = queryset.filter(equipment_id=equipment_id)
+        
+        # Filter by date range
+        date_from = self.request.query_params.get('date_from')
+        date_to = self.request.query_params.get('date_to')
+        
+        if date_from:
+            queryset = queryset.filter(started_at__date__gte=date_from)
+        if date_to:
+            queryset = queryset.filter(started_at__date__lte=date_to)
+        
+        return queryset
+
+
+class IncidentReportViewSet(viewsets.ModelViewSet):
+    """API endpoint for incident reports."""
+    
+    queryset = IncidentReport.objects.select_related(
+        'reported_by', 'assigned_to', 'related_flight', 'related_gate'
+    ).all()
+    serializer_class = IncidentReportSerializer
+    permission_classes = [IncidentReportPermissions]
+    filterset_fields = ['incident_type', 'severity', 'status']
+    search_fields = ['title', 'description', 'location']
+    ordering_fields = ['date_occurred', 'date_reported', 'severity', 'status']
+    ordering = ['-date_occurred']
+    
+    def get_queryset(self):
+        """Filter incident reports based on query parameters."""
+        queryset = super().get_queryset()
+        
+        # Filter by flight
+        flight_id = self.request.query_params.get('flight')
+        if flight_id:
+            queryset = queryset.filter(related_flight_id=flight_id)
+        
+        # Filter by gate
+        gate_id = self.request.query_params.get('gate')
+        if gate_id:
+            queryset = queryset.filter(related_gate_id=gate_id)
+        
+        # Filter by date range
+        date_from = self.request.query_params.get('date_from')
+        date_to = self.request.query_params.get('date_to')
+        
+        if date_from:
+            queryset = queryset.filter(date_occurred__date__gte=date_from)
+        if date_to:
+            queryset = queryset.filter(date_occurred__date__lte=date_to)
+        
+        return queryset
+
+
+class ReportViewSet(viewsets.ModelViewSet):
+    """API endpoint for reports."""
+    
+    serializer_class = ReportSerializer
+    permission_classes = [IsAuthenticated]
+    filterset_fields = ['report_type', 'airport', 'is_generated']
+    
+    def get_queryset(self):
+        return Report.objects.select_related('airport').all()
+
+
+class DocumentViewSet(viewsets.ModelViewSet):
+    """API endpoint for documents."""
+    
+    serializer_class = DocumentSerializer
+    permission_classes = [IsAuthenticated]
+    filterset_fields = ['document_type', 'status']
+    
+    def get_queryset(self):
+        return Document.objects.all()
+
+
+class DashboardSummaryView(APIView):
+    """API endpoint for dashboard summary data.
+    
+    Provides aggregated metrics for the dashboard including
+    flight counts, gate utilization, and recent events.
+    """
+    
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        """Get dashboard summary data."""
+        now = timezone.now()
+        today = now.date()
+        
+        # Flight statistics
+        total_flights = Flight.objects.count()
+        today_flights = Flight.objects.filter(
+            scheduled_departure__date=today
+        ).count()
+        active_flights = Flight.objects.filter(
+            status__in=['scheduled', 'boarding', 'departed']
+        ).count()
+        delayed_flights = Flight.objects.filter(status='delayed').count()
+        
+        # Flight status breakdown
+        flights_by_status = Flight.objects.values('status').annotate(
+            count=Count('id')
+        )
+        
+        # Gate statistics
+        total_gates = Gate.objects.count()
+        available_gates = Gate.objects.filter(status='available').count()
+        occupied_gates = Gate.objects.filter(status='occupied').count()
+        maintenance_gates = Gate.objects.filter(status='maintenance').count()
+        
+        gate_utilization = ((total_gates - available_gates) / total_gates * 100) if total_gates > 0 else 0
+        
+        # Passenger statistics
+        total_passengers = Passenger.objects.count()
+        
+        # Recent events
+        recent_events = EventLog.objects.order_by('-timestamp')[:10]
+        
+        # Staff statistics
+        total_staff = Staff.objects.count()
+        available_staff = Staff.objects.filter(is_available=True).count()
+        
+        # Staff by role
+        staff_by_role = Staff.objects.values('role').annotate(
+            count=Count('id')
+        )
+        
+        # Airport statistics
+        total_airports = Airport.objects.count()
+        active_airports = Airport.objects.filter(is_active=True).count()
+        
+        # Upcoming flights (next 2 hours)
+        upcoming_cutoff = now + timedelta(hours=2)
+        upcoming_flights = Flight.objects.filter(
+            scheduled_departure__gte=now,
+            scheduled_departure__lte=upcoming_cutoff,
+            status__in=['scheduled', 'boarding']
+        ).select_related('gate').order_by('scheduled_departure')[:10]
+        
+        data = {
+            'total_airports': total_airports,
+            'total_flights': total_flights,
+            'flights': {
+                'total': total_flights,
+                'today': today_flights,
+                'active': active_flights,
+                'delayed': delayed_flights,
+                'by_status': list(flights_by_status),
+            },
+            'gates': {
+                'total': total_gates,
+                'available': available_gates,
+                'occupied': occupied_gates,
+                'maintenance': maintenance_gates,
+                'utilization': round(gate_utilization, 2),
+            },
+            'passengers': {
+                'total': total_passengers,
+            },
+            'staff': {
+                'total': total_staff,
+                'available': available_staff,
+                'by_role': list(staff_by_role),
+            },
+            'airports': {
+                'total': total_airports,
+                'active': active_airports,
+            },
+            'upcoming_flights': FlightSerializer(upcoming_flights, many=True).data,
+            'recent_events': EventLogSerializer(recent_events, many=True).data,
+        }
+        
+        serializer = DashboardSummarySerializer(data)
+        return Response(serializer.data)
+
+
+class MetricsView(APIView):
+    """API endpoint for operational metrics.
+    
+    Provides detailed operational metrics including on-time performance,
+    passenger counts, and revenue data.
+    """
+    
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        """Get operational metrics."""
+        # Time period
+        period = request.query_params.get('period', 'day')
+        
+        if period == 'day':
+            cutoff = timezone.now() - timedelta(days=1)
+        elif period == 'week':
+            cutoff = timezone.now() - timedelta(weeks=1)
+        elif period == 'month':
+            cutoff = timezone.now() - timedelta(days=30)
+        elif period == 'year':
+            cutoff = timezone.now() - timedelta(days=365)
+        else:
+            cutoff = timezone.now() - timedelta(days=1)
+        
+        # Flight metrics
+        flights_total = Flight.objects.filter(scheduled_departure__gte=cutoff).count()
+        flights_on_time = Flight.objects.filter(
+            scheduled_departure__gte=cutoff,
+            status__in=['departed', 'arrived'],
+            delay_minutes__lte=15
+        ).count()
+        
+        on_time_rate = (flights_on_time / flights_total * 100) if flights_total > 0 else 0
+        
+        # Average delay
+        avg_delay = Flight.objects.filter(
+            scheduled_departure__gte=cutoff,
+            delay_minutes__gt=0
+        ).aggregate(Avg('delay_minutes'))['delay_minutes__avg'] or 0
+        
+        # Passenger metrics
+        passengers_total = Passenger.objects.filter(created_at__gte=cutoff).count()
+        
+        data = {
+            'period': period,
+            'flights': {
+                'total': flights_total,
+                'on_time': flights_on_time,
+                'on_time_rate': round(on_time_rate, 2),
+                'average_delay_minutes': round(avg_delay, 2),
+            },
+            'passengers': {
+                'total': passengers_total,
+            },
+        }
+        
+        return Response(data)
+
+
+# HONEYPOT API ENDPOINTS
+# These are decoy endpoints designed to trap and confuse automated scanners.
+# They return misleading responses and log all access for security analysis.
+
+
+def get_client_ip(request):
+    """Get client IP from request, handling proxies."""
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        return x_forwarded_for.split(',')[0].strip()
+    return request.META.get('REMOTE_ADDR', 'unknown')
+
+
+def log_honeypot_access(request, endpoint_type):
+    """Log honeypot endpoint access."""
+    ip = get_client_ip(request)
+    user_agent = request.META.get('HTTP_USER_AGENT', 'unknown')
+    method = request.method
+    
+    honeypot_logger.critical(
+        f"API HONEYPOT TRIGGERED | Type: {endpoint_type} | "
+        f"IP: {ip} | Method: {method} | "
+        f"User-Agent: {user_agent} | Path: {request.path}"
+    )
+
+
+def get_random_response():
+    """Generate a random fake response to confuse attackers."""
+    import random
+    
+    fake_responses = [
+        {"status": "error", "message": "Resource not found", "code": 404},
+        {"error": "Access denied", "reason": "Insufficient permissions"},
+        {"result": None, "success": False, "error": "Invalid request"},
+    ]
+    
+    return random.choice(fake_responses)
+
+
+@csrf_exempt
+def honeypot_backup_endpoint(request):
+    """
+    Honeypot endpoint mimicking a backup file endpoint.
+    
+    Traps scanners looking for exposed backup files.
+    Returns misleading 404 response while logging the attempt.
+    """
+    log_honeypot_access(request, 'backup')
+    return JsonResponse(
+        {"error": "Backup not found"},
+        status=404
+    )
+
+
+@csrf_exempt
+def honeypot_debug_endpoint(request):
+    """
+    Honeypot endpoint mimicking a debug interface.
+    
+    Traps scanners looking for debug endpoints.
+    Returns misleading response while logging the attempt.
+    """
+    log_honeypot_access(request, 'debug')
+    
+    # Return different responses based on method
+    if request.method == 'GET':
+        return JsonResponse(
+            {"debug": "disabled", "mode": "production"},
+            status=403
+        )
+    else:
+        return JsonResponse(
+            {"error": "Method not allowed"},
+            status=405
+        )
+
+
+@csrf_exempt
+def honeypot_admin_endpoint(request):
+    """
+    Honeypot endpoint mimicking an admin configuration panel.
+    
+    Traps privilege escalation attempts.
+    Returns misleading response while logging the attempt.
+    """
+    log_honeypot_access(request, 'admin-config')
+    
+    # Return fake admin interface info
+    return JsonResponse(
+        {
+            "admin": "unavailable",
+            "configuration": "locked",
+            "access_level": "denied"
+        },
+        status=401
+    )
+
+
+@csrf_exempt
+def honeypot_internal_endpoint(request):
+    """
+    Honeypot endpoint mimicking an internal user API.
+    
+    Traps reconnaissance attempts for internal APIs.
+    Returns misleading response while logging the attempt.
+    """
+    log_honeypot_access(request, 'internal-users')
+    
+    return JsonResponse(
+        {
+            "users": [],
+            "count": 0,
+            "error": "Internal API access denied"
+        },
+        status=403
+    )
+
+
+@csrf_exempt
+def honeypot_database_endpoint(request):
+    """
+    Honeypot endpoint mimicking a database interface.
+    
+    Traps attempts to access database directly.
+    Returns misleading response while logging the attempt.
+    """
+    log_honeypot_access(request, 'database')
+    
+    return JsonResponse(
+        {
+            "database": "connected",
+            "tables": 0,
+            "error": "Query execution failed"
+        },
+        status=500
+    )
+
+
+@csrf_exempt
+def honeypot_status_endpoint(request):
+    """
+    Honeypot status endpoint.
+    
+    Returns basic honeypot system status.
+    This endpoint is intentionally non-obvious to confuse scanners.
+    """
+    log_honeypot_access(request, 'status')
+    
+    # Return minimal info
+    return JsonResponse({
+        "status": "ok",
+        "version": "1.0.0"
+    })
