@@ -1,0 +1,85 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+venv/
+ENV/
+env/
+.venv/
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+/media
+/staticfiles
+
+# Virtual Environment
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+.hypothesis/
+
+# Node_modules (if used)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Database
+*.sqlite3
+*.db
+
+# Migration files (optional - some prefer to keep them)
+migrations/
+!migrations/__init__.py
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# Static and Media files (can be regenerated)
+staticfiles/
+mediafiles/
+
+# Secret keys
+*.pem
+*.key
+
+# Logs
+logs/
+*.log
