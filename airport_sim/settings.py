@@ -53,6 +53,9 @@ MIDDLEWARE = [
     # Security middleware - must be at top
     'django.middleware.security.SecurityMiddleware',
     
+    # WhiteNoise for static files (must be after SecurityMiddleware)
+    'whitenoise.middleware.WhiteNoiseMiddleware',
+    
     # CORS support (for API versioning)
     'corsheaders.middleware.CorsMiddleware',
     
@@ -173,10 +176,17 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+# WhiteNoise for serving static files in production
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
 # Additional static files locations
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]
+
+# Media files (user uploads)
+MEDIA_URL = 'media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Media files (user uploads)
 MEDIA_URL = 'media/'
