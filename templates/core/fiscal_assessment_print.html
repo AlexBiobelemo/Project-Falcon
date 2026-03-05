@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+{% load core_filters %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fiscal Assessment Report - {{ airport.code }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            color: #333;
+            font-size: 12px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 20px;
+        }
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        .header p {
+            color: #666;
+        }
+        .info-section {
+            margin-bottom: 20px;
+        }
+        .info-section h2 {
+            font-size: 16px;
+            margin-bottom: 10px;
+            padding: 5px 10px;
+            background: #f5f5f5;
+            border-left: 3px solid #333;
+        }
+        .info-grid {
+            display: table;
+            width: 100%;
+        }
+        .info-row {
+            display: table-row;
+        }
+        .info-cell {
+            display: table-cell;
+            padding: 5px 10px;
+            width: 25%;
+        }
+        .info-label {
+            font-weight: bold;
+            color: #666;
+        }
+        .metrics {
+            display: table;
+            width: 100%;
+            margin-bottom: 20px;
+            border-collapse: collapse;
+        }
+        .metrics td {
+            padding: 15px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+        .metrics .label {
+            display: block;
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        .metrics .value {
+            display: block;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .revenue { background: #e8f5e9; }
+        .expense { background: #ffebee; }
+        .profit { background: #e3f2fd; }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            padding: 8px 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background: #f5f5f5;
+            font-weight: bold;
+        }
+        .text-right { text-align: right; }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            text-align: center;
+            color: #666;
+            font-size: 10px;
+        }
+        @media print {
+            body { padding: 0; }
+            .no-print { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print" style="margin-bottom: 20px;">
+        <button onclick="window.print()" style="padding: 10px 20px; cursor: pointer;">
+            Print / Save as PDF
+        </button>
+        <a href="{% url 'core:fiscal_assessment_detail' assessment.id %}" style="padding: 10px 20px; margin-left: 10px;">
+            Back to Details
+        </a>
+    </div>
+
+    <div class="header">
+        <h1>Fiscal Assessment Report</h1>
+        <p>{{ airport.name }} ({{ airport.code }})</p>
+        <p>{{ assessment.period_type|title }} Report | {{ assessment.start_date }} to {{ assessment.end_date }}</p>
+    </div>
+
+    <div class="info-section">
+        <div class="info-grid">
+            <div class="info-row">
+                <div class="info-cell">
+                    <span class="info-label">Status</span><br>
+                    {{ assessment.status|title|replace_underscore }}
+                </div>
+                <div class="info-cell">
+                    <span class="info-label">Assessed By</span><br>
+                    {{ assessment.assessed_by|default:"-" }}
+                </div>
+                <div class="info-cell">
+                    <span class="info-label">Approved By</span><br>
+                    {{ assessment.approved_by|default:"-" }}
+                </div>
+                <div class="info-cell">
+                    <span class="info-label">Approved Date</span><br>
+                    {{ assessment.approved_at|default:"-" }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <table class="metrics">
+        <tr>
+            <td class="revenue">
+                <span class="label">Total Revenue</span>
+                <span class="value">${{ assessment.total_revenue|floatformat:2 }}</span>
+            </td>
+            <td class="expense">
+                <span class="label">Total Expenses</span>
+                <span class="value">${{ assessment.total_expenses|floatformat:2 }}</span>
+            </td>
+            <td class="profit">
+                <span class="label">Net Profit</span>
+                <span class="value" style="color: {% if assessment.net_profit >= 0 %}#2e7d32{% else %}#c62828{% endif %};">${{ assessment.net_profit|floatformat:2 }}</span>
+            </td>
+        </tr>
+    </table>
+
+    <div class="info-section">
+        <h2>Operational Metrics</h2>
+        <div class="info-grid">
+            <div class="info-row">
+                <div class="info-cell">
+                    <span class="info-label">Passengers</span><br>
+                    {{ assessment.passenger_count|default:0 }}
+                </div>
+                <div class="info-cell">
+                    <span class="info-label">Flights</span><br>
+                    {{ assessment.flight_count|default:0 }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="info-section">
+        <h2>Revenue Breakdown</h2>
+        <table>
+            <tr>
+                <td>Fuel Revenue</td>
+                <td class="text-right">${{ assessment.fuel_revenue|floatformat:2 }}</td>
+            </tr>
+            <tr>
+                <td>Parking Revenue</td>
+                <td class="text-right">${{ assessment.parking_revenue|floatformat:2 }}</td>
+            </tr>
+            <tr>
+                <td>Retail Revenue</td>
+                <td class="text-right">${{ assessment.retail_revenue|floatformat:2 }}</td>
+            </tr>
+            <tr>
+                <td>Landing Fees</td>
+                <td class="text-right">${{ assessment.landing_fees|floatformat:2 }}</td>
+            </tr>
+            <tr>
+                <td>Cargo Revenue</td>
+                <td class="text-right">${{ assessment.cargo_revenue|floatformat:2 }}</td>
+            </tr>
+            <tr>
+                <td>Other Revenue</td>
+                <td class="text-right">${{ assessment.other_revenue|floatformat:2 }}</td>
+            </tr>
+            <tr style="font-weight: bold; background: #f5f5f5;">
+                <td>Total Revenue</td>
+                <td class="text-right">${{ assessment.total_revenue|floatformat:2 }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="info-section">
+        <h2>Expense Breakdown</h2>
+        <table>
+            <tr>
+                <td>Security Costs</td>
+                <td class="text-right">${{ assessment.security_costs|floatformat:2 }}</td>
+            </tr>
+            <tr>
+                <td>Maintenance Costs</td>
+                <td class="text-right">${{ assessment.maintenance_costs|floatformat:2 }}</td>
+            </tr>
+            <tr>
+                <td>Operational Costs</td>
+                <td class="text-right">${{ assessment.operational_costs|floatformat:2 }}</td>
+            </tr>
+            <tr>
+                <td>Staff Costs</td>
+                <td class="text-right">${{ assessment.staff_costs|floatformat:2 }}</td>
+            </tr>
+            <tr>
+                <td>Utility Costs</td>
+                <td class="text-right">${{ assessment.utility_costs|floatformat:2 }}</td>
+            </tr>
+            <tr>
+                <td>Other Expenses</td>
+                <td class="text-right">${{ assessment.other_expenses|floatformat:2 }}</td>
+            </tr>
+            <tr style="font-weight: bold; background: #f5f5f5;">
+                <td>Total Expenses</td>
+                <td class="text-right">${{ assessment.total_expenses|floatformat:2 }}</td>
+            </tr>
+        </table>
+    </div>
+
+    {% if assessment.assessment_notes %}
+    <div class="info-section">
+        <h2>Notes</h2>
+        <p>{{ assessment.assessment_notes }}</p>
+    </div>
+    {% endif %}
+
+    <div class="footer">
+        <p>Generated on {% now "F d, Y H:i" %}</p>
+        <p>{{ airport.name }} - {{ airport.city }}</p>
+    </div>
+</body>
+</html>

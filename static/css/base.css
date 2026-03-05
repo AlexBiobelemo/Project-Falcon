@@ -1,0 +1,592 @@
+/**
+ * Blue Falcon - Base Styles
+ * Central stylesheet for all pages
+ * Contains theme variables, dark/light mode support, and common component styles
+ * WCAG 2.1 AA Compliant
+ */
+
+/* ============================================
+   SKIP NAVIGATION LINK (WCAG 2.4.1)
+   ============================================ */
+.skip-link {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: #000;
+    color: #fff;
+    padding: 8px 16px;
+    text-decoration: none;
+    z-index: 9999;
+    border-radius: 0 0 4px 0;
+    font-weight: 600;
+}
+
+.skip-link:focus {
+    top: 0;
+    outline: 3px solid #fff;
+    outline-offset: 2px;
+}
+
+/* ============================================
+   FOCUS INDICATORS (WCAG 2.4.7)
+   ============================================ */
+*:focus {
+    outline: 3px solid #58a6ff;
+    outline-offset: 2px;
+}
+
+/* Remove default outline for mouse users, keep for keyboard */
+*:focus:not(:focus-visible) {
+    outline: none;
+}
+
+*:focus-visible {
+    outline: 3px solid #58a6ff;
+    outline-offset: 2px;
+}
+
+/* High contrast focus for buttons */
+.btn:focus-visible,
+.form-control:focus,
+.form-select:focus {
+    outline: 3px solid #58a6ff;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(88, 166, 255, 0.3);
+}
+
+/* CSS Custom Properties - Theme Variables */
+:root {
+    --bg-primary: #1a1a2e;
+    --bg-secondary: #16213e;
+    --bg-card: #0f3460;
+    --text-primary: #eaeaea;
+    --text-secondary: #b0b0b0;
+    --border-color: #2d3748;
+    
+    /* Status colors */
+    --status-scheduled: #6c757d;
+    --status-boarding: #0dcaf0;
+    --status-departed: #198754;
+    --status-arrived: #20c997;
+    --status-delayed: #ffc107;
+    --status-cancelled: #dc3545;
+    --status-ontime: #198754;
+    
+    /* Gate colors */
+    --gate-available-light: #d4edda;
+    --gate-available-dark: rgba(25, 135, 84, 0.3);
+    --gate-occupied-light: #fff3cd;
+    --gate-occupied-dark: rgba(255, 193, 7, 0.3);
+}
+
+/* Dark Mode Base Styles */
+[data-bs-theme="dark"] {
+    --bs-body-bg: #0d1117;
+    --bs-body-color: #c9d1d9;
+    --bs-card-bg: #161b22;
+    --bs-card-border-color: #30363d;
+    --bs-table-bg: #161b22;
+    --bs-table-color: #c9d1d9;
+    --bs-table-striped-bg: #21262d;
+    --bs-table-hover-bg: #30363d;
+    --bs-navbar-bg: #161b22;
+    --bs-navbar-color: #c9d1d9;
+    --bs-list-group-bg: #161b22;
+    --bs-list-group-color: #c9d1d9;
+    --bs-list-group-border-color: #30363d;
+}
+
+/* Light Mode Adjustments */
+[data-bs-theme="light"] {
+    --bs-body-bg: #ffffff;
+    --bs-body-color: #212529;
+    --bs-card-bg: #ffffff;
+    --bs-card-border-color: #dee2e6;
+    --bs-table-bg: #ffffff;
+    --bs-table-color: #212529;
+}
+
+/* Dark mode card improvements */
+[data-bs-theme="dark"] .card {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
+}
+
+/* Dark mode status cards */
+[data-bs-theme="dark"] .status-card {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%) !important;
+    border: 1px solid #30363d;
+}
+
+/* Status Card Base Styles */
+.status-card {
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+}
+
+/* Left Accent Metric Cards - Modern Design */
+.metric-card {
+    background: var(--bs-card-bg);
+    border: 1px solid var(--bs-card-border-color);
+    border-left: 4px solid var(--status-color);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.metric-card .metric-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--status-color);
+    margin-bottom: 4px;
+}
+
+.metric-card .metric-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Status-specific accent colors */
+.metric-card.metric-scheduled {
+    --status-color: var(--status-scheduled);
+}
+
+.metric-card.metric-boarding {
+    --status-color: var(--status-boarding);
+}
+
+.metric-card.metric-departed {
+    --status-color: var(--status-departed);
+}
+
+.metric-card.metric-arrived {
+    --status-color: var(--status-arrived);
+}
+
+.metric-card.metric-delayed {
+    --status-color: var(--status-delayed);
+}
+
+.metric-card.metric-cancelled {
+    --status-color: var(--status-cancelled);
+}
+
+.metric-card.metric-ontime {
+    --status-color: var(--status-ontime);
+}
+
+/* Dark mode metric card improvements */
+[data-bs-theme="dark"] .metric-card {
+    background: #161b22;
+    border-color: #30363d;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+[data-bs-theme="dark"] .metric-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+[data-bs-theme="dark"] .metric-card .metric-label {
+    color: #8b949e;
+}
+
+/* Light mode metric card */
+[data-bs-theme="light"] .metric-card {
+    background: #ffffff;
+    border-color: #dee2e6;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+[data-bs-theme="light"] .metric-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+[data-bs-theme="light"] .metric-card .metric-label {
+    color: #6c757d;
+}
+
+/* Responsive metric cards */
+@media (max-width: 768px) {
+    .metric-card {
+        padding: 16px;
+    }
+    
+    .metric-card .metric-value {
+        font-size: 1.5rem;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .metric-card {
+        border-width: 2px;
+    }
+}
+
+/* Dark mode status card text visibility */
+[data-bs-theme="dark"] .status-card h3,
+[data-bs-theme="dark"] .status-card p,
+[data-bs-theme="dark"] .status-card .mb-0 {
+    color: #f0f0f0 !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Ensure all status cards have proper contrast in dark mode */
+[data-bs-theme="dark"] .status-card.status-scheduled {
+    background: #4a5568 !important;
+}
+[data-bs-theme="dark"] .status-card.status-boarding {
+    background: #0d6efd !important;
+}
+[data-bs-theme="dark"] .status-card.status-departed {
+    background: #198754 !important;
+}
+[data-bs-theme="dark"] .status-card.status-arrived {
+    background: #20c997 !important;
+}
+[data-bs-theme="dark"] .status-card.status-delayed {
+    background: #ffc107 !important;
+    color: #000 !important;
+}
+[data-bs-theme="dark"] .status-card.status-cancelled {
+    background: #dc3545 !important;
+}
+[data-bs-theme="dark"] .status-card.status-ontime {
+    background: #198754 !important;
+}
+
+.status-scheduled { background: var(--status-scheduled); }
+.status-boarding { background: var(--status-boarding); }
+.status-departed { background: var(--status-departed); }
+.status-arrived { background: var(--status-arrived); }
+.status-delayed { background: var(--status-delayed); }
+[data-bs-theme="light"] .status-delayed { color: #000; }
+[data-bs-theme="dark"] .status-delayed { color: #000; }
+.status-cancelled { background: var(--status-cancelled); }
+.status-ontime { background: var(--status-ontime); }
+
+/* Dark mode table improvements */
+[data-bs-theme="dark"] .flight-table th {
+    background: #21262d !important;
+    border-bottom: 2px solid #30363d;
+}
+
+[data-bs-theme="light"] .flight-table th {
+    background: #f8f9fa;
+}
+
+/* Flight table styles */
+.flight-table {
+    font-size: 13px;
+}
+
+.flight-table th {
+    font-weight: 600;
+}
+
+/* Gate colors */
+[data-bs-theme="light"] .gate-available {
+    background: var(--gate-available-light);
+}
+
+[data-bs-theme="dark"] .gate-available {
+    background: var(--gate-available-dark) !important;
+}
+
+[data-bs-theme="light"] .gate-occupied {
+    background: var(--gate-occupied-light);
+}
+
+[data-bs-theme="dark"] .gate-occupied {
+    background: var(--gate-occupied-dark) !important;
+}
+
+/* Permission badge */
+.permission-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
+/* Dark mode text improvements */
+[data-bs-theme="dark"] .text-muted {
+    color: #8b949e !important;
+}
+
+[data-bs-theme="dark"] .table > thead {
+    background-color: #21262d;
+}
+
+/* Dark mode navbar */
+[data-bs-theme="dark"] .navbar {
+    border-bottom: 1px solid #30363d;
+}
+
+/* Dark mode forms */
+[data-bs-theme="dark"] .form-control, 
+[data-bs-theme="dark"] .form-select {
+    background-color: #21262d;
+    border-color: #30363d;
+    color: #c9d1d9;
+}
+
+[data-bs-theme="dark"] .form-control:focus, 
+[data-bs-theme="dark"] .form-select:focus {
+    background-color: #30363d;
+    border-color: #58a6ff;
+}
+
+/* Dark mode buttons */
+[data-bs-theme="dark"] .btn-outline-primary {
+    border-color: #58a6ff;
+    color: #58a6ff;
+}
+
+[data-bs-theme="dark"] .btn-outline-primary:hover {
+    background-color: #58a6ff;
+    color: #0d1117;
+}
+
+/* Dark mode badges */
+[data-bs-theme="dark"] .badge {
+    color: #fff;
+}
+
+/* Dark mode list group */
+[data-bs-theme="dark"] .list-group-item {
+    background-color: #161b22;
+    border-color: #30363d;
+    color: #c9d1d9;
+}
+
+[data-bs-theme="dark"] .list-group-item-action:hover {
+    background-color: #21262d;
+}
+
+/* Dark mode pagination */
+[data-bs-theme="dark"] .page-link {
+    background-color: #161b22;
+    border-color: #30363d;
+    color: #58a6ff;
+}
+
+[data-bs-theme="dark"] .page-item.active .page-link {
+    background-color: #58a6ff;
+    border-color: #58a6ff;
+}
+
+/* Dark mode alerts */
+[data-bs-theme="dark"] .alert {
+    border-color: #30363d;
+}
+
+/* Dark mode modal */
+[data-bs-theme="dark"] .modal-content {
+    background-color: #161b22;
+    border-color: #30363d;
+}
+
+[data-bs-theme="dark"] .modal-header, 
+[data-bs-theme="dark"] .modal-footer {
+    border-color: #30363d;
+}
+
+/* Dark mode dropdown */
+[data-bs-theme="dark"] .dropdown-menu {
+    background-color: #161b22;
+    border-color: #30363d;
+}
+
+[data-bs-theme="dark"] .dropdown-item {
+    color: #c9d1d9;
+}
+
+[data-bs-theme="dark"] .dropdown-item:hover {
+    background-color: #21262d;
+    color: #fff;
+}
+
+/* Dark mode search icon */
+[data-bs-theme="dark"] .search-icon {
+    color: #8b949e;
+}
+
+/* User avatar circle styles */
+.user-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+    color: white;
+    font-weight: 600;
+    font-size: 14px;
+    text-transform: uppercase;
+}
+
+[data-bs-theme="light"] .user-avatar {
+    background: linear-gradient(135deg, #0d6efd 0%, #0056b3 100%);
+}
+
+/* Theme toggle button */
+.theme-toggle {
+    background: transparent;
+    border: none;
+    color: #c9d1d9;
+    cursor: pointer;
+    padding: 0.5rem;
+    font-size: 1.1rem;
+    transition: color 0.3s ease;
+}
+
+.theme-toggle:hover {
+    color: #58a6ff;
+}
+
+/* Utility classes */
+.text-end {
+    text-align: right;
+}
+
+/* Common page header styles */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.page-header h1 {
+    margin-bottom: 0;
+}
+
+/* Card header styles */
+.card-header h5,
+.card-header h4 {
+    margin-bottom: 0;
+}
+
+/* Filter form styles */
+.filter-form .form-group {
+    margin-bottom: 1rem;
+}
+
+/* Table enhancements */
+.table-responsive {
+    margin-bottom: 0;
+}
+
+/* Action buttons */
+.action-buttons .btn {
+    margin-right: 0.25rem;
+}
+
+.action-buttons .btn:last-child {
+    margin-right: 0;
+}
+
+/* Empty state */
+.empty-state {
+    text-align: center;
+    padding: 2rem;
+}
+
+.empty-state .text-muted {
+    margin-bottom: 0;
+}
+
+/* Status badge variants */
+.badge-status-scheduled { background-color: var(--status-scheduled); }
+.badge-status-boarding { background-color: var(--status-boarding); }
+.badge-status-departed { background-color: var(--status-departed); }
+.badge-status-arrived { background-color: var(--status-arrived); }
+.badge-status-delayed { background-color: var(--status-delayed); color: #000; }
+.badge-status-cancelled { background-color: var(--status-cancelled); }
+.badge-status-ontime { background-color: var(--status-ontime); }
+
+/* ============================================
+   ACCESSIBILITY UTILITIES
+   ============================================ */
+
+/* Visually hidden - accessible to screen readers but not visible */
+.visually-hidden,
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Reduced motion support (WCAG 2.3.3) */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+    
+    .alert {
+        transition: none;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .btn:focus-visible,
+    .form-control:focus,
+    .form-select:focus,
+    a:focus {
+        outline: 3px solid currentColor;
+        outline-offset: 2px;
+    }
+}
+
+/* Focus visible for mouse/touch users */
+:focus:not(:focus-visible) {
+    outline: none;
+}
+
+:focus-visible {
+    outline: 3px solid #58a6ff;
+    outline-offset: 2px;
+}
+
+/* ============================================
+   HONEYPOT FIELD HIDING (Form Security)
+   ============================================ */
+
+/* Honeypot field hiding */
+.hp-field {
+    position: absolute !important;
+    left: -9999px !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* Alternative hiding method for extra security */
+input[name="website_url"],
+input[name="contact_email"],
+input[name="phone_number"],
+input[class*="hp-"] {
+    position: absolute;
+    top: -9999px;
+    left: -9999px;
+}

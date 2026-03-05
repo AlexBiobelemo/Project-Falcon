@@ -1,0 +1,105 @@
+{% extends 'simulation/dashboard.html' %}
+{% load core_filters %}
+{% load static %}
+
+{% block extra_css %}
+{# Page-specific styles can be added here if needed #}
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-file"></i> Documents</h1>
+        <a href="{% url 'core:document_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> New Document
+        </a>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label for="airport" class="form-label">Airport</label>
+                    <select name="airport" id="airport" class="form-select">
+                        <option value="">All Airports</option>
+                        {% for airport in airports %}
+                        <option value="{{ airport.id }}" {% if selected_airport == airport.id|stringformat:"s" %}selected{% endif %}>
+                            {{ airport.code }} - {{ airport.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="document_type" class="form-label">Document Type</label>
+                    <select name="document_type" id="document_type" class="form-select">
+                        <option value="">All Types</option>
+                        {% for dt in document_type_choices %}
+                        <option value="{{ dt }}" {% if selected_document_type == dt %}selected{% endif %}>
+                            {{ dt|title }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-secondary w-100">
+                        <i class="fas fa-filter"></i> Filter
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Documents Table -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th scope="col">Name</th>
+                            <th scope="col">Type</th>
+                            <th scope="col">Airport</th>
+                            <th scope="col">Template</th>
+                            <th scope="col">Created By</th>
+                            <th scope="col">Created At</th>
+                            <th scope="col">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for document in documents %}
+                        <tr>
+                            <td>
+                                <strong>{{ document.name }}</strong>
+                            </td>
+                            <td>{{ document.document_type|title }}</td>
+                            <td>{{ document.airport.code|default:"-" }}</td>
+                            <td>
+                                {% if document.is_template %}
+                                <span class="badge bg-info">Template</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Document</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ document.created_by|default:"-" }}</td>
+                            <td>{{ document.created_at|date:"M d, Y H:i" }}</td>
+                            <td>
+                                <a href="{% url 'core:document_detail' document.id %}" class="btn btn-sm btn-info" aria-label="View document: {{ document.name }}">
+                                    <i class="fas fa-eye" aria-hidden="true"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-4">
+                                <p class="text-muted mb-0">No documents found.</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

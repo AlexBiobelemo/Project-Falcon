@@ -1,0 +1,126 @@
+{% extends 'simulation/dashboard.html' %}
+{% load core_filters %}
+{% load static %}
+
+{% block extra_css %}
+{# Page-specific styles can be added here if needed #}
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-calculator"></i> Fiscal Assessments</h1>
+        <a href="{% url 'core:fiscal_assessment_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> New Assessment
+        </a>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label for="airport" class="form-label">Airport</label>
+                    <select name="airport" id="airport" class="form-select">
+                        <option value="">All Airports</option>
+                        {% for airport in airports %}
+                        <option value="{{ airport.id }}" {% if selected_airport == airport.id|stringformat:"s" %}selected{% endif %}>
+                            {{ airport.code }} - {{ airport.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="period_type" class="form-label">Period Type</label>
+                    <select name="period_type" id="period_type" class="form-select">
+                        <option value="">All Periods</option>
+                        {% for period in period_choices %}
+                        <option value="{{ period }}" {% if selected_period_type == period %}selected{% endif %}>
+                            {{ period|title }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="status" class="form-label">Status</label>
+                    <select name="status" id="status" class="form-select">
+                        <option value="">All Statuses</option>
+                        {% for status in status_choices %}
+                        <option value="{{ status }}" {% if selected_status == status %}selected{% endif %}>
+                            {{ status|title|replace_underscore }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-secondary w-100">
+                        <i class="fas fa-filter"></i> Filter
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Assessments Table -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th scope="col">Airport</th>
+                            <th scope="col">Period Type</th>
+                            <th scope="col">Start Date</th>
+                            <th scope="col">End Date</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Total Revenue</th>
+                            <th scope="col">Total Expenses</th>
+                            <th scope="col">Net Profit</th>
+                            <th scope="col">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for assessment in assessments %}
+                        <tr>
+                            <td>
+                                <strong>{{ assessment.airport.code }}</strong><br>
+                                <small class="text-muted">{{ assessment.airport.name }}</small>
+                            </td>
+                            <td>{{ assessment.period_type|title }}</td>
+                            <td>{{ assessment.start_date }}</td>
+                            <td>{{ assessment.end_date }}</td>
+                            <td>
+                                <span class="badge bg-{% if assessment.status == 'approved' %}success{% elif assessment.status == 'completed' %}info{% elif assessment.status == 'in_progress' %}warning{% else %}secondary{% endif %}">
+                                    {{ assessment.status|title|replace_underscore }}
+                                </span>
+                            </td>
+                            <td class="text-end">${{ assessment.total_revenue|floatformat:2 }}</td>
+                            <td class="text-end">${{ assessment.total_expenses|floatformat:2 }}</td>
+                            <td class="text-end">
+                                <strong class="{% if assessment.net_profit >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                    ${{ assessment.net_profit|floatformat:2 }}
+                                </strong>
+                            </td>
+                            <td>
+                                <a href="{% url 'core:fiscal_assessment_detail' assessment.id %}" class="btn btn-sm btn-info" aria-label="View assessment for {{ assessment.airport.code }}">
+                                    <i class="fas fa-eye" aria-hidden="true"></i>
+                                </a>
+                                <a href="{% url 'core:fiscal_assessment_update' assessment.id %}" class="btn btn-sm btn-warning" aria-label="Edit assessment for {{ assessment.airport.code }}">
+                                    <i class="fas fa-edit" aria-hidden="true"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center py-4">
+                                <p class="text-muted mb-0">No fiscal assessments found.</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

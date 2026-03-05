@@ -1,0 +1,277 @@
+{% extends 'simulation/dashboard.html' %}
+{% load core_filters %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    [data-bs-theme="dark"] .card-header.bg-success {
+        background-color: #1a4d2e !important;
+        color: #fff;
+    }
+    [data-bs-theme="dark"] .card-header.bg-danger {
+        background-color: #6d282e !important;
+        color: #fff;
+    }
+    [data-bs-theme="dark"] .form-control, 
+    [data-bs-theme="dark"] .form-select {
+        background-color: #21262d;
+        border-color: #30363d;
+        color: #c9d1d9;
+    }
+    [data-bs-theme="dark"] .form-control:focus, 
+    [data-bs-theme="dark"] .form-select:focus {
+        background-color: #30363d;
+        border-color: #58a6ff;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-calculator"></i> {% if assessment %}Edit{% else %}New{% endif %} Fiscal Assessment</h1>
+        <a href="{% url 'core:fiscal_assessment_list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to List
+        </a>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-danger">
+        <strong>Error:</strong> {{ error }}
+    </div>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+        
+        <!-- Basic Info -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Airport & Period</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="airport" class="form-label">Airport *</label>
+                            <select name="airport" id="airport" class="form-select" required>
+                                <option value="">Select Airport</option>
+                                {% for airport in airports %}
+                                <option value="{{ airport.id }}" {% if assessment.airport_id == airport.id %}selected{% endif %}>
+                                    {{ airport.code }} - {{ airport.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="mb-3">
+                            <label for="period_type" class="form-label">Period Type *</label>
+                            <select name="period_type" id="period_type" class="form-select" required>
+                                {% for period in period_choices %}
+                                <option value="{{ period }}" {% if assessment.period_type == period %}selected{% endif %}>
+                                    {{ period|title }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="mb-3">
+                            <label for="status" class="form-label">Status</label>
+                            <select name="status" id="status" class="form-select">
+                                {% for status in status_choices %}
+                                <option value="{{ status }}" {% if assessment.status == status %}selected{% endif %}>
+                                    {{ status|title|replace_underscore }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="start_date" class="form-label">Start Date *</label>
+                            <input type="date" name="start_date" id="start_date" class="form-control" 
+                                   value="{{ assessment.start_date|default:'' }}" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="end_date" class="form-label">End Date *</label>
+                            <input type="date" name="end_date" id="end_date" class="form-control" 
+                                   value="{{ assessment.end_date|default:'' }}" required>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Operational Metrics -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Operational Metrics</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="passenger_count" class="form-label">Passenger Count</label>
+                            <input type="number" name="passenger_count" id="passenger_count" class="form-control" 
+                                   value="{{ assessment.passenger_count|default:0 }}">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="flight_count" class="form-label">Flight Count</label>
+                            <input type="number" name="flight_count" id="flight_count" class="form-control" 
+                                   value="{{ assessment.flight_count|default:0 }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Revenue Breakdown -->
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">Revenue Breakdown</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="fuel_revenue" class="form-label">Fuel Revenue</label>
+                            <input type="number" name="fuel_revenue" id="fuel_revenue" class="form-control" 
+                                   value="{{ assessment.fuel_revenue|default:0 }}" step="0.01" min="0">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="parking_revenue" class="form-label">Parking Revenue</label>
+                            <input type="number" name="parking_revenue" id="parking_revenue" class="form-control" 
+                                   value="{{ assessment.parking_revenue|default:0 }}" step="0.01" min="0">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="retail_revenue" class="form-label">Retail Revenue</label>
+                            <input type="number" name="retail_revenue" id="retail_revenue" class="form-control" 
+                                   value="{{ assessment.retail_revenue|default:0 }}" step="0.01" min="0">
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="landing_fees" class="form-label">Landing Fees</label>
+                            <input type="number" name="landing_fees" id="landing_fees" class="form-control" 
+                                   value="{{ assessment.landing_fees|default:0 }}" step="0.01" min="0">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="cargo_revenue" class="form-label">Cargo Revenue</label>
+                            <input type="number" name="cargo_revenue" id="cargo_revenue" class="form-control" 
+                                   value="{{ assessment.cargo_revenue|default:0 }}" step="0.01" min="0">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="other_revenue" class="form-label">Other Revenue</label>
+                            <input type="number" name="other_revenue" id="other_revenue" class="form-control" 
+                                   value="{{ assessment.other_revenue|default:0 }}" step="0.01" min="0">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Expense Breakdown -->
+        <div class="card mb-4">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">Expense Breakdown</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="security_costs" class="form-label">Security Costs</label>
+                            <input type="number" name="security_costs" id="security_costs" class="form-control" 
+                                   value="{{ assessment.security_costs|default:0 }}" step="0.01" min="0">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="maintenance_costs" class="form-label">Maintenance Costs</label>
+                            <input type="number" name="maintenance_costs" id="maintenance_costs" class="form-control" 
+                                   value="{{ assessment.maintenance_costs|default:0 }}" step="0.01" min="0">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="operational_costs" class="form-label">Operational Costs</label>
+                            <input type="number" name="operational_costs" id="operational_costs" class="form-control" 
+                                   value="{{ assessment.operational_costs|default:0 }}" step="0.01" min="0">
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="staff_costs" class="form-label">Staff Costs</label>
+                            <input type="number" name="staff_costs" id="staff_costs" class="form-control" 
+                                   value="{{ assessment.staff_costs|default:0 }}" step="0.01" min="0">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="utility_costs" class="form-label">Utility Costs</label>
+                            <input type="number" name="utility_costs" id="utility_costs" class="form-control" 
+                                   value="{{ assessment.utility_costs|default:0 }}" step="0.01" min="0">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="other_expenses" class="form-label">Other Expenses</label>
+                            <input type="number" name="other_expenses" id="other_expenses" class="form-control" 
+                                   value="{{ assessment.other_expenses|default:0 }}" step="0.01" min="0">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Additional Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="assessed_by" class="form-label">Assessed By</label>
+                            <input type="text" name="assessed_by" id="assessed_by" class="form-control" 
+                                   value="{{ assessment.assessed_by|default:'' }}">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="assessment_notes" class="form-label">Notes</label>
+                            <textarea name="assessment_notes" id="assessment_notes" class="form-control" rows="3">{{ assessment.assessment_notes|default:'' }}</textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <button type="submit" class="btn btn-primary btn-lg">
+                <i class="fas fa-save"></i> Save Assessment
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

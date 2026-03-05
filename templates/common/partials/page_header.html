@@ -1,0 +1,10 @@
+{# Reusable page header component #}
+{% load static %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>
+        {% if icon %}<i class="{{ icon }}"></i> {% endif %}{{ title }}
+    </h1>
+    <div class="actions">
+        {% block page_actions %}{% endblock %}
+    </div>
+</div>

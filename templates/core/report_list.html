@@ -1,0 +1,122 @@
+{% extends 'simulation/dashboard.html' %}
+{% load core_filters %}
+{% load static %}
+
+{% block extra_css %}
+{# Page-specific styles can be added here if needed #}
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-file-alt"></i> Reports</h1>
+        <a href="{% url 'core:report_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Generate Report
+        </a>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label for="airport" class="form-label">Airport</label>
+                    <select name="airport" id="airport" class="form-select">
+                        <option value="">All Airports</option>
+                        {% for airport in airports %}
+                        <option value="{{ airport.id }}" {% if selected_airport == airport.id|stringformat:"s" %}selected{% endif %}>
+                            {{ airport.code }} - {{ airport.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="report_type" class="form-label">Report Type</label>
+                    <select name="report_type" id="report_type" class="form-select">
+                        <option value="">All Types</option>
+                        {% for rt in report_type_choices %}
+                        <option value="{{ rt }}" {% if selected_report_type == rt %}selected{% endif %}>
+                            {{ rt|title|replace_underscore }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="format" class="form-label">Format</label>
+                    <select name="format" id="format" class="form-select">
+                        <option value="">All Formats</option>
+                        {% for fmt in format_choices %}
+                        <option value="{{ fmt }}" {% if selected_format == fmt %}selected{% endif %}>
+                            {{ fmt|upper }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-secondary w-100">
+                        <i class="fas fa-filter"></i> Filter
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Reports Table -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th scope="col">Title</th>
+                            <th scope="col">Airport</th>
+                            <th scope="col">Type</th>
+                            <th scope="col">Period</th>
+                            <th scope="col">Format</th>
+                            <th scope="col">Generated</th>
+                            <th scope="col">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for report in reports %}
+                        <tr>
+                            <td>
+                                <strong>{{ report.title }}</strong>
+                                {% if report.description %}
+                                <br><small class="text-muted">{{ report.description|truncatechars:50 }}</small>
+                                {% endif %}
+                            </td>
+                            <td>{{ report.airport.code }}</td>
+                            <td>{{ report.report_type|title|replace_underscore }}</td>
+                            <td>
+                                {{ report.period_start }}<br>
+                                <small class="text-muted">to {{ report.period_end }}</small>
+                            </td>
+                            <td><span class="badge bg-secondary">{{ report.format|upper }}</span></td>
+                            <td>
+                                {% if report.is_generated %}
+                                <span class="badge bg-success">Generated</span>
+                                {% else %}
+                                <span class="badge bg-warning">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'core:report_detail' report.id %}" class="btn btn-sm btn-info">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-4">
+                                <p class="text-muted mb-0">No reports found.</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

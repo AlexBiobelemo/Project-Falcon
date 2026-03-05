@@ -1,0 +1,218 @@
+{% extends 'simulation/dashboard.html' %}
+{% load core_filters %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-calculator"></i> Fiscal Assessment Details</h1>
+        <div>
+            <a href="{% url 'core:fiscal_assessment_list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to List
+            </a>
+            <a href="{% url 'core:fiscal_assessment_update' assessment.id %}" class="btn btn-warning">
+                <i class="fas fa-edit"></i> Edit
+            </a>
+            {% if assessment.status != 'approved' %}
+            <a href="{% url 'core:fiscal_assessment_approve' assessment.id %}" class="btn btn-success">
+                <i class="fas fa-check"></i> Approve
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Header Info -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start">
+                <div class="row flex-grow-1">
+                    <div class="col-md-3">
+                        <p class="text-muted mb-1">Airport</p>
+                        <h5>{{ airport.code }} - {{ airport.name }}</h5>
+                    </div>
+                    <div class="col-md-3">
+                        <p class="text-muted mb-1">Period</p>
+                        <h5>{{ assessment.period_type|title }}</h5>
+                    </div>
+                    <div class="col-md-3">
+                        <p class="text-muted mb-1">Date Range</p>
+                        <h5>{{ assessment.start_date }} to {{ assessment.end_date }}</h5>
+                    </div>
+                    <div class="col-md-3">
+                        <p class="text-muted mb-1">Status</p>
+                        <span class="badge bg-{% if assessment.status == 'approved' %}success{% elif assessment.status == 'completed' %}info{% elif assessment.status == 'in_progress' %}warning{% else %}secondary{% endif %}">
+                            {{ assessment.status|title|replace_underscore }}
+                        </span>
+                    </div>
+                </div>
+                <div class="ms-3">
+                    <a href="{% url 'core:fiscal_assessment_print' assessment.id %}" class="btn btn-outline-primary" target="_blank">
+                        <i class="fas fa-print"></i> Print
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Financial Summary -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h6>Total Revenue</h6>
+                    <h2>${{ assessment.total_revenue|floatformat:2 }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <h6>Total Expenses</h6>
+                    <h2>${{ assessment.total_expenses|floatformat:2 }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-{% if assessment.net_profit >= 0 %}success{% else %}danger{% endif %} text-white">
+                <div class="card-body">
+                    <h6>Net Profit</h6>
+                    <h2>${{ assessment.net_profit|floatformat:2 }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Operational Metrics -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-plane"></i> Operational Metrics</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Passenger Count:</strong> {{ assessment.passenger_count|default:0 }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Flight Count:</strong> {{ assessment.flight_count|default:0 }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Revenue Breakdown -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-arrow-up"></i> Revenue Breakdown</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <tr>
+                            <td>Fuel Revenue</td>
+                            <td class="text-end">${{ assessment.fuel_revenue|floatformat:2 }}</td>
+                        </tr>
+                        <tr>
+                            <td>Parking Revenue</td>
+                            <td class="text-end">${{ assessment.parking_revenue|floatformat:2 }}</td>
+                        </tr>
+                        <tr>
+                            <td>Retail Revenue</td>
+                            <td class="text-end">${{ assessment.retail_revenue|floatformat:2 }}</td>
+                        </tr>
+                        <tr>
+                            <td>Landing Fees</td>
+                            <td class="text-end">${{ assessment.landing_fees|floatformat:2 }}</td>
+                        </tr>
+                        <tr>
+                            <td>Cargo Revenue</td>
+                            <td class="text-end">${{ assessment.cargo_revenue|floatformat:2 }}</td>
+                        </tr>
+                        <tr>
+                            <td>Other Revenue</td>
+                            <td class="text-end">${{ assessment.other_revenue|floatformat:2 }}</td>
+                        </tr>
+                        <tr class="table-success">
+                            <td><strong>Total</strong></td>
+                            <td class="text-end"><strong>${{ assessment.total_revenue|floatformat:2 }}</strong></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="fas fa-arrow-down"></i> Expense Breakdown</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <tr>
+                            <td>Security Costs</td>
+                            <td class="text-end">${{ assessment.security_costs|floatformat:2 }}</td>
+                        </tr>
+                        <tr>
+                            <td>Maintenance Costs</td>
+                            <td class="text-end">${{ assessment.maintenance_costs|floatformat:2 }}</td>
+                        </tr>
+                        <tr>
+                            <td>Operational Costs</td>
+                            <td class="text-end">${{ assessment.operational_costs|floatformat:2 }}</td>
+                        </tr>
+                        <tr>
+                            <td>Staff Costs</td>
+                            <td class="text-end">${{ assessment.staff_costs|floatformat:2 }}</td>
+                        </tr>
+                        <tr>
+                            <td>Utility Costs</td>
+                            <td class="text-end">${{ assessment.utility_costs|floatformat:2 }}</td>
+                        </tr>
+                        <tr>
+                            <td>Other Expenses</td>
+                            <td class="text-end">${{ assessment.other_expenses|floatformat:2 }}</td>
+                        </tr>
+                        <tr class="table-danger">
+                            <td><strong>Total</strong></td>
+                            <td class="text-end"><strong>${{ assessment.total_expenses|floatformat:2 }}</strong></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notes and Approval -->
+    {% if assessment.assessment_notes or assessment.assessed_by or assessment.approved_by %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-sticky-note"></i> Notes & Approval</h5>
+        </div>
+        <div class="card-body">
+            {% if assessment.assessment_notes %}
+            <p><strong>Notes:</strong> {{ assessment.assessment_notes }}</p>
+            {% endif %}
+            <div class="row">
+                {% if assessment.assessed_by %}
+                <div class="col-md-4">
+                    <p class="text-muted mb-1">Assessed By</p>
+                    <p>{{ assessment.assessed_by }}</p>
+                </div>
+                {% endif %}
+                {% if assessment.approved_by %}
+                <div class="col-md-4">
+                    <p class="text-muted mb-1">Approved By</p>
+                    <p>{{ assessment.approved_by }}</p>
+                </div>
+                {% endif %}
+                {% if assessment.approved_at %}
+                <div class="col-md-4">
+                    <p class="text-muted mb-1">Approved At</p>
+                    <p>{{ assessment.approved_at }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

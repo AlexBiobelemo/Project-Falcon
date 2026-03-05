@@ -1,0 +1,260 @@
+{% extends 'simulation/dashboard.html' %}
+{% load core_filters %}
+
+{% block title %}Blue Falcon - Airport Operations Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Page-specific styles can be added here if needed */
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-plane-departure"></i> Airport Operations Dashboard</h1>
+        <div>
+            {% if can_access_admin %}
+            <a href="/admin/" class="btn btn-outline-danger btn-sm me-2">
+                <i class="fas fa-cog"></i> Admin Panel
+            </a>
+            <a href="{% url 'core:activity_log_list' %}" class="btn btn-outline-info btn-sm me-2">
+                <i class="fas fa-history"></i> Activity Logs
+            </a>
+            {% endif %}
+            <span class="badge bg-{% if user_role == 'admin' %}danger{% elif user_role == 'approver' %}success{% elif user_role == 'editor' %}warning{% else %}secondary{% endif %}">
+                {{ user_role|title }} Access
+            </span>
+        </div>
+    </div>
+
+    <!-- Flight Status Summary -->
+    <div class="row mb-4">
+        <div class="col-md-2">
+            <div class="metric-card metric-scheduled">
+                <div class="metric-value">{{ flight_status_counts.scheduled|default:0 }}</div>
+                <div class="metric-label">Scheduled</div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="metric-card metric-boarding">
+                <div class="metric-value">{{ flight_status_counts.boarding|default:0 }}</div>
+                <div class="metric-label">Boarding</div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="metric-card metric-departed">
+                <div class="metric-value">{{ flight_status_counts.departed|default:0 }}</div>
+                <div class="metric-label">Departed</div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="metric-card metric-arrived">
+                <div class="metric-value">{{ flight_status_counts.arrived|default:0 }}</div>
+                <div class="metric-label">Arrived</div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="metric-card metric-delayed">
+                <div class="metric-value">{{ flight_status_counts.delayed|default:0 }}</div>
+                <div class="metric-label">Delayed</div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="metric-card metric-cancelled">
+                <div class="metric-value">{{ flight_status_counts.cancelled|default:0 }}</div>
+                <div class="metric-label">Cancelled</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Upcoming Flights -->
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-plane"></i> Upcoming Flights</h5>
+                </div>
+                <div class="card-body">
+                    {% if upcoming_flights %}
+                    <div class="table-responsive">
+                        <table class="table table-hover flight-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Flight</th>
+                                    <th scope="col">Route</th>
+                                    <th scope="col">Gate</th>
+                                    <th scope="col">Departure</th>
+                                    <th scope="col">Arrival</th>
+                                    <th scope="col">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for flight in upcoming_flights %}
+                                <tr>
+                                    <td><strong>{{ flight.flight_number }}</strong></td>
+                                    <td>{{ flight.origin }} → {{ flight.destination }}</td>
+                                    <td>{{ flight.gate.gate_number|default:"-" }}</td>
+                                    <td>{{ flight.scheduled_departure|time:"H:i" }}</td>
+                                    <td>{{ flight.scheduled_arrival|time:"H:i" }}</td>
+                                    <td>
+                                        <span class="badge bg-{% if flight.status == 'cancelled' %}danger{% elif flight.status == 'delayed' %}warning{% elif flight.status == 'departed' %}success{% else %}secondary{% endif %}">
+                                            {{ flight.get_status_display|title }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No upcoming flights scheduled for today.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Recent Flights -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-history"></i> Recent Flight Activity</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_flights %}
+                    <div class="table-responsive">
+                        <table class="table table-hover flight-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Flight</th>
+                                    <th scope="col">Route</th>
+                                    <th scope="col">Gate</th>
+                                    <th scope="col">Departure</th>
+                                    <th scope="col">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for flight in recent_flights %}
+                                <tr>
+                                    <td><strong>{{ flight.flight_number }}</strong></td>
+                                    <td>{{ flight.origin }} → {{ flight.destination }}</td>
+                                    <td>{{ flight.gate.gate_number|default:"-" }}</td>
+                                    <td>{{ flight.scheduled_departure|date:"M d H:i" }}</td>
+                                    <td>
+                                        <span class="badge bg-{% if flight.status == 'cancelled' %}danger{% elif flight.status == 'delayed' %}warning{% elif flight.status == 'departed' %}success{% elif flight.status == 'arrived' %}info{% else %}secondary{% endif %}">
+                                            {{ flight.get_status_display|title }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No flights in the system.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-md-4">
+            <!-- Gate Status -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-door-open"></i> Gate Status</h5>
+                </div>
+                <div class="card-body">
+                    {% if gates %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Gate</th>
+                                    <th scope="col">Terminal</th>
+                                    <th scope="col">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for gate in gates %}
+                                <tr class="{% if gate.flight_count > 0 %}gate-occupied{% else %}gate-available{% endif %}">
+                                    <td>{{ gate.gate_id }}</td>
+                                    <td>{{ gate.terminal|default:"-" }}</td>
+                                    <td>
+                                        {% if gate.flight_count > 0 %}
+                                        <span class="badge bg-warning">Occupied</span>
+                                        {% else %}
+                                        <span class="badge bg-success">Available</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No gates configured.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Recent Assessments -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-calculator"></i> Recent Assessments</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_assessments %}
+                    <div class="list-group list-group-flush">
+                        {% for assessment in recent_assessments %}
+                        <a href="{% url 'core:fiscal_assessment_detail' assessment.id %}" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ assessment.airport.code }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ assessment.period_type|title }}</small>
+                                </div>
+                                <span class="badge bg-{% if assessment.status == 'approved' %}success{% elif assessment.status == 'completed' %}info{% else %}secondary{% endif %}">
+                                    {{ assessment.status|title|replace_underscore }}
+                                </span>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No assessments yet.</p>
+                    {% endif %}
+                    
+                    <div class="mt-3">
+                        <a href="{% url 'core:fiscal_assessment_list' %}" class="btn btn-sm btn-outline-primary">
+                            View All Assessments
+                        </a>
+                        {% if can_create_assessment %}
+                        <a href="{% url 'core:fiscal_assessment_create' %}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-plus"></i> New Assessment
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Quick Stats</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <h4>{{ total_flights }}</h4>
+                            <small class="text-muted">Total Flights</small>
+                        </div>
+                        <div class="col-6">
+                            <h4>{{ total_gates }}</h4>
+                            <small class="text-muted">Total Gates</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

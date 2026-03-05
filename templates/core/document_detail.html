@@ -1,0 +1,70 @@
+{% extends 'simulation/dashboard.html' %}
+{% load core_filters %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-file"></i> Document Details</h1>
+        <a href="{% url 'core:document_list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to List
+        </a>
+    </div>
+
+    <!-- Document Info -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start">
+                <div class="row flex-grow-1">
+                    <div class="col-md-3">
+                        <p class="text-muted mb-1">Name</p>
+                        <h5>{{ document.name }}</h5>
+                    </div>
+                    <div class="col-md-3">
+                        <p class="text-muted mb-1">Document Type</p>
+                        <h5>{{ document.document_type|title }}</h5>
+                    </div>
+                    <div class="col-md-3">
+                        <p class="text-muted mb-1">Airport</p>
+                        <h5>{{ document.airport.code|default:"-" }}</h5>
+                    </div>
+                    <div class="col-md-3">
+                        <p class="text-muted mb-1">Type</p>
+                        {% if document.is_template %}
+                        <span class="badge bg-info">Template</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Document</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="ms-3">
+                    <a href="{% url 'core:document_export' document.id %}" class="btn btn-outline-primary" target="_blank">
+                        <i class="fas fa-download"></i> Export JSON
+                    </a>
+                </div>
+            </div>
+            <hr>
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="text-muted mb-1">Created By</p>
+                    <p>{{ document.created_by|default:"System" }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p class="text-muted mb-1">Created At</p>
+                    <p>{{ document.created_at }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Document Content -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Document Content</h5>
+        </div>
+        <div class="card-body">
+            <pre><code class="language-json">{{ document.content|jsonify }}</code></pre>
+        </div>
+    </div>
+</div>
+{% endblock %}

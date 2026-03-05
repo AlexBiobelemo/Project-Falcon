@@ -1,0 +1,90 @@
+{% extends 'simulation/dashboard.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-file"></i> Create Document</h1>
+        <a href="{% url 'core:document_list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to List
+        </a>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-danger">
+        <strong>Error:</strong> {{ error }}
+    </div>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Document Details</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Document Name *</label>
+                            <input type="text" name="name" id="name" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="document_type" class="form-label">Document Type *</label>
+                            <select name="document_type" id="document_type" class="form-select" required>
+                                {% for dt in document_type_choices %}
+                                <option value="{{ dt }}">{{ dt|title }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="airport" class="form-label">Airport</label>
+                            <select name="airport" id="airport" class="form-select">
+                                <option value="">No Airport</option>
+                                {% for airport in airports %}
+                                <option value="{{ airport.id }}">{{ airport.code }} - {{ airport.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="is_template" class="form-label">&nbsp;</label>
+                            <div class="form-check mt-2">
+                                <input type="checkbox" name="is_template" id="is_template" class="form-check-input">
+                                <label for="is_template" class="form-check-label">This is a template</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Document Content (JSON)</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="content" class="form-label">Content</label>
+                    <textarea name="content" id="content" class="form-control font-monospace" rows="10">{}</textarea>
+                    <small class="text-muted">Enter valid JSON content for the document.</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <button type="submit" class="btn btn-primary btn-lg">
+                <i class="fas fa-save"></i> Save Document
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

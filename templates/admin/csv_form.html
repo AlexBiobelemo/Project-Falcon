@@ -1,0 +1,42 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block content %}
+<div class="container">
+    <h1>Import {{ model_name|title }}s from CSV</h1>
+    
+    <form method="post" enctype="multipart/form-data" class="mb-4">
+        {% csrf_token %}
+        
+        <div class="mb-3">
+            <label for="csv_file" class="form-label">Select CSV File</label>
+            <input type="file" name="csv_file" id="csv_file" class="form-control" accept=".csv" required>
+        </div>
+        
+        <div class="mb-3">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-upload"></i> Import CSV
+            </button>
+            <a href="../" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+    
+    <div class="card">
+        <div class="card-header">
+            <h5>CSV Format for {{ model_name|title }}s</h5>
+        </div>
+        <div class="card-body">
+            {% if model_name == 'gate' %}
+            <h6>Required columns:</h6>
+            <pre>gate_id,terminal,capacity,status
+A1,A,narrow-body,available
+B2,B,wide-body,occupied</pre>
+            {% elif model_name == 'flight' %}
+            <h6>Required columns:</h6>
+            <pre>flight_number,airline,origin,destination,scheduled_departure,scheduled_arrival,gate,status,delay_minutes
+AA123,American Airlines,JFK,LAX,2026-02-28 10:00:00,2026-02-28 14:00:00,A1,scheduled,0</pre>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
