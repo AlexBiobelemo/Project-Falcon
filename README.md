@@ -1327,4 +1327,4 @@ The application uses strategic indexes for performance:
 
 ---
 
-###Alex Alagoa Biobelemo
+Alex Alagoa Biobelemo
