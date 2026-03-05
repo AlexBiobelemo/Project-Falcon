@@ -1,28 +1,29 @@
 # Django
-Django==5.1.7
+Django
 
 # Database
-psycopg2-binary==2.9.9
+psycopg2-binary
 
 # REST Framework
-djangorestframework==3.15.2
+djangorestframework
 
 # CORS
-django-cors-headers==4.7.0
+django-cors-headers
 
 # Channels (WebSocket)
-channels==4.2.0
-channels-redis==4.2.0
-daphne==4.1.3
+channels
+channels-redis
+daphne
 
 # Environment variables
-python-dotenv==1.0.1
+python-dotenv
 
 # Gunicorn for production
-gunicorn==23.0.0
+gunicorn
 
 # WhiteNoise for static files
-whitenoise==6.8.2
+whitenoise
 
 # Pillow for image handling (optional)
-Pillow==11.1.0
+Pillow
+
