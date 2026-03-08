@@ -131,7 +131,7 @@ class FlightViewSet(viewsets.ModelViewSet):
 
 class PassengerViewSet(viewsets.ModelViewSet):
     """API endpoint for passengers."""
-    queryset = Passenger.objects.select_related('flight').all()
+    queryset = Passenger.objects.select_related('flight', 'flight__gate').all()
     serializer_class = PassengerSerializer
     permission_classes = [IsAuthenticated]
     filterset_fields = ['status', 'flight']
@@ -142,7 +142,7 @@ class PassengerViewSet(viewsets.ModelViewSet):
 
 class StaffViewSet(viewsets.ModelViewSet):
     """API endpoint for staff."""
-    queryset = Staff.objects.all()
+    queryset = Staff.objects.prefetch_related('assignments', 'assignments__flight').all()
     serializer_class = StaffSerializer
     permission_classes = [StaffPermissions]
     filter_backends = [django_filters.rest_framework.DjangoFilterBackend]
@@ -155,7 +155,7 @@ class StaffViewSet(viewsets.ModelViewSet):
 class StaffAssignmentViewSet(viewsets.ModelViewSet):
     """API endpoint for staff assignments."""
     
-    queryset = StaffAssignment.objects.select_related('staff', 'flight').all()
+    queryset = StaffAssignment.objects.select_related('staff', 'flight', 'flight__gate').all()
     permission_classes = [IsAuthenticated]
     filterset_fields = ['staff', 'flight', 'assignment_type']
     ordering_fields = ['assigned_at']
@@ -170,7 +170,7 @@ class StaffAssignmentViewSet(viewsets.ModelViewSet):
 class EventLogViewSet(viewsets.ModelViewSet):
     """API endpoint for event logs."""
     
-    queryset = EventLog.objects.select_related('flight').all()
+    queryset = EventLog.objects.select_related('user', 'flight').all()
     serializer_class = EventLogSerializer
     permission_classes = [IsAuthenticated]
     filterset_fields = ['event_type', 'severity', 'flight']
@@ -347,10 +347,10 @@ class DocumentViewSet(viewsets.ModelViewSet):
     
     serializer_class = DocumentSerializer
     permission_classes = [IsAuthenticated]
-    filterset_fields = ['document_type', 'status']
+    filterset_fields = ['document_type']
     
     def get_queryset(self):
-        return Document.objects.all()
+        return Document.objects.select_related('airport', 'fiscal_assessment', 'report').all()
 
 
 class DashboardSummaryView(APIView):
@@ -367,47 +367,28 @@ class DashboardSummaryView(APIView):
         now = timezone.now()
         today = now.date()
         
-        # Flight statistics
-        total_flights = Flight.objects.count()
-        today_flights = Flight.objects.filter(
-            scheduled_departure__date=today
-        ).count()
-        active_flights = Flight.objects.filter(
-            status__in=['scheduled', 'boarding', 'departed']
-        ).count()
-        delayed_flights = Flight.objects.filter(status='delayed').count()
-        
-        # Flight status breakdown
-        flights_by_status = Flight.objects.values('status').annotate(
-            count=Count('id')
+        # Optimized: Single query for flight status counts
+        flight_stats = Flight.objects.aggregate(
+            total=Count('id'),
+            today=Count('id', filter=Q(scheduled_departure__date=today)),
+            active=Count('id', filter=Q(status__in=['scheduled', 'boarding', 'departed'])),
+            delayed=Count('id', filter=Q(status='delayed'))
         )
         
-        # Gate statistics
-        total_gates = Gate.objects.count()
-        available_gates = Gate.objects.filter(status='available').count()
-        occupied_gates = Gate.objects.filter(status='occupied').count()
-        maintenance_gates = Gate.objects.filter(status='maintenance').count()
+        # Optimized: Single query for gate status counts
+        gate_stats = Gate.objects.aggregate(
+            total=Count('id'),
+            available=Count('id', filter=Q(status='available')),
+            occupied=Count('id', filter=Q(status='occupied')),
+            maintenance=Count('id', filter=Q(status='maintenance'))
+        )
         
+        total_gates = gate_stats['total']
+        available_gates = gate_stats['available']
         gate_utilization = ((total_gates - available_gates) / total_gates * 100) if total_gates > 0 else 0
         
-        # Passenger statistics
-        total_passengers = Passenger.objects.count()
-        
-        # Recent events
-        recent_events = EventLog.objects.order_by('-timestamp')[:10]
-        
-        # Staff statistics
-        total_staff = Staff.objects.count()
-        available_staff = Staff.objects.filter(is_available=True).count()
-        
-        # Staff by role
-        staff_by_role = Staff.objects.values('role').annotate(
-            count=Count('id')
-        )
-        
-        # Airport statistics
-        total_airports = Airport.objects.count()
-        active_airports = Airport.objects.filter(is_active=True).count()
+        # Optimized: select_related/prefetch_related for recent items
+        recent_events = EventLog.objects.select_related('user', 'flight').order_by('-timestamp')[:10]
         
         # Upcoming flights (next 2 hours)
         upcoming_cutoff = now + timedelta(hours=2)
@@ -418,33 +399,33 @@ class DashboardSummaryView(APIView):
         ).select_related('gate').order_by('scheduled_departure')[:10]
         
         data = {
-            'total_airports': total_airports,
-            'total_flights': total_flights,
+            'total_airports': Airport.objects.count(),
+            'total_flights': flight_stats['total'],
             'flights': {
-                'total': total_flights,
-                'today': today_flights,
-                'active': active_flights,
-                'delayed': delayed_flights,
-                'by_status': list(flights_by_status),
+                'total': flight_stats['total'],
+                'today': flight_stats['today'],
+                'active': flight_stats['active'],
+                'delayed': flight_stats['delayed'],
+                'by_status': list(Flight.objects.values('status').annotate(count=Count('id'))),
             },
             'gates': {
                 'total': total_gates,
                 'available': available_gates,
-                'occupied': occupied_gates,
-                'maintenance': maintenance_gates,
+                'occupied': gate_stats['occupied'],
+                'maintenance': gate_stats['maintenance'],
                 'utilization': round(gate_utilization, 2),
             },
             'passengers': {
-                'total': total_passengers,
+                'total': Passenger.objects.count(),
             },
             'staff': {
-                'total': total_staff,
-                'available': available_staff,
-                'by_role': list(staff_by_role),
+                'total': Staff.objects.count(),
+                'available': Staff.objects.filter(is_available=True).count(),
+                'by_role': list(Staff.objects.values('role').annotate(count=Count('id'))),
             },
             'airports': {
-                'total': total_airports,
-                'active': active_airports,
+                'total': Airport.objects.count(),
+                'active': Airport.objects.filter(is_active=True).count(),
             },
             'upcoming_flights': FlightSerializer(upcoming_flights, many=True).data,
             'recent_events': EventLogSerializer(recent_events, many=True).data,
@@ -452,6 +433,36 @@ class DashboardSummaryView(APIView):
         
         serializer = DashboardSummarySerializer(data)
         return Response(serializer.data)
+
+
+class TrendDataAPIView(APIView):
+    """API endpoint for dashboard trend data (for Chart.js)."""
+    
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        """Get trend data for revenue and passenger counts."""
+        # Get last 6 months of data
+        six_months_ago = timezone.now().date() - timedelta(days=180)
+        
+        assessments = FiscalAssessment.objects.select_related('airport').filter(
+            start_date__gte=six_months_ago
+        ).order_by('start_date')
+        
+        labels = []
+        revenue_data = []
+        passenger_data = []
+        
+        for a in assessments:
+            labels.append(f"{a.airport.code} ({a.start_date.strftime('%b %Y')})")
+            revenue_data.append(float(a.total_revenue))
+            passenger_data.append(a.passenger_count)
+            
+        return Response({
+            "labels": labels,
+            "revenue": revenue_data,
+            "passengers": passenger_data,
+        })
 
 
 class MetricsView(APIView):

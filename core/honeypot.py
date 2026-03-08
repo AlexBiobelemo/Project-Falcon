@@ -109,6 +109,7 @@ class HoneypotFieldMixin:
         super().__init__(*args, **kwargs)
         self._honeypot_field_names = []
         self._form_id = self.__class__.__name__
+        self._create_honeypot_fields()
     
     def _create_honeypot_fields(self):
         """Create honeypot fields for the form."""

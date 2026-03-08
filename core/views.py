@@ -49,11 +49,12 @@ from .permissions import (
     IsEditorOrAbove,
     FiscalAssessmentPermissions,
 )
-
 from .forms import (
     FiscalAssessmentCreateForm,
     FiscalAssessmentUpdateForm,
     FiscalAssessmentApprovalForm,
+    ReportCreateForm,
+    DocumentCreateForm,
     FISCAL_ASSESSMENT_CREATE_FIELDS,
     FISCAL_ASSESSMENT_UPDATE_FIELDS,
 )
@@ -278,12 +279,11 @@ class DashboardView(PermissionMixin, View):
     
     def get(self, request: HttpRequest) -> render:
         """Display the main dashboard with flight and assessment data."""
-        # Get flight statistics by status
-        flight_status_counts = {}
-        for status in FlightStatus:
-            flight_status_counts[status.value] = Flight.objects.filter(
-                status=status.value
-            ).count()
+        # Optimized: Get flight statistics by status in a single query
+        status_counts = Flight.objects.aggregate(
+            **{status.value: Count("id", filter=Q(status=status.value)) for status in FlightStatus}
+        )
+        flight_status_counts = status_counts
         
         # Get recent flights (last 10)
         recent_flights = Flight.objects.select_related("gate").order_by(
@@ -814,8 +814,10 @@ class ReportCreateView(PermissionMixin, View):
     def get(self, request: HttpRequest) -> render:
         """Display the create form for report."""
         airports = Airport.objects.filter(is_active=True).order_by("code")
+        form = ReportCreateForm()
         
         context = {
+            "form": form,
             "airports": airports,
             "report_type_choices": ReportType.values,
             "format_choices": ReportFormat.values,
@@ -823,40 +825,81 @@ class ReportCreateView(PermissionMixin, View):
         return render(request, self.template_name, context)
     
     def post(self, request: HttpRequest) -> redirect:
-        """Create and generate a new report."""
+        """Create a new report and queue for background generation."""
+        form = ReportCreateForm(request.POST)
+        if not form.is_valid():
+            airports = Airport.objects.filter(is_active=True).order_by("code")
+            context = {
+                "form": form,
+                "airports": airports,
+                "report_type_choices": ReportType.values,
+                "format_choices": ReportFormat.values,
+                "errors": form.errors,
+            }
+            return render(request, self.template_name, context)
+            
         try:
-            airport_id = request.POST.get("airport")
-            report_type = request.POST.get("report_type")
-            title = request.POST.get("title")
-            description = request.POST.get("description", "")
-            period_start = request.POST.get("period_start")
-            period_end = request.POST.get("period_end")
-            report_format = request.POST.get("format", ReportFormat.HTML.value)
+            cleaned_data = form.cleaned_data
             generated_by = request.user.username if request.user.is_authenticated else "system"
             
             # Create the report record
             report = Report.objects.create(
-                airport_id=airport_id,
-                report_type=report_type,
-                title=title,
-                description=description,
-                period_start=period_start,
-                period_end=period_end,
-                format=report_format,
+                airport=cleaned_data['airport'],
+                report_type=cleaned_data['report_type'],
+                title=cleaned_data['title'],
+                description=cleaned_data.get('description', ''),
+                period_start=cleaned_data['period_start'],
+                period_end=cleaned_data['period_end'],
+                format=cleaned_data.get('format', ReportFormat.HTML.value),
                 generated_by=generated_by,
             )
             
-            # Generate report content based on type
-            report_content = self._generate_report_content(report)
-            report.content = report_content
-            report.is_generated = True
-            report.generated_at = timezone.now()
-            report.save()
+            # Queue for background generation
+            from django_q.tasks import async_task
+            async_task('core.tasks.generate_report_task', report.id)
             
-            return redirect("report_detail", report_id=report.id)
+            from django.contrib import messages
+            messages.success(request, f"Report '{report.title}' is being generated in the background.")
+            
+            return redirect("core:report_list")
             
         except Exception as e:
-            return render(request, self.template_name, {"error": str(e)})
+            airports = Airport.objects.filter(is_active=True).order_by("code")
+            return render(request, self.template_name, {
+                "form": form,
+                "airports": airports,
+                "report_type_choices": ReportType.values,
+                "format_choices": ReportFormat.values,
+                "error": str(e)
+            })
+
+
+class TrendDataAPIView(LoginRequiredMixin, View):
+    """API endpoint for dashboard trend data (for Chart.js)."""
+    
+    def get(self, request: HttpRequest) -> JsonResponse:
+        """Get trend data for revenue and passenger counts."""
+        # Get last 6 months of data
+        six_months_ago = timezone.now().date() - timedelta(days=180)
+        
+        assessments = FiscalAssessment.objects.filter(
+            start_date__gte=six_months_ago
+        ).order_by('start_date')
+        
+        labels = []
+        revenue_data = []
+        passenger_data = []
+        
+        for a in assessments:
+            labels.append(f"{a.airport.code} ({a.start_date.strftime('%b %Y')})")
+            revenue_data.append(float(a.total_revenue))
+            passenger_data.append(a.passenger_count)
+            
+        return JsonResponse({
+            "labels": labels,
+            "revenue": revenue_data,
+            "passengers": passenger_data,
+        })
     
     def _generate_report_content(self, report: Report) -> Dict[str, Any]:
         """Generate content for the report based on its type."""
@@ -1114,36 +1157,51 @@ class DocumentCreateView(PermissionMixin, View):
     def get(self, request: HttpRequest) -> render:
         """Display the create form for document."""
         airports = Airport.objects.filter(is_active=True).order_by("code")
+        form = DocumentCreateForm()
         
         context = {
+            "form": form,
             "airports": airports,
             "document_type_choices": Document.DocumentType.values,
         }
         return render(request, self.template_name, context)
     
     def post(self, request: HttpRequest) -> redirect:
-        """Create a new document."""
+        """Create a new document with validation."""
+        form = DocumentCreateForm(request.POST)
+        if not form.is_valid():
+            airports = Airport.objects.filter(is_active=True).order_by("code")
+            context = {
+                "form": form,
+                "airports": airports,
+                "document_type_choices": Document.DocumentType.values,
+                "errors": form.errors,
+            }
+            return render(request, self.template_name, context)
+            
         try:
-            name = request.POST.get("name")
-            document_type = request.POST.get("document_type")
-            airport_id = request.POST.get("airport") or None
-            content_json = request.POST.get("content", "{}")
-            is_template = request.POST.get("is_template") == "on"
+            cleaned_data = form.cleaned_data
             created_by = request.user.username if request.user.is_authenticated else "system"
             
             document = Document.objects.create(
-                name=name,
-                document_type=document_type,
-                airport_id=airport_id,
-                content=json.loads(content_json),
-                is_template=is_template,
+                name=cleaned_data['name'],
+                document_type=cleaned_data['document_type'],
+                airport=cleaned_data['airport'],
+                content=cleaned_data['content'],
+                is_template=cleaned_data.get('is_template', False),
                 created_by=created_by,
             )
             
-            return redirect("document_detail", document_id=document.id)
+            return redirect("core:document_detail", document_id=document.id)
             
         except Exception as e:
-            return render(request, self.template_name, {"error": str(e)})
+            airports = Airport.objects.filter(is_active=True).order_by("code")
+            return render(request, self.template_name, {
+                "form": form,
+                "airports": airports,
+                "document_type_choices": Document.DocumentType.values,
+                "error": str(e)
+            })
 
 
 class DocumentDetailView(LoginRequiredMixin, View):
@@ -1189,9 +1247,12 @@ class DocumentExportView(LoginRequiredMixin, View):
 
 # API Views for AJAX operations
 
-@method_decorator(csrf_exempt, name="dispatch")
 class FiscalAssessmentAPIView(LoginRequiredMixin, View):
-    """API endpoint for fiscal assessment operations."""
+    """API endpoint for fiscal assessment operations.
+    
+    CSRF protection is ENABLED (removed csrf_exempt) because this view 
+    uses session-based authentication.
+    """
     
     def get(self, request: HttpRequest, assessment_id: Optional[int] = None) -> JsonResponse:
         """Get fiscal assessment data."""
@@ -1255,9 +1316,12 @@ class FiscalAssessmentAPIView(LoginRequiredMixin, View):
         return JsonResponse({"success": True, "message": "Assessment deleted"})
 
 
-@method_decorator(csrf_exempt, name="dispatch")
 class ReportAPIView(LoginRequiredMixin, View):
-    """API endpoint for report operations."""
+    """API endpoint for report operations.
+    
+    CSRF protection is ENABLED (removed csrf_exempt) because this view 
+    uses session-based authentication.
+    """
     
     def get(self, request: HttpRequest, report_id: Optional[int] = None) -> JsonResponse:
         """Get report data."""
@@ -1289,9 +1353,12 @@ class ReportAPIView(LoginRequiredMixin, View):
             return JsonResponse({"reports": data})
 
 
-@method_decorator(csrf_exempt, name="dispatch")
 class DocumentAPIView(LoginRequiredMixin, View):
-    """API endpoint for document operations."""
+    """API endpoint for document operations.
+    
+    CSRF protection is ENABLED (removed csrf_exempt) because this view 
+    uses session-based authentication.
+    """
     
     def get(self, request: HttpRequest, document_id: Optional[int] = None) -> JsonResponse:
         """Get document data."""
@@ -1331,26 +1398,36 @@ class DashboardSummaryView(LoginRequiredMixin, View):
         # Get recent assessments
         recent_assessments = FiscalAssessment.objects.select_related("airport").order_by("-created_at")[:5]
         
-        # Get summary stats
-        total_revenue = sum(float(a.total_revenue) for a in FiscalAssessment.objects.all())
-        total_expenses = sum(float(a.total_expenses) for a in FiscalAssessment.objects.all())
-        net_profit = total_revenue - total_expenses
+        # Optimized: Get summary stats via database aggregation
+        financial_stats = FiscalAssessment.objects.aggregate(
+            total_revenue=Sum('total_revenue'),
+            total_expenses=Sum('total_expenses'),
+            net_profit=Sum('net_profit')
+        )
+        
+        total_revenue = float(financial_stats['total_revenue'] or 0)
+        total_expenses = float(financial_stats['total_expenses'] or 0)
+        net_profit = float(financial_stats['net_profit'] or 0)
         
         # Get report counts
-        reports_generated = Report.objects.filter(is_generated=True).count()
-        reports_pending = Report.objects.filter(is_generated=False).count()
+        report_stats = Report.objects.aggregate(
+            generated=Count("id", filter=Q(is_generated=True)),
+            pending=Count("id", filter=Q(is_generated=False))
+        )
         
         # Get document counts
-        total_documents = Document.objects.count()
-        templates = Document.objects.filter(is_template=True).count()
+        document_stats = Document.objects.aggregate(
+            total=Count("id"),
+            templates=Count("id", filter=Q(is_template=True))
+        )
         
         return JsonResponse({
             "airports_count": airports.count(),
             "assessments_count": FiscalAssessment.objects.count(),
-            "reports_generated": reports_generated,
-            "reports_pending": reports_pending,
-            "total_documents": total_documents,
-            "templates": templates,
+            "reports_generated": report_stats['generated'],
+            "reports_pending": report_stats['pending'],
+            "total_documents": document_stats['total'],
+            "templates": document_stats['templates'],
             "financial_summary": {
                 "total_revenue": total_revenue,
                 "total_expenses": total_expenses,

@@ -8,12 +8,12 @@ Rules compliance: PEP8, type hints, docstrings.
 
 from decimal import Decimal, InvalidOperation
 from typing import Any, Dict, List, Optional
-
 from django import forms
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-from .models import Airport, FiscalAssessment, AssessmentPeriod, AssessmentStatus
+from .models import Airport, FiscalAssessment, AssessmentPeriod, AssessmentStatus, ReportType, ReportFormat, Document
+from .honeypot import HoneypotFieldMixin
 
 
 # Fields allowed for mass assignment - explicit allowlist for security
@@ -112,18 +112,11 @@ def validate_positive_integer(value: Any) -> int:
     return int_value
 
 
-class FiscalAssessmentCreateForm(forms.Form):
+class FiscalAssessmentCreateForm(HoneypotFieldMixin, forms.Form):
     """Form for creating a new FiscalAssessment with proper validation.
     
     This form provides proper type validation for all POST data,
     addressing vulnerability #6 (Missing Input Validation).
-    
-    Attributes:
-        airport: Required airport selection.
-        period_type: Required period type selection.
-        start_date: Required start date.
-        end_date: Required end date.
-        status: Assessment status (optional, defaults to DRAFT).
     """
     
     # Required fields
@@ -223,14 +216,7 @@ class FiscalAssessmentCreateForm(forms.Form):
     )
     
     def clean(self) -> Dict[str, Any]:
-        """Validate the form data.
-        
-        Returns:
-            Cleaned form data.
-            
-        Raises:
-            ValidationError: If validation fails.
-        """
+        """Validate the form data."""
         cleaned_data = super().clean()
         
         # Validate date range
@@ -246,15 +232,11 @@ class FiscalAssessmentCreateForm(forms.Form):
         return cleaned_data
 
 
-class FiscalAssessmentUpdateForm(forms.Form):
+class FiscalAssessmentUpdateForm(HoneypotFieldMixin, forms.Form):
     """Form for updating an existing FiscalAssessment with proper validation.
     
     This form provides proper type validation and explicit field allowlisting,
     addressing vulnerability #7 (Mass Assignment Vulnerability).
-    
-    Attributes:
-        Same as FiscalAssessmentCreateForm but all fields are optional
-        since we're updating an existing record.
     """
     
     # All fields are optional for updates
@@ -325,14 +307,7 @@ class FiscalAssessmentUpdateForm(forms.Form):
     assessed_by = forms.CharField(required=False, max_length=100)
     
     def clean(self) -> Dict[str, Any]:
-        """Validate the form data.
-        
-        Returns:
-            Cleaned form data.
-            
-        Raises:
-            ValidationError: If validation fails.
-        """
+        """Validate the form data."""
         cleaned_data = super().clean()
         
         # Validate date range
@@ -354,3 +329,63 @@ class FiscalAssessmentApprovalForm(forms.Form):
     assessment_id = forms.IntegerField(required=True)
     approved = forms.BooleanField(required=True)
     comments = forms.CharField(required=False, max_length=500)
+
+
+class ReportCreateForm(HoneypotFieldMixin, forms.Form):
+    """Form for creating a new report with proper validation."""
+    
+    airport = forms.ModelChoiceField(
+        queryset=Airport.objects.filter(is_active=True),
+        required=True
+    )
+    report_type = forms.ChoiceField(
+        choices=[(rt.value, rt.name) for rt in ReportType],
+        required=True
+    )
+    title = forms.CharField(max_length=200, required=True)
+    description = forms.CharField(required=False, widget=forms.Textarea, max_length=1000)
+    period_start = forms.DateField(required=True)
+    period_end = forms.DateField(required=True)
+    format = forms.ChoiceField(
+        choices=[(fmt.value, fmt.name) for fmt in ReportFormat],
+        initial=ReportFormat.HTML.value,
+        required=False
+    )
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        start = cleaned_data.get('period_start')
+        end = cleaned_data.get('period_end')
+        
+        if start and end and end < start:
+            raise ValidationError("End date cannot be before start date.")
+        return cleaned_data
+
+
+class DocumentCreateForm(HoneypotFieldMixin, forms.Form):
+    """Form for creating a new document with JSON validation."""
+    
+    name = forms.CharField(max_length=200, required=True)
+    document_type = forms.ChoiceField(
+        choices=[(dt.value, dt.name) for dt in Document.DocumentType],
+        required=True
+    )
+    airport = forms.ModelChoiceField(
+        queryset=Airport.objects.filter(is_active=True),
+        required=False
+    )
+    content = forms.CharField(widget=forms.Textarea, required=False, initial='{}')
+    is_template = forms.BooleanField(required=False)
+    
+    def clean_content(self):
+        content_str = self.cleaned_data.get('content', '{}')
+        if not content_str:
+            return {}
+        try:
+            import json
+            content = json.loads(content_str)
+            if not isinstance(content, dict):
+                raise ValidationError("Content must be a JSON object.")
+            return content
+        except json.JSONDecodeError:
+            raise ValidationError("Invalid JSON format.")

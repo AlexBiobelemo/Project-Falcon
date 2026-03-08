@@ -485,6 +485,27 @@ class StaffAssignment(models.Model):
             models.Index(fields=['staff', 'assigned_at'], name='staff_assign_idx'),
         ]
     
+    def clean(self):
+        """Check for staff assignment conflicts."""
+        from django.core.exceptions import ValidationError
+        
+        # Check if staff is already assigned to another flight at the same time
+        # This is a simplified check assuming flights don't overlap in a way that blocks staff
+        # In a real system, we'd check flight start/end times.
+        conflicts = StaffAssignment.objects.filter(
+            staff=self.staff,
+            flight__scheduled_departure=self.flight.scheduled_departure
+        ).exclude(pk=self.pk)
+        
+        if conflicts.exists():
+            raise ValidationError(
+                f"Staff {self.staff} is already assigned to another flight at {self.flight.scheduled_departure}"
+            )
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
     def __str__(self) -> str:
         """Return string representation of the staff assignment."""
         return f"{self.staff} assigned to {self.flight} ({self.assignment_type})"

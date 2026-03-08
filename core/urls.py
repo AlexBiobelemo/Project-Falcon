@@ -128,6 +128,11 @@ urlpatterns = [
         views.DashboardSummaryView.as_view(),
         name="dashboard_summary_api"
     ),
+    path(
+        "api/trend-data/",
+        views.TrendDataAPIView.as_view(),
+        name="trend_data_api"
+    ),
     
     # Activity Logs URL
     path(
