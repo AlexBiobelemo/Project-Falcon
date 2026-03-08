@@ -23,9 +23,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get('SECRET_KEY')
 if SECRET_KEY is None:
-    # Use a default key for testing/development
-    SECRET_KEY = 'test-secret-key-for-development-only-change-in-production'
-    DEBUG = True
+    # Fail fast if SECRET_KEY is not set - do not use insecure fallbacks
+    raise ValueError("SECRET_KEY environment variable is not set. This is required for security.")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False').lower() in ('true', '1', 'yes')
@@ -45,9 +44,22 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',  # Token authentication
     'corsheaders',
     'channels',  # WebSocket support
+    'django_q',  # Background tasks
     # Local apps
     'core',
 ]
+
+# Django-Q Configuration
+Q_CLUSTER = {
+    'name': 'BlueFalcon_Q',
+    'workers': 4,
+    'recycle': 500,
+    'timeout': 60,
+    'retry': 120,
+    'queue_limit': 50,
+    'bulk': 10,
+    'orm': 'default', # Using ORM for simplicity in this dev environment
+}
 
 MIDDLEWARE = [
     # Security middleware - must be at top
@@ -423,15 +435,12 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 # Password hashers
-if DEBUG:
-    PASSWORD_HASHERS = [
-        'django.contrib.auth.hashers.MD5PasswordHasher',
-    ]
-else:
-    PASSWORD_HASHERS = [
-        'django.contrib.auth.hashers.PBKDF2PasswordHasher',
-        'django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher',
-    ]
+PASSWORD_HASHERS = [
+    'django.contrib.auth.hashers.PBKDF2PasswordHasher',
+    'django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher',
+    'django.contrib.auth.hashers.Argon2PasswordHasher',
+    'django.contrib.auth.hashers.BCryptSHA256PasswordHasher',
+]
 
 # DJANGO REST FRAMEWORK CONFIGURATION (API Versioning)
 REST_FRAMEWORK = {
