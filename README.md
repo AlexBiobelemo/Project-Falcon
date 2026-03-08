@@ -49,6 +49,8 @@ The **Airport Operations Management System** (also known as Blue Falcon) is a co
 | **Database** | PostgreSQL (default) / SQLite (development) |
 | **API** | Django REST Framework |
 | **WebSocket** | Django Channels |
+| **Background Tasks** | Django-Q2 (Redis/ORM backend) |
+| **Caching** | Django Cache Framework (Redis/LocMem) |
 | **Authentication** | Token + Session Authentication |
 | **Frontend** | HTMX, Bootstrap, Chart.js |
 | **Python Version** | 3.12+ |
@@ -153,9 +155,20 @@ Thread-local storage middleware captures request context for signals:
 
 This enables audit logging without explicitly passing request through all function calls.
 
----
+### 2.6 Background Task Processing
 
-### 2.6 WebSocket Real-time Updates
+The application uses **Django-Q2** for handling long-running operations asynchronously:
+
+| Task | Trigger | Purpose |
+|------|---------|---------|
+| `generate_report_task` | Report Creation | Generates complex reports without blocking the UI |
+| `cleanup_old_logs` | Scheduled | Maintenance of activity logs |
+
+**Infrastructure:**
+- **Broker:** Redis (default) or Django ORM (development)
+- **Workers:** Managed via `python manage.py qcluster`
+
+### 2.7 WebSocket Real-time Updates
 
 The application uses Django Channels for real-time WebSocket communication:
 
@@ -673,7 +686,8 @@ Tracks safety and operational incidents.
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/v1/dashboard-summary/` | GET | Dashboard aggregate data |
+| `/api/v1/dashboard-summary/` | GET | Dashboard aggregate data (cached 5m) |
+| `/api/v1/trend-data/` | GET | 6-month historical trend data for Chart.js |
 | `/api/v1/metrics/?period=day\|week\|month\|year` | GET | Operational metrics |
 
 ### 4.4 Query Parameters
@@ -1327,4 +1341,120 @@ The application uses strategic indexes for performance:
 
 ---
 
-Alex Alagoa Biobelemo
+## Appendix C: Deploying to Render (SQLite)
+
+This guide covers deploying the Blue Falcon Airport Management System to Render using SQLite.
+
+### Prerequisites
+
+- [Render Account](https://render.com)
+- [GitHub/GitLab Repository](https://render.com/docs/github) with your code
+
+### Files Created for Deployment
+
+| File | Purpose |
+|------|---------|
+| `render.yaml` | Render configuration (optional - you can also use dashboard) |
+| `requirements.txt` | Python dependencies |
+
+### Important: SQLite Limitation on Render
+
+⚠️ **Render does not support SQLite as a persistent database.** The file system is ephemeral - your database will be deleted when the service restarts.
+
+**For a portfolio site**, this is usually acceptable. For production applications, use PostgreSQL.
+
+### Deployment Steps (Recommended: Manual via Dashboard)
+
+Instead of using Blueprint, deploy manually for better control:
+
+#### 1. Prepare Your Code
+
+Push your code to GitHub/GitLab:
+```bash
+git add .
+git commit -m "Prepare for deployment"
+git push origin main
+```
+
+#### 2. Create Web Service on Render
+
+1. Go to [Render Dashboard](https://dashboard.render.com)
+2. Click **"New +"** → **"Web Service"**
+3. Connect your GitHub repository
+4. Configure:
+   | Setting | Value |
+   |---------|-------|
+   | Name | `blue-falcon` |
+   | Runtime | `Python` |
+   | Build Command | `pip install -r requirements.txt` |
+   | Start Command | `gunicorn airport_sim.wsgi:application --workers 4 --bind 0.0.0.0:$PORT` |
+
+5. Add Environment Variables:
+   ```
+   PYTHON_VERSION = 3.12.0
+   SECRET_KEY = (generate a secure key - use a random string)
+   DEBUG = False
+   DATABASE_ENGINE = django.db.backends.sqlite3
+   DATABASE_NAME = db.sqlite3
+   ALLOWED_HOSTS = blue-falcon.onrender.com
+   ```
+
+6. Click **"Create Web Service"**
+
+#### 3. Post-Deployment Setup
+
+After deployment completes, use Render's **Shell** to run:
+
+```bash
+# Create superuser
+python manage.py createsuperuser
+
+# Set up permissions
+python manage.py setup_permissions
+```
+
+### Alternative: Using PostgreSQL (Recommended for Data Persistence)
+
+If you want your data to persist after restarts:
+
+1. Create a PostgreSQL database:
+   - Render Dashboard → New → PostgreSQL
+   - Note the connection details
+
+2. Update environment variables:
+   ```
+   DATABASE_ENGINE = django.db.backends.postgresql
+   DATABASE_NAME = (database name from PostgreSQL)
+   DATABASE_USER = (username from PostgreSQL)
+   DATABASE_PASSWORD = (password from PostgreSQL)
+   DATABASE_HOST = (host from PostgreSQL)
+   DATABASE_PORT = 5432
+   ```
+
+3. Run migrations:
+   ```bash
+   python manage.py migrate
+   ```
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| 500 Error | Check `DEBUG=False` - also check logs in Render dashboard |
+| Static files 404 | Add `python manage.py collectstatic --noinput` to build command |
+| Database error | Verify DATABASE_ENGINE and DATABASE_NAME are correct |
+| Secret key error | Ensure SECRET_KEY environment variable is set |
+
+### Quick Reference
+
+```bash
+# Build command
+pip install -r requirements.txt && python manage.py collectstatic --noinput
+
+# Start command
+gunicorn airport_sim.wsgi:application --workers 4 --bind 0.0.0.0:$PORT
+```
+
+---
+
+*End of Documentation*
