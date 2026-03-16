@@ -353,9 +353,9 @@ ADMIN_REQUIRE_SUPERUSER = True
 _raw_hosts = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 ALLOWED_HOSTS = [host.strip() for host in _raw_hosts if host.strip()]
 
-# Validate ALLOWED_HOSTS - only allow valid hostnames or IP addresses
-import re
-_allowed_pattern = re.compile(r'^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$|^localhost$|^127\.0\.0\.1$|^::1$')
+# If wildcard is set, allow all hosts (for development/hosting platforms)
+if '*' in ALLOWED_HOSTS:
+    ALLOWED_HOSTS = ['*']
 
 # Logging configuration
 LOGGING = {
@@ -429,9 +429,6 @@ USE_TZ = True
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-for host in ALLOWED_HOSTS:
-    if not _allowed_pattern.match(host):
-        raise ValueError(f"Invalid ALLOWED_HOSTS entry: {host}")
 # File upload whitelist - Only allow safe file extensions
 ALLOWED_FILE_EXTENSIONS = ['.csv', '.txt', '.pdf', '.png', '.jpg', '.jpeg', '.gif', '.doc', '.docx', '.xls', '.xlsx']
 MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10MB max
