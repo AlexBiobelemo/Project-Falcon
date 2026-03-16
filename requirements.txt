@@ -2,10 +2,14 @@
 Django==5.1.7
 
 # Database
-psycopg2-binary==2.9.9
+# psycopg2-binary for development (SQLite in production on Render free tier)
+psycopg2-binary==2.9.10
 
 # REST Framework
 djangorestframework==3.15.2
+
+# Django Filters (required for API filtering)
+django-filter==24.3
 
 # CORS
 django-cors-headers==4.7.0
@@ -18,8 +22,8 @@ daphne==4.2.1
 # Environment variables
 python-dotenv==1.0.1
 
-# Gunicorn for production
-gunicorn==23.0.0
+# Uvicorn for ASGI (alternative to Daphne)
+uvicorn[standard]==0.32.0
 
 # WhiteNoise for static files
 whitenoise==6.8.2
