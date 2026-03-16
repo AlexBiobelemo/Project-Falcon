@@ -3,9 +3,8 @@ services:
     name: blue-falcon
     runtime: python
     plan: starter
-    # Explicitly use Daphne (ASGI server for Django Channels/WebSocket)
-    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
-    startCommand: ./start.sh
+    # Daphne (ASGI server) is defined in Procfile
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate
     envVars:
       - key: PYTHON_VERSION
         value: "3.12.0"
@@ -25,5 +24,3 @@ services:
         value: db.sqlite3
       - key: ALLOWED_HOSTS
         value: "blue-falcon.onrender.com,*.onrender.com"
-      - key: WEB_CONCURRENCY
-        value: "0"
