@@ -13,9 +13,21 @@ from enum import Enum
 from typing import Optional
 
 from django.db import models
-from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
-from django.contrib.postgres.indexes import GinIndex
-from django.contrib.postgres.fields import ArrayField
+
+# PostgreSQL-specific imports (optional - only used with PostgreSQL)
+try:
+    from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
+    from django.contrib.postgres.indexes import GinIndex
+    from django.contrib.postgres.fields import ArrayField
+    POSTGRES_AVAILABLE = True
+except ImportError:
+    # Fallback for SQLite/other databases
+    POSTGRES_AVAILABLE = False
+    SearchVector = None
+    SearchQuery = None
+    SearchRank = None
+    GinIndex = None
+    ArrayField = None
 
 
 class GateStatus(str, Enum):
@@ -348,9 +360,14 @@ class Flight(models.Model):
             models.Index(fields=['origin', 'destination'], name='flight_route_idx'),
             # Index for airline queries
             models.Index(fields=['airline'], name='flight_airline_idx'),
-            # GIN index for full-text search
-            GinIndex(fields=['flight_number', 'airline', 'origin', 'destination'], name='flight_search_gin_idx'),
+            # GIN index for full-text search (PostgreSQL only)
         ]
+        
+        # Add GIN index only if PostgreSQL is available
+        if POSTGRES_AVAILABLE and GinIndex:
+            indexes.append(
+                GinIndex(fields=['flight_number', 'airline', 'origin', 'destination'], name='flight_search_gin_idx')
+            )
 
     def __str__(self) -> str:
         """Return string representation of the flight."""
