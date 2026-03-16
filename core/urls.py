@@ -140,4 +140,64 @@ urlpatterns = [
         views.EventLogListView.as_view(),
         name="activity_log_list"
     ),
+
+    # Analytics Dashboard
+    path(
+        "analytics/",
+        views.AnalyticsDashboardView.as_view(),
+        name="analytics_dashboard"
+    ),
+
+    # Report Schedule URLs
+    path(
+        "schedules/",
+        views.ReportScheduleListView.as_view(),
+        name="report_schedule_list"
+    ),
+    path(
+        "schedules/create/",
+        views.ReportScheduleCreateView.as_view(),
+        name="report_schedule_create"
+    ),
+    path(
+        "schedules/<int:schedule_id>/edit/",
+        views.ReportScheduleUpdateView.as_view(),
+        name="report_schedule_update"
+    ),
+    path(
+        "schedules/<int:schedule_id>/delete/",
+        views.ReportScheduleDeleteView.as_view(),
+        name="report_schedule_delete"
+    ),
+    path(
+        "schedules/<int:schedule_id>/run/",
+        views.ReportScheduleRunNowView.as_view(),
+        name="report_schedule_run"
+    ),
+
+    # Airport Comparison
+    path(
+        "airports/compare/",
+        views.AirportComparisonView.as_view(),
+        name="airport_comparison"
+    ),
+
+    # Public Portal URLs (no authentication required)
+    path(
+        "flights/status/",
+        views.FlightStatusPortalView.as_view(),
+        name="flight_status_portal"
+    ),
+    path(
+        "baggage/track/",
+        views.BaggageTrackingView.as_view(),
+        name="baggage_tracking"
+    ),
+
+    # Data Import Wizard
+    path(
+        "import/<str:model_name>/",
+        views.DataImportWizardView.as_view(),
+        name="data_import_wizard"
+    ),
 ]

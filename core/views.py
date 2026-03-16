@@ -13,7 +13,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Avg, Count, Q, Sum
-from django.http import Http404, HttpRequest, JsonResponse
+from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views import View
@@ -268,17 +268,46 @@ class BaseUpdateView(PermissionMixin, View):
 
 class DashboardView(PermissionMixin, View):
     """Main dashboard view showing airport operations overview.
-    
+
     Displays flight status summary, gate utilization, recent flights,
-    and fiscal assessment summary.
+    fiscal assessment summary, KPIs, alerts, and trend charts.
     """
-    
+
     template_name = "core/dashboard.html"
     # All authenticated users can view the dashboard (VIEWER role)
     required_role = UserRole.VIEWER
-    
+
     def get(self, request: HttpRequest) -> render:
         """Display the main dashboard with flight and assessment data."""
+        from datetime import datetime, timedelta
+        from django.db.models import Sum, Avg
+        from .weather_service import weather_service
+        from .map_service import map_service
+        
+        # Get filter parameters
+        filter_airport = request.GET.get('airport', '')
+        filter_date = request.GET.get('date', '')
+        filter_status = request.GET.get('status', '')
+        
+        # Calculate date range for filters
+        today = timezone.now().date()
+        if filter_date:
+            try:
+                filter_date_obj = datetime.strptime(filter_date, '%Y-%m-%d').date()
+            except ValueError:
+                filter_date_obj = today
+        else:
+            filter_date_obj = today
+        
+        # Base flight queryset with filters
+        flights_qs = Flight.objects.select_related("gate")
+        if filter_airport:
+            flights_qs = flights_qs.filter(
+                Q(origin=filter_airport) | Q(destination=filter_airport)
+            )
+        if filter_status:
+            flights_qs = flights_qs.filter(status=filter_status)
+        
         # Optimized: Get flight statistics by status in a single query
         status_counts = Flight.objects.aggregate(
             **{status.value: Count("id", filter=Q(status=status.value)) for status in FlightStatus}
@@ -286,12 +315,9 @@ class DashboardView(PermissionMixin, View):
         flight_status_counts = status_counts
         
         # Get recent flights (last 10)
-        recent_flights = Flight.objects.select_related("gate").order_by(
-            "-scheduled_departure"
-        )[:10]
+        recent_flights = flights_qs.order_by("-scheduled_departure")[:10]
         
         # Get upcoming flights (scheduled for today/tomorrow)
-        today = timezone.now().date()
         tomorrow = today + timedelta(days=1)
         upcoming_flights = Flight.objects.filter(
             scheduled_departure__date__gte=today,
@@ -317,17 +343,174 @@ class DashboardView(PermissionMixin, View):
         # Get airports for filter
         airports = Airport.objects.filter(is_active=True).order_by("code")
         
+        # ============ NEW: KPI Calculations ============
+        total_flights = Flight.objects.count()
+        total_gates = Gate.objects.count()
+        
+        # On-time performance (flights not delayed or cancelled)
+        on_time_flights = Flight.objects.exclude(
+            status__in=['delayed', 'cancelled']
+        ).count()
+        on_time_rate = round((on_time_flights / total_flights * 100), 1) if total_flights > 0 else 0
+        
+        # Gate utilization rate
+        active_gates = gates.filter(flight_count__gt=0).count()
+        gate_utilization_rate = round((active_gates / total_gates * 100), 1) if total_gates > 0 else 0
+        
+        # Passenger throughput (from assessments)
+        total_passengers = FiscalAssessment.objects.aggregate(
+            total=Sum('passenger_count')
+        )['total'] or 0
+        
+        # Daily flight trend (today vs yesterday)
+        today_flights = Flight.objects.filter(
+            scheduled_departure__date=today
+        ).count()
+        yesterday = today - timedelta(days=1)
+        yesterday_flights = Flight.objects.filter(
+            scheduled_departure__date=yesterday
+        ).count()
+        daily_trend = round(((today_flights - yesterday_flights) / yesterday_flights * 100), 1) if yesterday_flights > 0 else 0
+        
+        # Average delay minutes
+        avg_delay = Flight.objects.filter(
+            status='delayed'
+        ).aggregate(avg=Avg('delay_minutes'))['avg'] or 0
+        
+        # ============ NEW: 7-Day Flight Trend Data ============
+        seven_days_ago = today - timedelta(days=6)
+        daily_flights = Flight.objects.filter(
+            scheduled_departure__date__gte=seven_days_ago
+        ).extra(
+            select={'date': 'DATE(scheduled_departure)'}
+        ).values('date').annotate(
+            count=Count('id')
+        ).order_by('date')
+        
+        # Format for chart: list of [date, count]
+        flight_trend_data = []
+        date_labels = []
+        for i in range(7):
+            d = seven_days_ago + timedelta(days=i)
+            date_labels.append(d.strftime('%a'))  # Mon, Tue, etc.
+            # Find count for this date
+            count = 0
+            for item in daily_flights:
+                if item['date'] == d:
+                    count = item['count']
+                    break
+            flight_trend_data.append(count)
+        
+        # ============ NEW: Hourly Traffic Data ============
+        today_flights_qs = Flight.objects.filter(
+            scheduled_departure__date=today
+        )
+        hourly_data = [0] * 24
+        for flight in today_flights_qs:
+            hour = flight.scheduled_departure.hour
+            hourly_data[hour] += 1
+        
+        # ============ NEW: Alerts / Action Items ============
+        # Flights requiring attention
+        delayed_flights_alert = Flight.objects.filter(
+            status='delayed'
+        ).select_related('gate').order_by('-scheduled_departure')[:5]
+        
+        cancelled_flights_alert = Flight.objects.filter(
+            status='cancelled'
+        ).select_related('gate').order_by('-scheduled_departure')[:5]
+        
+        # Pending assessments awaiting approval
+        pending_assessments = FiscalAssessment.objects.filter(
+            status='pending'
+        ).select_related('airport').order_by('created_at')[:5]
+        
+        # Gate conflicts (flights with same gate and overlapping times)
+        gate_conflicts = []
+        for gate in Gate.objects.all():
+            gate_flights = Flight.objects.filter(
+                gate=gate,
+                scheduled_departure__date=today
+            ).order_by('scheduled_departure')
+            if gate_flights.count() > 1:
+                # Check for overlaps
+                flights_list = list(gate_flights)
+                for i in range(len(flights_list) - 1):
+                    if flights_list[i].scheduled_arrival > flights_list[i+1].scheduled_departure:
+                        gate_conflicts.append({
+                            'gate': gate,
+                            'flight1': flights_list[i],
+                            'flight2': flights_list[i+1]
+                        })
+        
+        # ============ NEW: Weather Data (Real-time from Open-Meteo) ============
+        # Get weather for the primary airport or default
+        primary_airport = airports.first() if airports.exists() else None
+        if primary_airport:
+            weather_data = weather_service.get_weather(
+                airport_code=primary_airport.code,
+                latitude=float(primary_airport.latitude) if primary_airport.latitude else None,
+                longitude=float(primary_airport.longitude) if primary_airport.longitude else None
+            )
+        else:
+            weather_data = weather_service.get_weather('ATL')  # Default to Atlanta
+        
+        # ============ NEW: Map Data ============
+        map_config = map_service.get_map_config()
+        active_flights = map_service.get_active_flights(filter_airport if filter_airport else None)
+        gates_data = map_service.get_gates_data()
+        airports_data = map_service.get_airports_data()
+        
         from .permissions import has_minimum_role, UserRole
         
         context = {
+            # Existing context
             "flight_status_counts": flight_status_counts,
             "recent_flights": recent_flights,
             "upcoming_flights": upcoming_flights,
             "gates": gates,
             "recent_assessments": recent_assessments,
             "airports": airports,
-            "total_flights": Flight.objects.count(),
-            "total_gates": Gate.objects.count(),
+            "total_flights": total_flights,
+            "total_gates": total_gates,
+            
+            # NEW: KPIs
+            "on_time_rate": on_time_rate,
+            "gate_utilization_rate": gate_utilization_rate,
+            "total_passengers": total_passengers,
+            "daily_trend": daily_trend,
+            "avg_delay": round(avg_delay, 1),
+            "today_flights": today_flights,
+            "yesterday_flights": yesterday_flights,
+            "active_gates": active_gates,
+            
+            # NEW: Chart data
+            "flight_trend_labels": json.dumps(date_labels),
+            "flight_trend_data": json.dumps(flight_trend_data),
+            "hourly_data": json.dumps(hourly_data),
+            
+            # NEW: Alerts
+            "delayed_flights_alert": delayed_flights_alert,
+            "cancelled_flights_alert": cancelled_flights_alert,
+            "pending_assessments": pending_assessments,
+            "gate_conflicts": gate_conflicts,
+            "alert_count": len(delayed_flights_alert) + len(cancelled_flights_alert) + len(pending_assessments) + len(gate_conflicts),
+            
+            # NEW: Weather
+            "weather_data": weather_data,
+            
+            # NEW: Map data
+            "map_config": json.dumps(map_config),
+            "active_flights": json.dumps(active_flights),
+            "gates_data": json.dumps(gates_data),
+            "airports_data": json.dumps(airports_data),
+            
+            # NEW: Filters
+            "filter_airport": filter_airport,
+            "filter_date": filter_date,
+            "filter_status": filter_status,
+            "today": today,
+            
             # Permission flags for template
             "can_create_assessment": can_create_assessment(request.user),
             "can_edit_assessment": can_edit_assessment(request.user),
@@ -1042,19 +1225,21 @@ class ReportDetailView(LoginRequiredMixin, View):
 
 class ReportExportView(LoginRequiredMixin, View):
     """View for exporting reports to different formats."""
-    
+
     def get(self, request: HttpRequest, report_id: int) -> HttpRequest:
         """Export report in specified format."""
         report = get_object_or_404(Report, id=report_id)
         export_format = request.GET.get("format", "json")
-        
+
         if export_format == "json":
             return self._export_json(report)
         elif export_format == "csv":
             return self._export_csv(report)
+        elif export_format == "xlsx":
+            return self._export_xlsx(report)
         else:
             return JsonResponse({"error": "Invalid format"}, status=400)
-    
+
     def _export_json(self, report: Report) -> JsonResponse:
         """Export report as JSON."""
         data = {
@@ -1070,15 +1255,15 @@ class ReportExportView(LoginRequiredMixin, View):
         response = JsonResponse(data, json_dumps_params={"indent": 2})
         response["Content-Disposition"] = f'attachment; filename="{report.title.replace(" ", "_")}.json"'
         return response
-    
+
     def _export_csv(self, report: Report) -> HttpRequest:
         """Export report as CSV."""
         import csv
         import io
-        
+
         output = io.StringIO()
         writer = csv.writer(output)
-        
+
         # Write header
         writer.writerow(["Field", "Value"])
         writer.writerow(["Report ID", str(report.report_id)])
@@ -1089,17 +1274,109 @@ class ReportExportView(LoginRequiredMixin, View):
         writer.writerow(["Period End", str(report.period_end)])
         writer.writerow(["Generated By", report.generated_by])
         writer.writerow(["Generated At", str(report.generated_at) if report.generated_at else ""])
-        
+
         # Write content if available
         if report.content:
             writer.writerow([])
             writer.writerow(["Content"])
             if "summary" in report.content:
-                for key, value in report.content["summary"].items():
-                    writer.writerow([key, value])
-        
+                summary = report.content["summary"]
+                if isinstance(summary, dict):
+                    for key, value in summary.items():
+                        writer.writerow([key, value])
+                elif isinstance(summary, str):
+                    writer.writerow(["Summary", summary])
+
         response = HttpResponse(output.getvalue(), content_type="text/csv")
         response["Content-Disposition"] = f'attachment; filename="{report.title.replace(" ", "_")}.csv"'
+        return response
+
+    def _export_xlsx(self, report: Report) -> HttpResponse:
+        """Export report as Excel XLSX."""
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
+        import io
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Report"
+
+        # Styles
+        header_font = Font(bold=True, size=12, color="FFFFFF")
+        header_fill = PatternFill(start_color="0d6efd", end_color="0d6efd", fill_type="solid")
+        title_font = Font(bold=True, size=14)
+        thin_border = Border(
+            left=Side(style='thin'),
+            right=Side(style='thin'),
+            top=Side(style='thin'),
+            bottom=Side(style='thin')
+        )
+
+        # Header
+        ws.merge_cells('A1:B1')
+        ws['A1'] = f"Report: {report.title}"
+        ws['A1'].font = title_font
+
+        # Basic info
+        info = [
+            ("Report ID", str(report.report_id)),
+            ("Title", report.title),
+            ("Airport", report.airport.code),
+            ("Type", report.report_type),
+            ("Period Start", str(report.period_start)),
+            ("Period End", str(report.period_end)),
+            ("Generated By", report.generated_by or ""),
+            ("Generated At", str(report.generated_at) if report.generated_at else ""),
+        ]
+
+        for row_idx, (label, value) in enumerate(info, start=3):
+            ws.cell(row=row_idx, column=1, value=label).font = Font(bold=True)
+            ws.cell(row=row_idx, column=2, value=value)
+
+        # Content section
+        if report.content:
+            ws.append([])
+            ws.append(["Content Summary"])
+            ws.cell(row=ws.max_row, column=1).font = header_font
+            ws.cell(row=ws.max_row, column=1).fill = header_fill
+
+            if "summary" in report.content:
+                summary = report.content["summary"]
+                if isinstance(summary, dict):
+                    # Header row
+                    header_row = ws.max_row + 1
+                    ws.cell(row=header_row, column=1, value="Metric")
+                    ws.cell(row=header_row, column=2, value="Value")
+                    for col in range(1, 3):
+                        cell = ws.cell(row=header_row, column=col)
+                        cell.font = header_font
+                        cell.fill = header_fill
+                        cell.alignment = Alignment(horizontal='center')
+
+                    # Data rows
+                    for key, value in summary.items():
+                        ws.append([key.replace('_', ' ').title(), value])
+
+        # Auto-adjust column widths
+        for column in ws.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 50)
+            ws.column_dimensions[column_letter].width = adjusted_width
+
+        # Save to buffer
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
+
+        response = HttpResponse(output.getvalue(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response["Content-Disposition"] = f'attachment; filename="{report.title.replace(" ", "_")}.xlsx"'
         return response
 
 
@@ -1481,7 +1758,17 @@ class EventLogListView(LoginRequiredMixin, View):
         if date_to:
             logs = logs.filter(timestamp__date__lte=date_to)
         if search:
-            logs = logs.filter(description__icontains=search)
+            # Improved search: search across multiple fields with fuzzy matching
+            from django.db.models import Q
+            logs = logs.filter(
+                Q(description__icontains=search) |
+                Q(event_type__icontains=search) |
+                Q(action__icontains=search) |
+                Q(user__username__icontains=search) |
+                Q(user__email__icontains=search) |
+                Q(flight__flight_number__icontains=search) |
+                Q(ip_address__icontains=search)
+            )
         
         # Get unique event types and actions for filter dropdowns
         event_types = EventLog.objects.values_list('event_type', flat=True).distinct()
@@ -1527,3 +1814,485 @@ class EventLogListView(LoginRequiredMixin, View):
             "total_logs": logs.count(),
         }
         return render(request, self.template_name, context)
+
+
+class AnalyticsDashboardView(PermissionMixin, View):
+    """Analytics dashboard view with interactive charts.
+
+    Provides comprehensive analytics including revenue trends,
+    flight statistics, passenger trends, and airport comparisons.
+    """
+
+    required_role = UserRole.VIEWER
+    template_name = "core/analytics_dashboard.html"
+
+    def get(self, request: HttpRequest) -> HttpResponse:
+        """Render analytics dashboard."""
+        from .models import Airport, Gate, Flight, Passenger, FiscalAssessment, AssessmentStatus
+        from django.db.models import Count, Sum, Avg, Q
+
+        context = {
+            "page_title": "Analytics Dashboard",
+            "total_airports": Airport.objects.filter(is_active=True).count(),
+            "total_gates": Gate.objects.count(),
+            "total_flights": Flight.objects.count(),
+            "total_passengers": Passenger.objects.count(),
+            "approved_assessments": FiscalAssessment.objects.filter(
+                status=AssessmentStatus.APPROVED.value
+            ).count(),
+        }
+        return render(request, self.template_name, context)
+
+
+class ReportScheduleListView(PermissionMixin, View):
+    """List view for scheduled reports."""
+
+    required_role = UserRole.EDITOR
+    template_name = "core/report_schedule_list.html"
+
+    def get(self, request: HttpRequest) -> HttpResponse:
+        """Render scheduled reports list."""
+        from .models import ReportSchedule
+        from .forms import ReportScheduleForm
+
+        schedules = ReportSchedule.objects.select_related('airport', 'created_by').all()
+
+        context = {
+            "page_title": "Scheduled Reports",
+            "schedules": schedules,
+            "form": ReportScheduleForm(),
+        }
+        return render(request, self.template_name, context)
+
+
+class ReportScheduleCreateView(PermissionMixin, View):
+    """Create view for report schedules."""
+
+    required_role = UserRole.EDITOR
+    template_name = "core/report_schedule_form.html"
+
+    def get(self, request: HttpRequest) -> HttpResponse:
+        """Render create form."""
+        from .forms import ReportScheduleForm
+
+        context = {
+            "page_title": "New Report Schedule",
+            "form": ReportScheduleForm(),
+            "action": "create",
+        }
+        return render(request, self.template_name, context)
+
+    def post(self, request: HttpRequest) -> HttpResponse:
+        """Handle schedule creation."""
+        from .forms import ReportScheduleForm
+        from .models import ReportSchedule
+        from django.urls import reverse
+        from django.contrib import messages
+
+        form = ReportScheduleForm(request.POST)
+        if form.is_valid():
+            schedule = form.save(commit=False)
+            schedule.created_by = request.user
+            schedule.save()
+
+            # Queue initial check
+            from django_q.tasks import async_task
+            async_task('core.tasks.check_scheduled_reports', group='schedules')
+
+            messages.success(request, f"Report schedule '{schedule.name}' created successfully.")
+            return redirect(reverse('core:report_schedule_list'))
+
+        context = {
+            "page_title": "New Report Schedule",
+            "form": form,
+            "action": "create",
+        }
+        return render(request, self.template_name, context, status=400)
+
+
+class ReportScheduleUpdateView(PermissionMixin, View):
+    """Update view for report schedules."""
+
+    required_role = UserRole.EDITOR
+    template_name = "core/report_schedule_form.html"
+
+    def get(self, request: HttpRequest, schedule_id: int) -> HttpResponse:
+        """Render edit form."""
+        from .models import ReportSchedule
+        from .forms import ReportScheduleForm
+
+        schedule = get_object_or_404(ReportSchedule, id=schedule_id)
+
+        context = {
+            "page_title": "Edit Report Schedule",
+            "form": ReportScheduleForm(instance=schedule),
+            "action": "update",
+            "schedule": schedule,
+        }
+        return render(request, self.template_name, context)
+
+    def post(self, request: HttpRequest, schedule_id: int) -> HttpResponse:
+        """Handle schedule update."""
+        from .models import ReportSchedule
+        from .forms import ReportScheduleForm
+        from django.urls import reverse
+        from django.contrib import messages
+
+        schedule = get_object_or_404(ReportSchedule, id=schedule_id)
+        form = ReportScheduleForm(request.POST, instance=schedule)
+
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Report schedule '{schedule.name}' updated successfully.")
+            return redirect(reverse('core:report_schedule_list'))
+
+        context = {
+            "page_title": "Edit Report Schedule",
+            "form": form,
+            "action": "update",
+            "schedule": schedule,
+        }
+        return render(request, self.template_name, context, status=400)
+
+
+class ReportScheduleDeleteView(PermissionMixin, View):
+    """Delete view for report schedules."""
+
+    required_role = UserRole.EDITOR
+
+    def post(self, request: HttpRequest, schedule_id: int) -> HttpResponse:
+        """Handle schedule deletion."""
+        from .models import ReportSchedule
+        from django.urls import reverse
+        from django.contrib import messages
+
+        schedule = get_object_or_404(ReportSchedule, id=schedule_id)
+        schedule_name = schedule.name
+        schedule.delete()
+
+        messages.success(request, f"Report schedule '{schedule_name}' deleted successfully.")
+        return redirect(reverse('core:report_schedule_list'))
+
+
+class ReportScheduleRunNowView(PermissionMixin, View):
+    """Manually trigger a scheduled report."""
+
+    required_role = UserRole.EDITOR
+
+    def post(self, request: HttpRequest, schedule_id: int) -> HttpResponse:
+        """Trigger immediate report generation."""
+        from .models import ReportSchedule
+        from django.urls import reverse
+        from django.contrib import messages
+        from django_q.tasks import async_task
+
+        schedule = get_object_or_404(ReportSchedule, id=schedule_id)
+
+        async_task('core.tasks.generate_scheduled_report', schedule.id, group='schedules')
+
+        messages.success(request, f"Report '{schedule.name}' is being generated.")
+        return redirect(reverse('core:report_schedule_list'))
+
+
+class AirportComparisonView(PermissionMixin, View):
+    """Multi-airport comparison view with side-by-side metrics."""
+
+    required_role = UserRole.VIEWER
+    template_name = "core/airport_comparison.html"
+
+    def get(self, request: HttpRequest) -> HttpResponse:
+        """Render airport comparison page."""
+        from .models import Airport, FiscalAssessment, AssessmentStatus, Flight, Gate, Passenger
+        from django.db.models import Count, Sum, Avg, Q
+        from datetime import timedelta, date
+
+        # Get selected airports from query params
+        airport_ids = request.GET.getlist('airports')
+        comparison_period = request.GET.get('period', '6months')
+        start_date_str = request.GET.get('start_date', '')
+        end_date_str = request.GET.get('end_date', '')
+
+        # Calculate date cutoff based on period
+        now = timezone.now()
+        cutoff = None
+        end_date = None
+        
+        if comparison_period == 'custom' and start_date_str:
+            # Custom date range
+            try:
+                cutoff = timezone.make_aware(date.fromisoformat(start_date_str))
+                if end_date_str:
+                    end_date = timezone.make_aware(date.fromisoformat(end_date_str))
+                else:
+                    end_date = now
+            except (ValueError, TypeError):
+                # Fallback to 6 months if invalid dates
+                cutoff = now - timedelta(days=180)
+                end_date = now
+        elif comparison_period == '7days':
+            cutoff = now - timedelta(days=7)
+        elif comparison_period == '30days':
+            cutoff = now - timedelta(days=30)
+        elif comparison_period == '90days':
+            cutoff = now - timedelta(days=90)
+        elif comparison_period == '6months':
+            cutoff = now - timedelta(days=180)
+        elif comparison_period == '1year':
+            cutoff = now - timedelta(days=365)
+        else:
+            # Default to 6 months
+            cutoff = now - timedelta(days=180)
+
+        # Get all active airports
+        all_airports = Airport.objects.filter(is_active=True)
+
+        # Filter selected airports
+        if airport_ids:
+            airports = all_airports.filter(id__in=airport_ids)
+        else:
+            airports = all_airports[:4]  # Default to first 4 airports
+
+        # Build comparison data
+        comparison_data = []
+        for airport in airports:
+            # Filter assessments by date range
+            assessment_filters = Q(
+                airport=airport,
+                status=AssessmentStatus.APPROVED.value,
+                start_date__gte=cutoff
+            )
+            if end_date:
+                assessment_filters &= Q(start_date__lte=end_date)
+            
+            assessments = FiscalAssessment.objects.filter(assessment_filters)
+            
+            # Flight model uses airport codes (origin/destination), not FK
+            flight_filters = Q(
+                (Q(origin=airport.code) | Q(destination=airport.code)),
+                scheduled_departure__gte=cutoff
+            )
+            if end_date:
+                flight_filters &= Q(scheduled_departure__lte=end_date)
+            
+            flights = Flight.objects.filter(flight_filters)
+
+            total_revenue = assessments.aggregate(Sum('total_revenue'))['total_revenue__sum'] or 0
+            total_expenses = assessments.aggregate(Sum('total_expenses'))['total_expenses__sum'] or 0
+            net_profit = assessments.aggregate(Sum('net_profit'))['net_profit__sum'] or 0
+            total_passengers = assessments.aggregate(Sum('passenger_count'))['passenger_count__sum'] or 0
+            total_flights = flights.count()
+            delayed_flights = flights.filter(status='delayed').count()
+            on_time_rate = ((total_flights - delayed_flights) / total_flights * 100) if total_flights > 0 else 0
+            profit_margin = (net_profit / total_revenue * 100) if total_revenue > 0 else 0
+
+            comparison_data.append({
+                'airport': {
+                    'id': airport.id,
+                    'code': airport.code,
+                    'name': airport.name,
+                },
+                'total_revenue': float(total_revenue),
+                'total_expenses': float(total_expenses),
+                'net_profit': float(net_profit),
+                'total_passengers': total_passengers,
+                'total_flights': total_flights,
+                'on_time_rate': round(on_time_rate, 1),
+                'assessment_count': assessments.count(),
+                'profit_margin': round(profit_margin, 1),
+            })
+
+        context = {
+            "page_title": "Airport Comparison",
+            "all_airports": all_airports,
+            "selected_airport_ids": [int(a) for a in airport_ids] if airport_ids else [a.id for a in airports],
+            "comparison_period": comparison_period,
+            "comparison_data": comparison_data,
+            "start_date": start_date_str,
+            "end_date": end_date_str,
+        }
+        return render(request, self.template_name, context)
+
+
+class FlightStatusPortalView(View):
+    """Public flight status portal for passengers.
+    
+    This view does not require authentication and provides
+    real-time flight status information for passengers.
+    """
+
+    template_name = "core/public/flight_status.html"
+
+    def get(self, request: HttpRequest) -> HttpResponse:
+        """Render flight status portal."""
+        from .models import Flight, FlightStatus, Airport
+        from django.db.models import Q
+
+        search_query = request.GET.get('q', '')
+        status_filter = request.GET.get('status', '')
+        airport_filter = request.GET.get('airport', '')
+
+        # Start with all flights today
+        today = timezone.now().date()
+        flights = Flight.objects.filter(
+            Q(scheduled_departure__date=today) | Q(scheduled_arrival__date=today)
+        ).select_related('gate').order_by('scheduled_departure')
+
+        # Apply filters
+        if search_query:
+            flights = flights.filter(
+                Q(flight_number__icontains=search_query) |
+                Q(origin__icontains=search_query) |
+                Q(destination__icontains=search_query) |
+                Q(airline__icontains=search_query)
+            )
+
+        if status_filter:
+            flights = flights.filter(status=status_filter)
+
+        if airport_filter:
+            flights = flights.filter(
+                Q(origin=airport_filter) | Q(destination=airport_filter)
+            )
+
+        # Get status choices for filter
+        status_choices = [(status.value, status.name.replace('_', ' ').title()) for status in FlightStatus]
+        
+        # Get airports for filter
+        airports = Airport.objects.filter(is_active=True)
+
+        context = {
+            "page_title": "Flight Status",
+            "flights": flights[:50],  # Limit to 50 for performance
+            "status_choices": status_choices,
+            "airports": airports,
+            "selected_status": status_filter,
+            "selected_airport": airport_filter,
+            "search_query": search_query,
+            "is_public": True,
+        }
+        return render(request, self.template_name, context)
+
+
+class BaggageTrackingView(View):
+    """Public baggage tracking portal for passengers."""
+
+    template_name = "core/public/baggage_tracking.html"
+
+    def get(self, request: HttpRequest) -> HttpResponse:
+        """Render baggage tracking page."""
+        from .models import Baggage
+
+        tag_number = request.GET.get('tag', '')
+        baggage = None
+        error = None
+
+        if tag_number:
+            try:
+                baggage = Baggage.objects.select_related('passenger', 'flight').get(
+                    tag_number=tag_number.upper()
+                )
+            except Baggage.DoesNotExist:
+                error = f"Baggage with tag number '{tag_number}' not found."
+
+        context = {
+            "page_title": "Baggage Tracking",
+            "baggage": baggage,
+            "error": error,
+            "tag_number": tag_number,
+            "is_public": True,
+        }
+        return render(request, self.template_name, context)
+
+
+class DataImportWizardView(LoginRequiredMixin, View):
+    """Guided CSV import wizard with column mapping."""
+
+    template_name = "core/import_wizard.html"
+
+    def get(self, request: HttpRequest, model_name: str) -> HttpResponse:
+        """Render import wizard."""
+        from .models import Flight, Passenger, Staff, Gate, Airport
+        
+        models = {
+            'flight': Flight,
+            'passenger': Passenger,
+            'staff': Staff,
+            'gate': Gate,
+            'airport': Airport,
+        }
+        
+        if model_name not in models:
+            raise Http404("Model not found")
+        
+        model = models[model_name]
+        fields = []
+        for field in model._meta.fields:
+            if field.editable and field.name not in ['id', 'created_at', 'updated_at']:
+                fields.append({
+                    'name': field.name,
+                    'label': field.verbose_name.title() if hasattr(field, 'verbose_name') else field.name.replace('_', ' ').title()
+                })
+        
+        context = {
+            "page_title": f"Import {model_name.title()}s",
+            "model_name": model_name,
+            "fields": json.dumps(fields),
+            "back_url": request.META.get('HTTP_REFERER', '/'),
+        }
+        return render(request, self.template_name, context)
+
+    def post(self, request: HttpRequest, model_name: str) -> JsonResponse:
+        """Process CSV import."""
+        import csv
+        import io
+        from .models import Flight, Passenger, Staff, Gate, Airport
+        
+        models = {
+            'flight': Flight,
+            'passenger': Passenger,
+            'staff': Staff,
+            'gate': Gate,
+            'airport': Airport,
+        }
+        
+        if model_name not in models:
+            return JsonResponse({'success': False, 'error': 'Invalid model'})
+        
+        model = models[model_name]
+        mapping = json.loads(request.POST.get('mapping', '{}'))
+        
+        if not mapping:
+            return JsonResponse({'success': False, 'error': 'No column mapping provided'})
+        
+        try:
+            csv_file = request.FILES.get('file')
+            if not csv_file:
+                return JsonResponse({'success': False, 'error': 'No file uploaded'})
+            
+            decoded_file = csv_file.read().decode('utf-8')
+            reader = csv.DictReader(decoded_file.splitlines())
+            
+            imported = 0
+            errors = []
+            
+            for row_num, row in enumerate(reader, start=2):
+                try:
+                    data = {}
+                    for csv_col, model_field in mapping.items():
+                        if csv_col in row and row[csv_col]:
+                            data[model_field] = row[csv_col]
+                    
+                    if data:
+                        model.objects.create(**data)
+                        imported += 1
+                except Exception as e:
+                    errors.append(f"Row {row_num}: {str(e)}")
+            
+            return JsonResponse({
+                'success': True,
+                'imported': imported,
+                'errors': errors[:10]  # Limit errors shown
+            })
+            
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})

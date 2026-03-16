@@ -11,7 +11,7 @@ import io
 import logging
 from datetime import datetime
 from django.contrib import admin
-from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect, HttpResponseForbidden
 from django.shortcuts import render
 from django.urls import path
 
@@ -27,6 +27,18 @@ from .models import (
     Report,
     Staff,
     StaffAssignment,
+    ReportSchedule,
+    Shift,
+    StaffShiftAssignment,
+    Baggage,
+    WeatherCondition,
+    WeatherAlert,
+    FuelInventory,
+    FuelDispensing,
+    MaintenanceSchedule,
+    MaintenanceLog,
+    CustomField,
+    CustomFieldValue,
 )
 
 
@@ -81,6 +93,28 @@ def sanitize_import_error(row_num: int, exception: Exception, logger: logging.Lo
 
 # Get logger for CSV import operations
 csv_import_logger = logging.getLogger('csv_import')
+
+
+# CUSTOM ADMIN SITE - Restrict Access to Superusers Only
+class RestrictedAdminSite(admin.AdminSite):
+    """Custom admin site that restricts access to superusers only."""
+    
+    def has_permission(self, request):
+        """Check if user has permission to access admin."""
+        return request.user.is_active and request.user.is_superuser
+    
+    def admin_view(self, view, cacheable=False):
+        """Wrap the admin view to check for superuser status."""
+        def wrapper(request, *args, **kwargs):
+            if not request.user.is_superuser:
+                return HttpResponseForbidden(
+                    "Access denied. Only superusers can access the admin panel."
+                )
+            return view(request, *args, **kwargs)
+        return wrapper
+
+# Instantiate the custom admin site
+admin_site = RestrictedAdminSite(name='restricted_admin')
 
 
 # MIXINS - Reusable functionality for admin classes
@@ -211,7 +245,7 @@ class PassengerInline(admin.TabularInline):
     readonly_fields = ["passenger_id", "created_at", "updated_at"]
 
 
-@admin.register(Airport)
+@admin.register(Airport, site=admin_site)
 class AirportAdmin(CSVImportMixin, admin.ModelAdmin):
     """Admin for Airport model."""
     list_display = ["code", "name", "city", "is_active"]
@@ -235,7 +269,7 @@ class AirportAdmin(CSVImportMixin, admin.ModelAdmin):
         return "airports"
 
 
-@admin.register(Gate)
+@admin.register(Gate, site=admin_site)
 class GateAdmin(CSVImportMixin, admin.ModelAdmin):
     """Admin for Gate model."""
     list_display = ["gate_id", "terminal", "capacity", "status", "updated_at"]
@@ -261,7 +295,7 @@ class GateAdmin(CSVImportMixin, admin.ModelAdmin):
         return "gates"
 
 
-@admin.register(Flight)
+@admin.register(Flight, site=admin_site)
 class FlightAdmin(CSVImportMixin, admin.ModelAdmin):
     """Admin for Flight model."""
     list_display = [
@@ -305,7 +339,7 @@ class FlightAdmin(CSVImportMixin, admin.ModelAdmin):
         return "flights"
 
 
-@admin.register(Passenger)
+@admin.register(Passenger, site=admin_site)
 class PassengerAdmin(admin.ModelAdmin):
     """Admin for Passenger model."""
     list_display = ["last_name", "first_name", "passport_number", "flight", "seat_number", "status"]
@@ -315,7 +349,7 @@ class PassengerAdmin(admin.ModelAdmin):
     ordering = ["last_name", "first_name"]
 
 
-@admin.register(Staff)
+@admin.register(Staff, site=admin_site)
 class StaffAdmin(CSVImportMixin, admin.ModelAdmin):
     """Admin for Staff model."""
     list_display = ["last_name", "first_name", "employee_number", "role", "is_available"]
@@ -343,7 +377,7 @@ class StaffAdmin(CSVImportMixin, admin.ModelAdmin):
         return "staff"
 
 
-@admin.register(StaffAssignment)
+@admin.register(StaffAssignment, site=admin_site)
 class StaffAssignmentAdmin(admin.ModelAdmin):
     """Admin for StaffAssignment model."""
     list_display = ["staff", "flight", "assignment_type", "assigned_at"]
@@ -354,7 +388,7 @@ class StaffAssignmentAdmin(admin.ModelAdmin):
     ordering = ["-assigned_at"]
 
 
-@admin.register(EventLog)
+@admin.register(EventLog, site=admin_site)
 class EventLogAdmin(admin.ModelAdmin):
     """Admin for EventLog model."""
     list_display = ["timestamp", "event_type", "action", "user", "description", "severity"]
@@ -365,9 +399,174 @@ class EventLogAdmin(admin.ModelAdmin):
     date_hierarchy = "timestamp"
     raw_id_fields = ["user", "flight"]
     list_per_page = 50
+    
+    actions = ["export_to_csv", "export_to_xlsx", "export_audit_log"]
+
+    def export_to_csv(self, request, queryset):
+        """Export selected audit logs to CSV."""
+        import csv
+        import io
+        from django.http import HttpResponse
+
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Write header
+        writer.writerow([
+            'Event ID', 'Timestamp', 'Event Type', 'Action', 'Severity',
+            'User', 'Flight', 'Description', 'IP Address'
+        ])
+        
+        # Write data
+        for log in queryset:
+            writer.writerow([
+                str(log.event_id),
+                log.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+                log.event_type,
+                log.action,
+                log.severity,
+                log.user.username if log.user else '',
+                log.flight.flight_number if log.flight else '',
+                log.description,
+                log.ip_address or ''
+            ])
+        
+        response = HttpResponse(output.getvalue(), content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="audit_logs.csv"'
+        self.message_user(request, f"Exported {queryset.count()} audit log entries to CSV.")
+        return response
+    export_to_csv.short_description = "Export selected to CSV"
+
+    def export_to_xlsx(self, request, queryset):
+        """Export selected audit logs to Excel."""
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, Alignment, PatternFill
+        import io
+        from django.http import HttpResponse
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Audit Logs"
+        
+        # Styles
+        header_font = Font(bold=True, size=11, color="FFFFFF")
+        header_fill = PatternFill(start_color="4a5568", end_color="4a5568", fill_type="solid")
+        
+        # Headers
+        headers = [
+            'Event ID', 'Timestamp', 'Event Type', 'Action', 'Severity',
+            'User', 'Flight', 'Description', 'IP Address'
+        ]
+        for col, header in enumerate(headers, start=1):
+            cell = ws.cell(row=1, column=col, value=header)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = Alignment(horizontal='center')
+        
+        # Data rows
+        for row_idx, log in enumerate(queryset, start=2):
+            ws.cell(row=row_idx, column=1, value=str(log.event_id))
+            ws.cell(row=row_idx, column=2, value=log.timestamp.strftime('%Y-%m-%d %H:%M:%S'))
+            ws.cell(row=row_idx, column=3, value=log.event_type)
+            ws.cell(row=row_idx, column=4, value=log.action)
+            ws.cell(row=row_idx, column=5, value=log.severity)
+            ws.cell(row=row_idx, column=6, value=log.user.username if log.user else '')
+            ws.cell(row=row_idx, column=7, value=log.flight.flight_number if log.flight else '')
+            ws.cell(row=row_idx, column=8, value=log.description[:200] if log.description else '')
+            ws.cell(row=row_idx, column=9, value=log.ip_address or '')
+        
+        # Auto-adjust column widths
+        column_widths = [38, 20, 20, 15, 12, 15, 15, 60, 15]
+        for col, width in enumerate(column_widths, start=1):
+            ws.column_dimensions[chr(64 + col)].width = width
+        
+        # Save to buffer
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
+        
+        response = HttpResponse(output.getvalue(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename="audit_logs.xlsx"'
+        self.message_user(request, f"Exported {queryset.count()} audit log entries to Excel.")
+        return response
+    export_to_xlsx.short_description = "Export selected to Excel"
+
+    def export_audit_log(self, request, queryset):
+        """Export full audit log for compliance."""
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+        import io
+        from django.http import HttpResponse
+        from django.utils import timezone
+
+        wb = Workbook()
+        
+        # Summary sheet
+        ws_summary = wb.active
+        ws_summary.title = "Summary"
+        
+        # Styles
+        title_font = Font(bold=True, size=16)
+        header_font = Font(bold=True, size=11, color="FFFFFF")
+        header_fill = PatternFill(start_color="2d3748", end_color="2d3748", fill_type="solid")
+        
+        # Title
+        ws_summary.merge_cells('A1:B1')
+        ws_summary['A1'] = 'Audit Log Export Report'
+        ws_summary['A1'].font = title_font
+        
+        # Summary info
+        now = timezone.now()
+        summary_data = [
+            ('Export Date', now.strftime('%Y-%m-%d %H:%M:%S')),
+            ('Total Entries', queryset.count()),
+            ('Date Range', f"{queryset.order_by('timestamp').first().timestamp if queryset.exists() else 'N/A'}"),
+            ('Exported By', request.user.username),
+        ]
+        
+        for row_idx, (label, value) in enumerate(summary_data, start=3):
+            ws_summary.cell(row=row_idx, column=1, value=label).font = Font(bold=True)
+            ws_summary.cell(row=row_idx, column=2, value=value)
+        
+        # Detail sheet
+        ws_detail = wb.create_sheet(title="Audit Logs")
+        
+        headers = [
+            'Timestamp', 'Event ID', 'Type', 'Action', 'Severity',
+            'User', 'Flight', 'Description', 'IP Address'
+        ]
+        for col, header in enumerate(headers, start=1):
+            cell = ws_detail.cell(row=1, column=col, value=header)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = Alignment(horizontal='center')
+        
+        # Data
+        for row_idx, log in enumerate(queryset.order_by('-timestamp'), start=2):
+            ws_detail.cell(row=row_idx, column=1, value=log.timestamp.strftime('%Y-%m-%d %H:%M:%S'))
+            ws_detail.cell(row=row_idx, column=2, value=str(log.event_id))
+            ws_detail.cell(row=row_idx, column=3, value=log.event_type)
+            ws_detail.cell(row=row_idx, column=4, value=log.action)
+            ws_detail.cell(row=row_idx, column=5, value=log.severity)
+            ws_detail.cell(row=row_idx, column=6, value=log.user.username if log.user else 'System')
+            ws_detail.cell(row=row_idx, column=7, value=log.flight.flight_number if log.flight else '')
+            ws_detail.cell(row=row_idx, column=8, value=log.description[:250] if log.description else '')
+            ws_detail.cell(row=row_idx, column=9, value=log.ip_address or '')
+        
+        # Save
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
+        
+        filename = f"audit_log_export_{now.strftime('%Y%m%d_%H%M%S')}.xlsx"
+        response = HttpResponse(output.getvalue(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        self.message_user(request, f"Exported {queryset.count()} audit log entries for compliance.")
+        return response
+    export_audit_log.short_description = "Export full audit log (compliance)"
 
 
-@admin.register(FiscalAssessment)
+@admin.register(FiscalAssessment, site=admin_site)
 class FiscalAssessmentAdmin(CSVImportMixin, CSVExportMixin, admin.ModelAdmin):
     """Admin for FiscalAssessment model."""
     list_display = ["airport", "period_type", "start_date", "end_date", "status", "total_revenue", "total_expenses", "net_profit"]
@@ -514,7 +713,7 @@ class FiscalAssessmentAdmin(CSVImportMixin, CSVExportMixin, admin.ModelAdmin):
     approve_selected.short_description = "Approve selected assessments"
 
 
-@admin.register(Report)
+@admin.register(Report, site=admin_site)
 class ReportAdmin(CSVImportMixin, CSVExportMixin, admin.ModelAdmin):
     """Admin for Report model."""
     list_display = ["title", "airport", "report_type", "period_start", "period_end", "format", "is_generated", "generated_at"]
@@ -620,7 +819,7 @@ class ReportAdmin(CSVImportMixin, CSVExportMixin, admin.ModelAdmin):
     regenerate_reports.short_description = "Regenerate selected reports"
 
 
-@admin.register(Document)
+@admin.register(Document, site=admin_site)
 class DocumentAdmin(CSVImportMixin, CSVExportMixin, admin.ModelAdmin):
     """Admin for Document model."""
     list_display = ["name", "document_type", "airport", "is_template", "created_by", "created_at"]
@@ -699,29 +898,319 @@ class DocumentAdmin(CSVImportMixin, CSVExportMixin, admin.ModelAdmin):
         self.message_user(request, f"{count} documents marked as templates.")
     
     mark_as_template.short_description = "Mark as template"
-    
+
     def mark_as_document(self, request, queryset):
         """Mark selected documents as regular documents."""
         count = queryset.update(is_template=False)
         self.message_user(request, f"{count} documents marked as regular documents.")
-    
+
     mark_as_document.short_description = "Mark as document"
 
 
-# CUSTOM ADMIN SITE - Restrict Access to Superusers Only
-class RestrictedAdminSite(admin.AdminSite):
-    """Custom admin site that restricts access to superusers only."""
+@admin.register(ReportSchedule)
+class ReportScheduleAdmin(admin.ModelAdmin):
+    """Admin for report schedules."""
+
+    list_display = ['name', 'report_type', 'airport', 'frequency', 'next_run', 'last_run', 'is_active']
+    list_filter = ['frequency', 'is_active', 'report_type']
+    search_fields = ['name', 'recipients']
+    readonly_fields = ['last_run', 'next_run', 'created_by', 'created_at', 'updated_at']
+
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('name', 'report_type', 'airport', 'format')
+        }),
+        ('Schedule', {
+            'fields': ('frequency', 'day_of_week', 'day_of_month', 'hour')
+        }),
+        ('Recipients', {
+            'fields': ('recipients',)
+        }),
+        ('Status', {
+            'fields': ('is_active', 'last_run', 'next_run')
+        }),
+    )
+
+    def save_model(self, request, obj, form, change):
+        """Set created_by on save."""
+        if not change:
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(Shift)
+class ShiftAdmin(admin.ModelAdmin):
+    """Admin for staff shifts."""
+
+    list_display = ['name', 'start_time', 'end_time', 'duration_display', 'min_staff', 'max_staff', 'is_active']
+    list_filter = ['is_active']
+    search_fields = ['name']
+
+    def duration_display(self, obj):
+        """Show shift duration."""
+        return f"{obj.duration_hours():.1f} hours"
+    duration_display.short_description = 'Duration'
+
+
+@admin.register(StaffShiftAssignment)
+class StaffShiftAssignmentAdmin(admin.ModelAdmin):
+    """Admin for staff shift assignments."""
+
+    list_display = ['staff', 'shift', 'date', 'status', 'check_in_time', 'check_out_time']
+    list_filter = ['status', 'date']
+    search_fields = ['staff__first_name', 'staff__last_name', 'shift__name']
+    date_hierarchy = 'date'
+
+    actions = ['mark_confirmed', 'mark_cancelled']
+
+    def mark_confirmed(self, request, queryset):
+        """Mark assignments as confirmed."""
+        count = queryset.update(status='confirmed')
+        self.message_user(request, f"{count} assignments confirmed.")
+    mark_confirmed.short_description = "Mark as confirmed"
+
+    def mark_cancelled(self, request, queryset):
+        """Mark assignments as cancelled."""
+        count = queryset.update(status='cancelled')
+        self.message_user(request, f"{count} assignments cancelled.")
+    mark_cancelled.short_description = "Mark as cancelled"
+
+
+@admin.register(Baggage)
+class BaggageAdmin(admin.ModelAdmin):
+    """Admin for baggage tracking."""
+
+    list_display = ['tag_number', 'passenger', 'flight', 'status', 'origin', 'destination', 'weight', 'checked_in_at']
+    list_filter = ['status', 'origin', 'destination', 'checked_in_at']
+    search_fields = ['tag_number', 'passenger__first_name', 'passenger__last_name']
+    date_hierarchy = 'checked_in_at'
+    readonly_fields = ['checked_in_at', 'screened_at', 'loaded_at', 'unloaded_at', 'claimed_at']
+
+    actions = ['mark_screened', 'mark_loaded', 'mark_unloaded', 'mark_claimed', 'mark_lost', 'bulk_delete_baggage']
+
+    def mark_screened(self, request, queryset):
+        """Mark baggage as screened."""
+        from django.utils import timezone
+        count = queryset.update(status='screened', screened_at=timezone.now())
+        self.message_user(request, f"{count} baggage items marked as screened.")
+    mark_screened.short_description = "Mark as screened"
+
+    def mark_loaded(self, request, queryset):
+        """Mark baggage as loaded."""
+        from django.utils import timezone
+        count = queryset.update(status='loaded', loaded_at=timezone.now())
+        self.message_user(request, f"{count} baggage items marked as loaded.")
+    mark_loaded.short_description = "Mark as loaded"
+
+    def mark_unloaded(self, request, queryset):
+        """Mark baggage as unloaded."""
+        from django.utils import timezone
+        count = queryset.update(status='unloaded', unloaded_at=timezone.now())
+        self.message_user(request, f"{count} baggage items marked as unloaded.")
+    mark_unloaded.short_description = "Mark as unloaded"
+
+    def mark_claimed(self, request, queryset):
+        """Mark baggage as claimed."""
+        from django.utils import timezone
+        count = queryset.update(status='claimed', claimed_at=timezone.now())
+        self.message_user(request, f"{count} baggage items marked as claimed.")
+    mark_claimed.short_description = "Mark as claimed"
+
+    def mark_lost(self, request, queryset):
+        """Mark baggage as lost."""
+        count = queryset.update(status='lost')
+        self.message_user(request, f"{count} baggage items marked as lost.")
+    mark_lost.short_description = "Mark as lost"
+
+    def bulk_delete_baggage(self, request, queryset):
+        """Delete selected baggage records."""
+        count = queryset.count()
+        queryset.delete()
+        self.message_user(request, f"{count} baggage records deleted successfully.")
+    bulk_delete_baggage.short_description = "Delete selected records"
+
+
+@admin.register(WeatherCondition)
+class WeatherConditionAdmin(admin.ModelAdmin):
+    """Admin for weather conditions."""
+
+    list_display = ['airport', 'weather_description', 'severity', 'temperature', 'wind_speed', 'delay_impact', 'timestamp']
+    list_filter = ['airport', 'severity', 'timestamp']
+    search_fields = ['airport__code', 'weather_description']
+    readonly_fields = ['fetched_at', 'created_at', 'updated_at']
+
+
+@admin.register(Flight)
+class FlightAdmin(admin.ModelAdmin):
+    """Admin for flight management."""
+
+    list_display = ['flight_number', 'airline', 'origin', 'destination', 'scheduled_departure', 'gate', 'status', 'delay_minutes']
+    list_filter = ['status', 'origin', 'destination', 'airline']
+    search_fields = ['flight_number', 'airline', 'origin', 'destination']
+    date_hierarchy = 'scheduled_departure'
     
-    def has_permission(self, request):
-        """Check if user has permission to access admin."""
-        return request.user.is_active and request.user.is_superuser
+    actions = ['mark_delayed', 'mark_cancelled', 'mark_departed', 'mark_arrived', 'bulk_delete_flights']
+
+    def mark_delayed(self, request, queryset):
+        """Mark selected flights as delayed."""
+        count = queryset.update(status='delayed')
+        self.message_user(request, f"{count} flights marked as delayed.")
+    mark_delayed.short_description = "Mark as delayed"
+
+    def mark_cancelled(self, request, queryset):
+        """Mark selected flights as cancelled."""
+        count = queryset.update(status='cancelled')
+        self.message_user(request, f"{count} flights marked as cancelled.")
+    mark_cancelled.short_description = "Mark as cancelled"
+
+    def mark_departed(self, request, queryset):
+        """Mark selected flights as departed."""
+        count = queryset.update(status='departed')
+        self.message_user(request, f"{count} flights marked as departed.")
+    mark_departed.short_description = "Mark as departed"
+
+    def mark_arrived(self, request, queryset):
+        """Mark selected flights as arrived."""
+        count = queryset.update(status='arrived')
+        self.message_user(request, f"{count} flights marked as arrived.")
+    mark_arrived.short_description = "Mark as arrived"
+
+    def bulk_delete_flights(self, request, queryset):
+        """Delete selected flights."""
+        count = queryset.count()
+        queryset.delete()
+        self.message_user(request, f"{count} flights deleted successfully.")
+    bulk_delete_flights.short_description = "Delete selected flights"
+
+
+@admin.register(WeatherAlert)
+class WeatherAlertAdmin(admin.ModelAdmin):
+    """Admin for weather alerts."""
+
+    list_display = ['airport', 'alert_type', 'severity', 'title', 'is_active', 'start_time', 'acknowledged_at']
+    list_filter = ['is_active', 'alert_type', 'severity']
+    search_fields = ['airport__code', 'title', 'description']
     
-    def admin_view(self, view, cacheable=False):
-        """Wrap the admin view to check for superuser status."""
-        def wrapper(request, *args, **kwargs):
-            if not request.user.is_superuser:
-                return HttpResponseForbidden(
-                    "Access denied. Only superusers can access the admin panel."
-                )
-            return view(request, *args, **kwargs)
-        return wrapper
+    actions = ['acknowledge_alert', 'deactivate_alert']
+
+    def acknowledge_alert(self, request, queryset):
+        """Acknowledge selected alerts."""
+        from django.utils import timezone
+        count = queryset.update(
+            acknowledged_by=request.user if request.user.is_authenticated else None,
+            acknowledged_at=timezone.now()
+        )
+        self.message_user(request, f"{count} alerts acknowledged.")
+    acknowledge_alert.short_description = "Acknowledge alerts"
+
+    def deactivate_alert(self, request, queryset):
+        """Deactivate selected alerts."""
+        count = queryset.update(is_active=False)
+        self.message_user(request, f"{count} alerts deactivated.")
+    deactivate_alert.short_description = "Deactivate alerts"
+
+
+@admin.register(FuelInventory)
+class FuelInventoryAdmin(admin.ModelAdmin):
+    """Admin for fuel inventory."""
+
+    list_display = ['airport', 'fuel_type', 'storage_tank', 'current_level_display', 'capacity', 'fill_percentage_display', 'is_low']
+    list_filter = ['airport', 'fuel_type']
+    search_fields = ['airport__code', 'storage_tank']
+
+    def current_level_display(self, obj):
+        return f"{obj.current_level:,.0f} L"
+    current_level_display.short_description = 'Current Level'
+
+    def fill_percentage_display(self, obj):
+        return f"{obj.fill_percentage:.1f}%"
+    fill_percentage_display.short_description = 'Fill %'
+
+    def is_low(self, obj):
+        if obj.is_low:
+            return True
+        return False
+    is_low.boolean = True
+    is_low.short_description = 'Low Level'
+
+
+@admin.register(FuelDispensing)
+class FuelDispensingAdmin(admin.ModelAdmin):
+    """Admin for fuel dispensing records."""
+
+    list_display = ['flight', 'inventory', 'amount', 'start_time', 'end_time', 'operator', 'truck_id']
+    list_filter = ['inventory', 'operator']
+    search_fields = ['flight__flight_number', 'truck_id']
+    readonly_fields = ['created_at', 'updated_at']
+
+
+@admin.register(MaintenanceSchedule)
+class MaintenanceScheduleAdmin(admin.ModelAdmin):
+    """Admin for maintenance schedules."""
+
+    list_display = ['title', 'equipment_type', 'equipment_id', 'airport', 'frequency', 'next_due', 'priority', 'status', 'assigned_to']
+    list_filter = ['status', 'priority', 'frequency', 'equipment_type']
+    search_fields = ['title', 'equipment_id', 'description']
+    
+    actions = ['mark_completed', 'mark_in_progress', 'mark_overdue']
+
+    def mark_completed(self, request, queryset):
+        """Mark schedules as completed."""
+        count = queryset.update(status='completed')
+        self.message_user(request, f"{count} schedules marked as completed.")
+    mark_completed.short_description = "Mark as completed"
+
+    def mark_in_progress(self, request, queryset):
+        """Mark schedules as in progress."""
+        count = queryset.update(status='in_progress')
+        self.message_user(request, f"{count} schedules marked as in progress.")
+    mark_in_progress.short_description = "Mark as in progress"
+
+    def mark_overdue(self, request, queryset):
+        """Mark schedules as overdue."""
+        count = queryset.update(status='overdue')
+        self.message_user(request, f"{count} schedules marked as overdue.")
+    mark_overdue.short_description = "Mark as overdue"
+
+
+@admin.register(MaintenanceLog)
+class MaintenanceLogAdmin(admin.ModelAdmin):
+    """Admin for maintenance logs."""
+
+    list_display = ['equipment_id', 'equipment_type', 'maintenance_type', 'status', 'started_at', 'completed_at', 'performed_by']
+    list_filter = ['equipment_type', 'maintenance_type', 'status', 'performed_by']
+    search_fields = ['equipment_id', 'description', 'notes']
+    readonly_fields = ['created_at', 'updated_at']
+
+
+@admin.register(CustomField)
+class CustomFieldAdmin(admin.ModelAdmin):
+    """Admin for custom field definitions."""
+
+    list_display = ['name', 'label', 'model_name', 'field_type', 'required', 'is_active', 'order']
+    list_filter = ['model_name', 'field_type', 'is_active', 'required']
+    search_fields = ['name', 'label', 'model_name']
+    ordering = ['model_name', 'order', 'name']
+    
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('name', 'label', 'model_name', 'field_type')
+        }),
+        ('Configuration', {
+            'fields': ('required', 'default_value', 'help_text', 'is_active', 'order')
+        }),
+        ('Choices', {
+            'fields': ('choices',),
+            'description': 'For choice fields, enter a JSON list like: ["Option 1", "Option 2"]'
+        }),
+    )
+
+
+@admin.register(CustomFieldValue)
+class CustomFieldValueAdmin(admin.ModelAdmin):
+    """Admin for custom field values."""
+
+    list_display = ['field', 'model_name', 'object_id', 'value']
+    list_filter = ['model_name', 'field']
+    search_fields = ['object_id', 'value']
+    readonly_fields = ['created_at', 'updated_at']

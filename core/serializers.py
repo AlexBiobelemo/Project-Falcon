@@ -135,6 +135,17 @@ class PassengerSerializer(serializers.ModelSerializer):
     
     def get_flight_details(self, obj):
         """Get flight details for the passenger."""
+        # Handle both model instances and dict (already serialized)
+        if isinstance(obj, dict):
+            flight = obj.get('flight')
+            if flight and isinstance(flight, dict):
+                return {
+                    'flight_number': flight.get('flight_number'),
+                    'origin': flight.get('origin'),
+                    'destination': flight.get('destination'),
+                }
+            return None
+        
         if obj.flight:
             return {
                 'flight_number': obj.flight.flight_number,
@@ -197,6 +208,17 @@ class EventLogSerializer(serializers.ModelSerializer):
     
     def get_flight_details(self, obj):
         """Get flight details if associated."""
+        # Handle both model instances and dict (already serialized)
+        if isinstance(obj, dict):
+            flight = obj.get('flight')
+            if flight and isinstance(flight, dict):
+                return {
+                    'flight_number': flight.get('flight_number'),
+                    'origin': flight.get('origin'),
+                    'destination': flight.get('destination'),
+                }
+            return None
+        
         if obj.flight:
             return {
                 'flight_number': obj.flight.flight_number,
@@ -207,11 +229,15 @@ class EventLogSerializer(serializers.ModelSerializer):
     
     def to_representation(self, instance):
         """Customize representation to handle datetime fields."""
-        data = super().to_representation(instance)
+        # Handle both model instances and dict (already serialized)
+        if isinstance(instance, dict):
+            return instance
         
+        data = super().to_representation(instance)
+
         if data.get('timestamp'):
             data['timestamp'] = instance.timestamp.isoformat()
-        
+
         return data
 
 

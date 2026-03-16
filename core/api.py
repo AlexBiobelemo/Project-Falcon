@@ -23,17 +23,20 @@ from rest_framework.authentication import (
     SessionAuthentication,
     TokenAuthentication,
 )
-from django.db.models import Count, Sum, Avg
+from django.db.models import Count, Sum, Avg, Q
 from django.utils import timezone
 from datetime import timedelta
 from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
+# API Schema for documentation
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
+
 from .models import (
     Airport, Gate, Flight, Passenger, Staff, StaffAssignment,
     EventLog, FiscalAssessment, Aircraft, CrewMember, MaintenanceLog, IncidentReport,
-    Report, Document
+    Report, Document, AssessmentStatus,
 )
 from .serializers import (
     AirportSerializer, GateSerializer, FlightSerializer,
@@ -525,6 +528,229 @@ class MetricsView(APIView):
         return Response(data)
 
 
+class AnalyticsDashboardView(APIView):
+    """API endpoint for advanced analytics dashboard.
+
+    Provides comprehensive analytics data including trends,
+    comparisons, and detailed metrics for Chart.js visualization.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """Get analytics dashboard data."""
+        from django.db.models import Avg, Sum, Count, Max, Min
+        from django.db.models.functions import TruncMonth, TruncWeek
+
+        # Time range parameter
+        range_param = request.query_params.get('range', '6months')
+
+        if range_param == '30days':
+            date_cutoff = timezone.now() - timedelta(days=30)
+            trunc_func = TruncWeek
+        elif range_param == '1year':
+            date_cutoff = timezone.now() - timedelta(days=365)
+            trunc_func = TruncMonth
+        else:  # 6months default
+            date_cutoff = timezone.now() - timedelta(days=180)
+            trunc_func = TruncMonth
+
+        # Revenue trend by period
+        revenue_trend = FiscalAssessment.objects.filter(
+            start_date__gte=date_cutoff,
+            status=AssessmentStatus.APPROVED.value
+        ).annotate(
+            period=trunc_func('start_date')
+        ).values('period').annotate(
+            total_revenue=Sum('total_revenue'),
+            total_expenses=Sum('total_expenses'),
+            net_profit=Sum('net_profit'),
+            assessment_count=Count('id')
+        ).order_by('period')
+
+        # Flight trend
+        flight_trend = Flight.objects.filter(
+            scheduled_departure__gte=date_cutoff
+        ).annotate(
+            period=trunc_func('scheduled_departure')
+        ).values('period').annotate(
+            total_flights=Count('id'),
+            delayed_flights=Count('id', filter=Q(status='delayed')),
+            cancelled_flights=Count('id', filter=Q(status='cancelled')),
+            avg_delay=Avg('delay_minutes')
+        ).order_by('period')
+
+        # Passenger trend
+        passenger_trend = Passenger.objects.filter(
+            created_at__gte=date_cutoff
+        ).annotate(
+            period=trunc_func('created_at')
+        ).values('period').annotate(
+            total_passengers=Count('id'),
+            boarded=Count('id', filter=Q(status='boarded')),
+            checked_in=Count('id', filter=Q(status='checked_in')),
+            no_show=Count('id', filter=Q(status='no_show'))
+        ).order_by('period')
+
+        # Airport comparison
+        airport_comparison = Airport.objects.filter(is_active=True).annotate(
+            total_assessments=Count('fiscal_assessments', filter=Q(fiscal_assessments__status=AssessmentStatus.APPROVED.value)),
+            total_revenue=Sum('fiscal_assessments__total_revenue', filter=Q(fiscal_assessments__status=AssessmentStatus.APPROVED.value)),
+            total_flights=Sum('fiscal_assessments__flight_count', filter=Q(fiscal_assessments__status=AssessmentStatus.APPROVED.value)),
+            avg_profit=Avg('fiscal_assessments__net_profit', filter=Q(fiscal_assessments__status=AssessmentStatus.APPROVED.value))
+        ).order_by('-total_revenue').values('code', 'total_assessments', 'total_revenue', 'total_flights', 'avg_profit')
+
+        # Gate utilization
+        gate_utilization = Gate.objects.all().annotate(
+            flight_count=Count('flights', filter=Q(flights__scheduled_departure__gte=date_cutoff))
+        ).values('gate_id', 'terminal', 'flight_count').order_by('-flight_count')
+
+        # Status distribution
+        flight_status_dist = Flight.objects.all().values('status').annotate(
+            count=Count('id')
+        ).order_by('-count')
+
+        # Build response
+        return Response({
+            'range': range_param,
+            'revenue_trend': {
+                'labels': [item['period'].strftime('%b %Y') for item in revenue_trend],
+                'revenue': [float(item['total_revenue'] or 0) for item in revenue_trend],
+                'expenses': [float(item['total_expenses'] or 0) for item in revenue_trend],
+                'profit': [float(item['net_profit'] or 0) for item in revenue_trend],
+            },
+            'flight_trend': {
+                'labels': [item['period'].strftime('%b %Y') for item in flight_trend],
+                'total': [item['total_flights'] or 0 for item in flight_trend],
+                'delayed': [item['delayed_flights'] or 0 for item in flight_trend],
+                'cancelled': [item['cancelled_flights'] or 0 for item in flight_trend],
+                'avg_delay': [round(item['avg_delay'] or 0, 2) for item in flight_trend],
+            },
+            'passenger_trend': {
+                'labels': [item['period'].strftime('%b %Y') for item in passenger_trend],
+                'total': [item['total_passengers'] or 0 for item in passenger_trend],
+                'boarded': [item['boarded'] or 0 for item in passenger_trend],
+                'checked_in': [item['checked_in'] or 0 for item in passenger_trend],
+            },
+            'airport_comparison': {
+                'labels': [item['code'] for item in airport_comparison],
+                'revenue': [float(item['total_revenue'] or 0) for item in airport_comparison],
+                'assessments': [item['total_assessments'] or 0 for item in airport_comparison],
+                'flights': [item['total_flights'] or 0 for item in airport_comparison],
+            },
+            'gate_utilization': {
+                'labels': [f"{item['gate_id']} ({item['terminal']})" for item in gate_utilization[:10]],
+                'flights': [item['flight_count'] or 0 for item in gate_utilization[:10]],
+            },
+            'status_distribution': {
+                'labels': [item['status'] for item in flight_status_dist],
+                'counts': [item['count'] for item in flight_status_dist],
+            },
+            'summary': {
+                'total_airports': Airport.objects.filter(is_active=True).count(),
+                'total_gates': Gate.objects.count(),
+                'total_flights': Flight.objects.count(),
+                'total_passengers': Passenger.objects.count(),
+                'approved_assessments': FiscalAssessment.objects.filter(status=AssessmentStatus.APPROVED.value).count(),
+            }
+        })
+
+
+class TrendDataAPIView(APIView):
+    """API endpoint for trend data for Chart.js visualizations.
+
+    Provides 6-month historical data for revenue and passenger counts.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """Get trend data."""
+        from django.db.models import Sum, Count
+        from django.db.models.functions import TruncMonth
+
+        # Get last 6 months of data
+        six_months_ago = timezone.now() - timedelta(days=180)
+
+        # Revenue trend
+        revenue_data = FiscalAssessment.objects.filter(
+            start_date__gte=six_months_ago,
+            status=AssessmentStatus.APPROVED.value
+        ).annotate(
+            month=TruncMonth('start_date')
+        ).values('month').annotate(
+            total_revenue=Sum('total_revenue'),
+            total_expenses=Sum('total_expenses')
+        ).order_by('month')
+
+        # Passenger trend
+        passenger_data = FiscalAssessment.objects.filter(
+            start_date__gte=six_months_ago,
+            status=AssessmentStatus.APPROVED.value
+        ).annotate(
+            month=TruncMonth('start_date')
+        ).values('month').annotate(
+            total_passengers=Sum('passenger_count')
+        ).order_by('month')
+
+        # Build chart-ready data
+        labels = []
+        revenue_values = []
+        expense_values = []
+        passenger_values = []
+
+        for item in revenue_data:
+            labels.append(item['month'].strftime('%b %Y'))
+            revenue_values.append(float(item['total_revenue'] or 0))
+            expense_values.append(float(item['total_expenses'] or 0))
+
+        for item in passenger_data:
+            passenger_values.append(item['total_passengers'] or 0)
+
+        return Response({
+            'labels': labels,
+            'revenue': revenue_values,
+            'expenses': expense_values,
+            'passengers': passenger_values,
+        })
+
+
+class UserPreferencesView(APIView):
+    """API endpoint for user preferences including theme.
+    
+    Allows users to save and retrieve their preferences.
+    """
+    
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        """Get user preferences."""
+        user = request.user
+        
+        # Get preferences from user profile or session
+        preferences = {
+            'theme_preference': getattr(user, 'theme_preference', 'dark'),
+            'notifications_enabled': getattr(user, 'notifications_enabled', True),
+        }
+        
+        return Response(preferences)
+    
+    def patch(self, request):
+        """Update user preferences."""
+        user = request.user
+        data = request.data
+        
+        # Update theme preference
+        if 'theme_preference' in data:
+            # Store in session for now (could be extended to user profile)
+            request.session['theme_preference'] = data['theme_preference']
+        
+        if 'notifications_enabled' in data:
+            request.session['notifications_enabled'] = data['notifications_enabled']
+        
+        return Response({'status': 'success', 'message': 'Preferences updated'})
+
+
 # HONEYPOT API ENDPOINTS
 # These are decoy endpoints designed to trap and confuse automated scanners.
 # They return misleading responses and log all access for security analysis.
@@ -667,14 +893,90 @@ def honeypot_database_endpoint(request):
 def honeypot_status_endpoint(request):
     """
     Honeypot status endpoint.
-    
+
     Returns basic honeypot system status.
     This endpoint is intentionally non-obvious to confuse scanners.
     """
     log_honeypot_access(request, 'status')
-    
+
     # Return minimal info
     return JsonResponse({
         "status": "ok",
         "version": "1.0.0"
     })
+
+
+@api_view(['GET'])
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def map_data_view(request):
+    """
+    API endpoint for fetching live map data.
+    
+    Returns current flight positions, airport locations, and gate status
+    for the interactive dashboard map.
+    """
+    from .map_service import map_service
+    
+    # Get optional airport filter
+    airport_code = request.GET.get('airport', None)
+    
+    # Fetch map data
+    flights = map_service.get_active_flights(airport_code)
+    gates = map_service.get_gates_data()
+    airports = map_service.get_airports_data()
+    
+    return Response({
+        'flights': flights,
+        'gates': gates,
+        'airports': airports,
+        'timestamp': timezone.now().isoformat(),
+    })
+
+
+@api_view(['GET'])
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def weather_search_view(request):
+    """
+    API endpoint for searching weather locations.
+    
+    Returns matching locations for weather lookup.
+    """
+    from .weather_service import weather_service
+    
+    query = request.GET.get('q', '')
+    if len(query) < 2:
+        return Response({'error': 'Search query must be at least 2 characters'}, 
+                       status=status.HTTP_400_BAD_REQUEST)
+    
+    locations = weather_service.search_locations(query)
+    
+    return Response({
+        'locations': locations,
+        'count': len(locations),
+    })
+
+
+@api_view(['GET'])
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def weather_location_view(request):
+    """
+    API endpoint for fetching weather by coordinates.
+    
+    Returns weather data for specified location.
+    """
+    from .weather_service import weather_service
+    
+    try:
+        latitude = float(request.GET.get('lat', 0))
+        longitude = float(request.GET.get('lng', 0))
+        location_name = request.GET.get('name', 'Location')
+    except (ValueError, TypeError):
+        return Response({'error': 'Invalid coordinates'},
+                       status=status.HTTP_400_BAD_REQUEST)
+
+    weather = weather_service.get_weather_by_coordinates(latitude, longitude, location_name)
+
+    return Response(weather)

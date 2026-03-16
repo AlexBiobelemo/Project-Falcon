@@ -195,6 +195,106 @@ def log_fiscal_assessment_delete(
         )
 
 
+@receiver(pre_save, sender=Flight)
+def detect_flight_status_change(
+    sender: Any, instance: Flight, **kwargs
+) -> None:
+    """Detect flight status changes and trigger notifications."""
+    if not instance.pk:
+        return  # New flight, no previous status
+
+    try:
+        old_instance = sender.objects.get(pk=instance.pk)
+        old_status = old_instance.status
+        new_status = instance.status
+
+        if old_status != new_status:
+            # Import here to avoid circular imports
+            from .consumers import (
+                notify_flight_status_change,
+                notify_gate_change,
+            )
+
+            # Schedule notification via channels
+            from channels.layers import get_channel_layer
+            from asgiref.sync import async_to_sync
+
+            channel_layer = get_channel_layer()
+
+            # Trigger appropriate notification based on status change
+            if new_status == 'delayed':
+                async_to_sync(channel_layer.group_send)(
+                    'notifications',
+                    {
+                        'type': 'delay_notification',
+                        'title': f'Flight Delayed - {instance.flight_number}',
+                        'body': f'Flight {instance.flight_number} is delayed by {instance.delay_minutes} minutes',
+                        'data': {
+                            'flight_id': instance.id,
+                            'flight_number': instance.flight_number,
+                            'delay_minutes': instance.delay_minutes,
+                            'old_status': old_status,
+                            'new_status': new_status,
+                        },
+                    }
+                )
+            elif new_status == 'cancelled':
+                async_to_sync(channel_layer.group_send)(
+                    'notifications',
+                    {
+                        'type': 'cancellation_notification',
+                        'title': f'Flight Cancelled - {instance.flight_number}',
+                        'body': f'Flight {instance.flight_number} has been cancelled',
+                        'data': {
+                            'flight_id': instance.id,
+                            'flight_number': instance.flight_number,
+                            'old_status': old_status,
+                            'new_status': new_status,
+                        },
+                    }
+                )
+            else:
+                async_to_sync(channel_layer.group_send)(
+                    'notifications',
+                    {
+                        'type': 'flight_notification',
+                        'title': f'Flight Status Changed - {instance.flight_number}',
+                        'body': f'Flight {instance.flight_number} status changed from {old_status} to {new_status}',
+                        'data': {
+                            'flight_id': instance.id,
+                            'flight_number': instance.flight_number,
+                            'old_status': old_status,
+                            'new_status': new_status,
+                        },
+                    }
+                )
+
+            # Check for gate change
+            old_gate = old_instance.gate.gate_id if old_instance.gate else None
+            new_gate = instance.gate.gate_id if instance.gate else None
+
+            if old_gate != new_gate:
+                async_to_sync(channel_layer.group_send)(
+                    'notifications',
+                    {
+                        'type': 'gate_change_notification',
+                        'title': f'Gate Change - {instance.flight_number}',
+                        'body': f'Flight {instance.flight_number} gate changed from {old_gate or "none"} to {new_gate or "none"}',
+                        'data': {
+                            'flight_id': instance.id,
+                            'flight_number': instance.flight_number,
+                            'old_gate': old_gate,
+                            'new_gate': new_gate,
+                        },
+                    }
+                )
+
+    except Flight.DoesNotExist:
+        pass  # Flight doesn't exist yet
+    except Exception as e:
+        logger.error(f"Failed to detect flight status change: {e}")
+
+
 @receiver(post_save, sender=Flight)
 def log_flight_save(
     sender: Any, instance: Flight, created: bool, **kwargs
@@ -203,7 +303,7 @@ def log_flight_save(
     action = 'create' if created else 'update'
     event_type = f'flight_{action}'
     description = f"Flight {action}d: {instance.flight_number} ({instance.origin} → {instance.destination}) - Status: {instance.status}"
-    
+
     # Get request from thread local storage
     request = get_current_request()
     if request:
@@ -268,7 +368,7 @@ def log_document_save(
     """Log document create/update activities."""
     action = 'create' if created else 'update'
     event_type = f'document_{action}'
-    description = f"Document {action}d: {instance.title}"
+    description = f"Document {action}d: {instance.name}"
     
     # Get request from thread local storage
     request = get_current_request()
@@ -289,7 +389,7 @@ def log_document_delete(
 ) -> None:
     """Log document delete activities."""
     event_type = 'document_delete'
-    description = f"Document deleted: {instance.title}"
+    description = f"Document deleted: {instance.name}"
     
     # Get request from thread local storage
     request = get_current_request()
@@ -398,7 +498,7 @@ def log_aircraft_save(
     """Log aircraft create/update activities."""
     action = 'create' if created else 'update'
     event_type = f'aircraft_{action}'
-    description = f"Aircraft {action}d: {instance.registration} (Type: {instance.aircraft_type})"
+    description = f"Aircraft {action}d: {instance.tail_number} (Type: {instance.aircraft_type})"
     
     request = get_current_request()
     if request:
@@ -418,7 +518,7 @@ def log_aircraft_delete(
 ) -> None:
     """Log aircraft delete activities."""
     event_type = 'aircraft_delete'
-    description = f"Aircraft deleted: {instance.registration}"
+    description = f"Aircraft deleted: {instance.tail_number}"
     
     request = get_current_request()
     if request:
@@ -439,7 +539,7 @@ def log_crew_member_save(
     """Log crew member create/update activities."""
     action = 'create' if created else 'update'
     event_type = f'crew_member_{action}'
-    description = f"Crew member {action}d: {instance.first_name} {instance.last_name} (Role: {instance.role})"
+    description = f"Crew member {action}d: {instance.first_name} {instance.last_name} (Role: {instance.crew_type})"
     
     request = get_current_request()
     if request:

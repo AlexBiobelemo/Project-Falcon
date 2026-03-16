@@ -11,18 +11,22 @@ from core.consumers import (
     FlightUpdatesConsumer,
     GateStatusConsumer,
     EventLogConsumer,
+    NotificationConsumer,
 )
 
 websocket_urlpatterns = [
     # Dashboard real-time updates
     re_path(r'ws/dashboard/$', DashboardConsumer.as_asgi()),
-    
+
     # Flight status real-time updates
     re_path(r'ws/flights/$', FlightUpdatesConsumer.as_asgi()),
-    
+
     # Gate status real-time updates
     re_path(r'ws/gates/$', GateStatusConsumer.as_asgi()),
-    
+
     # Event log real-time updates
     re_path(r'ws/events/$', EventLogConsumer.as_asgi()),
+
+    # Real-time notifications
+    re_path(r'ws/notifications/$', NotificationConsumer.as_asgi()),
 ]

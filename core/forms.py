@@ -12,7 +12,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-from .models import Airport, FiscalAssessment, AssessmentPeriod, AssessmentStatus, ReportType, ReportFormat, Document
+from .models import Airport, FiscalAssessment, AssessmentPeriod, AssessmentStatus, ReportType, ReportFormat, Document, ReportSchedule
 from .honeypot import HoneypotFieldMixin
 
 
@@ -351,20 +351,108 @@ class ReportCreateForm(HoneypotFieldMixin, forms.Form):
         initial=ReportFormat.HTML.value,
         required=False
     )
-    
+
     def clean(self):
         cleaned_data = super().clean()
         start = cleaned_data.get('period_start')
         end = cleaned_data.get('period_end')
-        
+
         if start and end and end < start:
             raise ValidationError("End date cannot be before start date.")
         return cleaned_data
 
 
+class ReportScheduleForm(HoneypotFieldMixin, forms.ModelForm):
+    """Form for creating and editing report schedules."""
+
+    class Meta:
+        model = ReportSchedule
+        fields = [
+            'name',
+            'report_type',
+            'airport',
+            'frequency',
+            'day_of_week',
+            'day_of_month',
+            'hour',
+            'recipients',
+            'format',
+            'is_active',
+        ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Set up field widgets and choices
+        self.fields['report_type'].choices = [
+            (rt.value, rt.name.replace('_', ' ').title())
+            for rt in ReportType
+        ]
+        self.fields['frequency'].choices = [
+            ('daily', 'Daily'),
+            ('weekly', 'Weekly'),
+            ('monthly', 'Monthly'),
+        ]
+        self.fields['day_of_week'].choices = [
+            (0, 'Monday'),
+            (1, 'Tuesday'),
+            (2, 'Wednesday'),
+            (3, 'Thursday'),
+            (4, 'Friday'),
+            (5, 'Saturday'),
+            (6, 'Sunday'),
+        ]
+        self.fields['day_of_month'].choices = [
+            (i, f'{i}{"th" if 11 <= i <= 13 else "st" if i % 10 == 1 else "nd" if i % 10 == 2 else "rd" if i % 10 == 3 else "th"}')
+            for i in range(1, 32)
+        ]
+        self.fields['hour'].choices = [
+            (i, f'{i:02d}:00') for i in range(24)
+        ]
+        self.fields['format'].choices = [
+            (fmt.value, fmt.name) for fmt in ReportFormat
+        ]
+
+        # Add help text
+        self.fields['recipients'].help_text = 'Comma-separated list of email addresses'
+        self.fields['day_of_week'].help_text = 'Select day for weekly reports'
+        self.fields['day_of_month'].help_text = 'Select day for monthly reports'
+        self.fields['hour'].help_text = 'Time of day to generate report (24-hour format)'
+
+    def clean_recipients(self):
+        """Validate email addresses."""
+        recipients = self.cleaned_data.get('recipients', '')
+        if not recipients:
+            raise ValidationError("At least one recipient is required.")
+
+        emails = [e.strip() for e in recipients.split(',')]
+        from django.core.validators import validate_email
+        for email in emails:
+            try:
+                validate_email(email)
+            except:
+                raise ValidationError(f"Invalid email address: {email}")
+
+        return recipients
+
+    def clean(self):
+        cleaned_data = super().clean()
+        frequency = cleaned_data.get('frequency')
+        day_of_week = cleaned_data.get('day_of_week')
+        day_of_month = cleaned_data.get('day_of_month')
+
+        if frequency == 'weekly' and not day_of_week:
+            raise ValidationError("Please select a day of week for weekly reports.")
+
+        if frequency == 'monthly' and not day_of_month:
+            raise ValidationError("Please select a day of month for monthly reports.")
+
+        return cleaned_data
+
+
 class DocumentCreateForm(HoneypotFieldMixin, forms.Form):
     """Form for creating a new document with JSON validation."""
-    
+
     name = forms.CharField(max_length=200, required=True)
     document_type = forms.ChoiceField(
         choices=[(dt.value, dt.name) for dt in Document.DocumentType],
@@ -376,7 +464,7 @@ class DocumentCreateForm(HoneypotFieldMixin, forms.Form):
     )
     content = forms.CharField(widget=forms.Textarea, required=False, initial='{}')
     is_template = forms.BooleanField(required=False)
-    
+
     def clean_content(self):
         content_str = self.cleaned_data.get('content', '{}')
         if not content_str:

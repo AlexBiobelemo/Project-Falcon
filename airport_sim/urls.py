@@ -3,24 +3,56 @@ URL configuration for airport_sim project.
 """
 from django.contrib import admin
 from django.urls import path, include
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
 import core.api_urls
 
 # Use custom RestrictedAdminSite to enforce superuser-only access
-from core.admin import RestrictedAdminSite
-admin.site = RestrictedAdminSite()
+from core.admin import admin_site
 
 def root_dashboard_view(request):
     """Serve the main dashboard at the root URL."""
     from core.views import DashboardView
     return DashboardView.as_view()(request)
 
+# HTTP fallback for WebSocket notifications (prevents 404 in logs)
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+
+@login_required
+def ws_notifications_fallback(request):
+    """HTTP fallback for WebSocket notifications endpoint.
+    
+    Returns JSON response to prevent 404 errors in logs when
+    browser tries HTTP before establishing WebSocket connection.
+    """
+    return JsonResponse({
+        'message': 'Notifications are available via WebSocket only',
+        'websocket_url': '/ws/notifications/',
+        'status': 'WebSocket connection required'
+    })
+
 urlpatterns = [
     path('', root_dashboard_view, name='home'),
-    path('admin/', admin.site.urls),
+    path('admin/', admin_site.urls),
     path('core/', include('core.urls', namespace='core')),
+
+    # Authentication
     path('accounts/', include('django.contrib.auth.urls')),
-    
+
     # API v1 endpoints with DRF
     path('api/v1/', include((core.api_urls, 'core'), namespace='api')),
+
+    # WebSocket HTTP fallback endpoints
+    path('ws/notifications/', ws_notifications_fallback, name='ws-notifications-fallback'),
+
+    # API Documentation (Swagger/OpenAPI)
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('api/schema/swagger-ui/', SpectacularSwaggerView.as_view(url_name='api:schema'), name='swagger-ui'),
+    path('api/schema/redoc/', SpectacularRedocView.as_view(url_name='api:schema'), name='redoc'),
 ]
+
+# Add debug toolbar URLs in development
+from django.conf import settings
+if settings.DEBUG:
+    urlpatterns.append(path('__debug__/', include('debug_toolbar.urls')))

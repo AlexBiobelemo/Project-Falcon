@@ -118,10 +118,12 @@ def get_websocket_application():
     # Get configuration from environment
     max_connections = int(os.environ.get('WEBSOCKET_MAX_CONNECTIONS_PER_USER', '10'))
     rate_limit = os.environ.get('WEBSOCKET_RATE_LIMIT', '100/s')
-    
-    # Create WebSocket URL router with authentication
-    websocket_app = AuthMiddlewareStack(
-        URLRouter(websocket_urlpatterns)
+
+    # Create WebSocket URL router with authentication and host validation
+    websocket_app = AllowedHostsOriginValidator(
+        AuthMiddlewareStack(
+            URLRouter(websocket_urlpatterns)
+        )
     )
     
     # Add connection limits

@@ -39,12 +39,18 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.humanize',  # For 2FA
     # Third-party apps
     'rest_framework',
     'rest_framework.authtoken',  # Token authentication
     'corsheaders',
     'channels',  # WebSocket support
     'django_q',  # Background tasks
+    'django_otp',  # 2FA
+    'django_otp.plugins.otp_totp',  # TOTP 2FA
+    'django_otp.plugins.otp_static',  # Backup codes
+    'two_factor',  # 2FA UI
+    'drf_spectacular',  # API documentation
     # Local apps
     'core',
 ]
@@ -52,19 +58,101 @@ INSTALLED_APPS = [
 # Django-Q Configuration
 Q_CLUSTER = {
     'name': 'BlueFalcon_Q',
-    'workers': 4,
+    'workers': 2,  # Reduced for Windows compatibility
     'recycle': 500,
     'timeout': 60,
     'retry': 120,
     'queue_limit': 50,
     'bulk': 10,
-    'orm': 'default', # Using ORM for simplicity in this dev environment
+    'orm': 'default',  # Using ORM for simplicity in this dev environment
+    'sync': False,  # Set to True for synchronous execution (debugging)
+    # Django-Q2 on Windows requires explicit module path
+    'django_q': 'airport_sim',
+    # Scheduled tasks
+    'schedules': {
+        'check_scheduled_reports': {
+            'func': 'core.tasks.check_scheduled_reports',
+            'schedule': 3600,  # Check every hour (3600 seconds)
+            'args': [],
+            'kwargs': {},
+        },
+        'fetch_weather_data': {
+            'func': 'core.weather_service.fetch_weather_for_all_airports',
+            'schedule': 900,  # Fetch weather every 15 minutes
+            'args': [],
+            'kwargs': {},
+        },
+        'warm_cache': {
+            'func': 'core.tasks.warm_cache',
+            'schedule': 1800,  # Warm cache every 30 minutes
+            'args': [],
+            'kwargs': {},
+        },
+    },
+}
+
+# API Rate Limiting
+REST_FRAMEWORK = {
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle'
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/hour',
+        'user': '1000/hour',
+        'burst': '60/min',
+    }
+}
+
+# Cache Configuration
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+        'TIMEOUT': 300,  # 5 minutes default
+    }
+}
+
+# Cache warming settings
+CACHE_WARMING_ENABLED = True
+CACHE_WARMING_INTERVAL = 1800  # 30 minutes
+
+# Two-Factor Authentication
+LOGIN_URL = 'two_factor:login'
+LOGIN_REDIRECT_URL = 'core:dashboard'
+LOGOUT_REDIRECT_URL = 'core:dashboard'
+
+OTP_TOTP_DIGITS = 6
+OTP_STATIC_DIGITS = 8
+
+# API Documentation (drf-spectacular)
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Blue Falcon Airport Operations API',
+    'DESCRIPTION': 'Comprehensive API documentation for the Blue Falcon Airport Operations Management System',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'COMPONENT_SPLIT_REQUEST': True,
+    'TAGS': [
+        {'name': 'Airports', 'description': 'Airport management endpoints'},
+        {'name': 'Flights', 'description': 'Flight scheduling and tracking'},
+        {'name': 'Gates', 'description': 'Gate assignment and status'},
+        {'name': 'Passengers', 'description': 'Passenger management'},
+        {'name': 'Staff', 'description': 'Staff and crew management'},
+        {'name': 'Fiscal', 'description': 'Financial assessments'},
+        {'name': 'Reports', 'description': 'Report generation and export'},
+        {'name': 'Documents', 'description': 'Document management'},
+        {'name': 'Analytics', 'description': 'Analytics and trends'},
+        {'name': 'Public', 'description': 'Public endpoints (no auth required)'},
+    ],
 }
 
 MIDDLEWARE = [
     # Security middleware - must be at top
     'django.middleware.security.SecurityMiddleware',
-    
+
+    # Debug toolbar (development only)
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
+
     # WhiteNoise for static files (must be after SecurityMiddleware)
     'whitenoise.middleware.WhiteNoiseMiddleware',
     
@@ -187,6 +275,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # WhiteNoise for serving static files in production
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
@@ -497,3 +586,33 @@ ASGI_APPLICATION = 'airport_sim.asgi.application'
 LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
+
+# Django Debug Toolbar Configuration (Development)
+if DEBUG:
+    INSTALLED_APPS.append('debug_toolbar')
+    
+    INTERNAL_IPS = [
+        '127.0.0.1',
+        'localhost',
+    ]
+    
+    DEBUG_TOOLBAR_CONFIG = {
+        'SHOW_TOOLBAR_CALLBACK': lambda request: DEBUG,
+        'SHOW_COLLAPSED': True,
+    }
+    
+    DEBUG_TOOLBAR_PANELS = [
+        'debug_toolbar.panels.history.HistoryPanel',
+        'debug_toolbar.panels.versions.VersionsPanel',
+        'debug_toolbar.panels.timer.TimerPanel',
+        'debug_toolbar.panels.settings.SettingsPanel',
+        'debug_toolbar.panels.headers.HeadersPanel',
+        'debug_toolbar.panels.request.RequestPanel',
+        'debug_toolbar.panels.sql.SQLPanel',
+        'debug_toolbar.panels.staticfiles.StaticFilesPanel',
+        'debug_toolbar.panels.templates.TemplatesPanel',
+        'debug_toolbar.panels.cache.CachePanel',
+        'debug_toolbar.panels.signals.SignalsPanel',
+        'debug_toolbar.panels.redirects.RedirectsPanel',
+        'debug_toolbar.panels.profiling.ProfilingPanel',
+    ]

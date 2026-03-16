@@ -7,11 +7,15 @@ Rules compliance: PEP8, type hints, docstrings, atomic transactions verified.
 """
 
 import uuid
+from datetime import datetime, timedelta
 from django.utils import timezone
 from enum import Enum
 from typing import Optional
 
 from django.db import models
+from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
+from django.contrib.postgres.indexes import GinIndex
+from django.contrib.postgres.fields import ArrayField
 
 
 class GateStatus(str, Enum):
@@ -221,22 +225,26 @@ class FiscalAssessmentManager(models.Manager):
 
 class Airport(models.Model):
     """Represents an airport facility.
-    
+
     Attributes:
         code: IATA airport code (e.g., "LOS").
         name: Full airport name.
         city: City where airport is located.
+        latitude: Airport latitude coordinate.
+        longitude: Airport longitude coordinate.
         timezone: Airport timezone.
     """
-    
+
     code = models.CharField(max_length=3, unique=True)
     name = models.CharField(max_length=200)
     city = models.CharField(max_length=100)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, help_text="Airport latitude coordinate")
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, help_text="Airport longitude coordinate")
     timezone = models.CharField(max_length=50, default="UTC")
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     def __str__(self) -> str:
         return f"{self.code} - {self.name}"
 
@@ -340,11 +348,33 @@ class Flight(models.Model):
             models.Index(fields=['origin', 'destination'], name='flight_route_idx'),
             # Index for airline queries
             models.Index(fields=['airline'], name='flight_airline_idx'),
+            # GIN index for full-text search
+            GinIndex(fields=['flight_number', 'airline', 'origin', 'destination'], name='flight_search_gin_idx'),
         ]
 
     def __str__(self) -> str:
         """Return string representation of the flight."""
         return f"{self.flight_number} ({self.origin} → {self.destination})"
+
+    @classmethod
+    def search(cls, query: str):
+        """Perform full-text search on flights.
+        
+        Args:
+            query: Search query string.
+            
+        Returns:
+            QuerySet of matching flights.
+        """
+        from django.db.models import Q
+        
+        # Simple fuzzy search usingicontains
+        return cls.objects.filter(
+            Q(flight_number__icontains=query) |
+            Q(airline__icontains=query) |
+            Q(origin__icontains=query) |
+            Q(destination__icontains=query)
+        )
 
 
 class Passenger(models.Model):
@@ -1304,10 +1334,739 @@ class IncidentReport(models.Model):
             models.Index(fields=['related_flight'], name='inc_flight_idx'),
             models.Index(fields=['related_gate'], name='inc_gate_idx'),
         ]
-    
+
     def __str__(self):
         """Return string representation of the incident report."""
         return f"{self.incident_type} - {self.title} ({self.severity})"
+
+
+class ReportSchedule(models.Model):
+    """Scheduled recurring reports with email delivery.
+
+    Attributes:
+        name: Schedule name for identification.
+        report_type: Type of report to generate.
+        airport: Airport for the report (optional for system-wide).
+        frequency: How often to generate (daily, weekly, monthly).
+        day_of_week: Day of week for weekly reports.
+        day_of_month: Day of month for monthly reports.
+        hour: Hour of day to generate (0-23).
+        recipients: Email addresses to send report to.
+        format: Report format (PDF, CSV, JSON).
+        is_active: Whether schedule is active.
+        last_run: Last time report was generated.
+        next_run: Next scheduled run time.
+        created_by: User who created the schedule.
+    """
+
+    class Frequency(models.TextChoices):
+        DAILY = 'daily', 'Daily'
+        WEEKLY = 'weekly', 'Weekly'
+        MONTHLY = 'monthly', 'Monthly'
+
+    name = models.CharField(max_length=100)
+    report_type = models.CharField(
+        max_length=30,
+        choices=[(rt.value, rt.name) for rt in ReportType],
+    )
+    airport = models.ForeignKey(
+        Airport,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='report_schedules',
+    )
+    frequency = models.CharField(
+        max_length=20,
+        choices=Frequency.choices,
+        default=Frequency.WEEKLY,
+    )
+    day_of_week = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text='0=Monday, 6=Sunday (for weekly frequency)'
+    )
+    day_of_month = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text='1-31 (for monthly frequency)'
+    )
+    hour = models.IntegerField(
+        default=6,
+        help_text='Hour of day (0-23) to generate report'
+    )
+    recipients = models.TextField(
+        help_text='Comma-separated email addresses'
+    )
+    format = models.CharField(
+        max_length=10,
+        choices=[(fmt.value, fmt.name) for fmt in ReportFormat],
+        default=ReportFormat.PDF,
+    )
+    is_active = models.BooleanField(default=True)
+    last_run = models.DateTimeField(null=True, blank=True)
+    next_run = models.DateTimeField(null=True, blank=True)
+    created_by = models.ForeignKey(
+        'auth.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='created_report_schedules',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['is_active'], name='schedule_active_idx'),
+            models.Index(fields=['frequency'], name='schedule_freq_idx'),
+            models.Index(fields=['next_run'], name='schedule_next_idx'),
+        ]
+
+    def __str__(self):
+        return f"{self.name} ({self.frequency} - {self.report_type})"
+
+    def calculate_next_run(self) -> Optional[datetime]:
+        """Calculate the next run time based on frequency."""
+        from datetime import timedelta
+        from django.utils import timezone
+
+        now = timezone.now()
+        next_time = now.replace(minute=0, second=0, microsecond=0)
+
+        if self.frequency == self.Frequency.DAILY:
+            # Next day at specified hour
+            if next_time.hour >= self.hour:
+                next_time += timedelta(days=1)
+            next_time = next_time.replace(hour=self.hour)
+
+        elif self.frequency == self.Frequency.WEEKLY:
+            # Next specified day of week
+            if self.day_of_week is not None:
+                days_ahead = self.day_of_week - next_time.weekday()
+                if days_ahead < 0 or (days_ahead == 0 and next_time.hour >= self.hour):
+                    days_ahead += 7
+                next_time += timedelta(days=days_ahead)
+                next_time = next_time.replace(hour=self.hour)
+
+        elif self.frequency == self.Frequency.MONTHLY:
+            # Next specified day of month
+            if self.day_of_month is not None:
+                import calendar
+                # Get last day of current month
+                _, last_day = calendar.monthrange(now.year, now.month)
+                target_day = min(self.day_of_month, last_day)
+
+                if now.day >= target_day:
+                    # Next month
+                    if now.month == 12:
+                        next_time = next_time.replace(year=now.year + 1, month=1, day=target_day, hour=self.hour)
+                    else:
+                        next_time = next_time.replace(month=now.month + 1, day=target_day, hour=self.hour)
+                else:
+                    # This month
+                    next_time = next_time.replace(day=target_day, hour=self.hour)
+
+        return next_time
+
+    def save(self, *args, **kwargs):
+        """Calculate next run time on save."""
+        if self.is_active and not self.next_run:
+            self.next_run = self.calculate_next_run()
+        super().save(*args, **kwargs)
+
+
+class Shift(models.Model):
+    """Represents a work shift for staff scheduling.
+
+    Attributes:
+        name: Shift name (e.g., "Morning Shift", "Night Shift").
+        start_time: Shift start time.
+        end_time: Shift end time.
+        min_staff: Minimum staff required.
+        max_staff: Maximum staff allowed.
+        is_active: Whether shift is active.
+    """
+
+    name = models.CharField(max_length=50)
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+    min_staff = models.PositiveIntegerField(default=1)
+    max_staff = models.PositiveIntegerField(default=20)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['start_time']
+        indexes = [
+            models.Index(fields=['is_active'], name='shift_active_idx'),
+        ]
+
+    def __str__(self):
+        return f"{self.name} ({self.start_time.strftime('%H:%M')} - {self.end_time.strftime('%H:%M')})"
+
+    def duration_hours(self):
+        """Calculate shift duration in hours."""
+        from datetime import datetime
+        start = datetime.combine(datetime.today(), self.start_time)
+        end = datetime.combine(datetime.today(), self.end_time)
+        if end < start:  # Overnight shift
+            end += timedelta(days=1)
+        return (end - start).seconds / 3600
+
+
+class StaffShiftAssignment(models.Model):
+    """Assignment of staff to specific shifts.
+
+    Attributes:
+        staff: Staff member assigned.
+        shift: Shift assignment.
+        date: Date of the shift.
+        status: Assignment status.
+        notes: Optional notes.
+    """
+
+    class AssignmentStatus(models.TextChoices):
+        SCHEDULED = 'scheduled', 'Scheduled'
+        CONFIRMED = 'confirmed', 'Confirmed'
+        COMPLETED = 'completed', 'Completed'
+        CANCELLED = 'cancelled', 'Cancelled'
+        NO_SHOW = 'no_show', 'No Show'
+
+    staff = models.ForeignKey(Staff, on_delete=models.CASCADE, related_name='shift_assignments')
+    shift = models.ForeignKey(Shift, on_delete=models.CASCADE, related_name='assignments')
+    date = models.DateField()
+    status = models.CharField(
+        max_length=20,
+        choices=AssignmentStatus.choices,
+        default=AssignmentStatus.SCHEDULED,
+    )
+    notes = models.TextField(blank=True, default='')
+    check_in_time = models.DateTimeField(null=True, blank=True)
+    check_out_time = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-date', 'shift__start_time']
+        unique_together = ['staff', 'date', 'shift']
+        indexes = [
+            models.Index(fields=['date'], name='shift_assign_date_idx'),
+            models.Index(fields=['status'], name='shift_assign_status_idx'),
+            models.Index(fields=['staff', 'date'], name='shift_assign_staff_date_idx'),
+        ]
+
+    def __str__(self):
+        return f"{self.staff} - {self.shift.name} on {self.date}"
+
+
+class Baggage(models.Model):
+    """Tracks passenger baggage through the airport.
+
+    Attributes:
+        tag_number: Unique baggage tag identifier.
+        passenger: Associated passenger.
+        flight: Associated flight.
+        status: Current baggage status.
+        origin: Origin airport code.
+        destination: Destination airport code.
+        weight: Baggage weight in kg.
+        pieces: Number of pieces.
+        special_handling: Special handling requirements.
+        location: Current location.
+        checked_in_at: Check-in timestamp.
+        loaded_at: Loading timestamp.
+        unloaded_at: Unloading timestamp.
+        claimed_at: Claim timestamp.
+    """
+
+    class BaggageStatus(models.TextChoices):
+        CHECKED_IN = 'checked_in', 'Checked In'
+        SCREENED = 'screened', 'Screened'
+        SORTED = 'sorted', 'Sorted'
+        LOADED = 'loaded', 'Loaded'
+        IN_TRANSIT = 'in_transit', 'In Transit'
+        UNLOADED = 'unloaded', 'Unloaded'
+        AT_BELT = 'at_belt', 'At Claim Belt'
+        CLAIMED = 'claimed', 'Claimed'
+        LOST = 'lost', 'Lost'
+        DAMAGED = 'damaged', 'Damaged'
+
+    tag_number = models.CharField(max_length=20, unique=True)
+    passenger = models.ForeignKey(Passenger, on_delete=models.CASCADE, related_name='baggage')
+    flight = models.ForeignKey(Flight, on_delete=models.CASCADE, related_name='baggage')
+    status = models.CharField(
+        max_length=20,
+        choices=BaggageStatus.choices,
+        default=BaggageStatus.CHECKED_IN,
+    )
+    origin = models.CharField(max_length=3)
+    destination = models.CharField(max_length=3)
+    weight = models.DecimalField(max_digits=5, decimal_places=2, help_text='Weight in kg')
+    pieces = models.PositiveIntegerField(default=1)
+    special_handling = models.CharField(max_length=100, blank=True, default='')
+    location = models.CharField(max_length=100, blank=True, default='')
+    description = models.TextField(blank=True, default='')
+    checked_in_at = models.DateTimeField(auto_now_add=True)
+    screened_at = models.DateTimeField(null=True, blank=True)
+    loaded_at = models.DateTimeField(null=True, blank=True)
+    unloaded_at = models.DateTimeField(null=True, blank=True)
+    claimed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-checked_in_at']
+        indexes = [
+            models.Index(fields=['status'], name='baggage_status_idx'),
+            models.Index(fields=['flight'], name='baggage_flight_idx'),
+            models.Index(fields=['passenger'], name='baggage_passenger_idx'),
+            models.Index(fields=['tag_number'], name='baggage_tag_idx'),
+        ]
+
+    def __str__(self):
+        return f"Baggage {self.tag_number} - {self.passenger} ({self.status})"
+
+
+class WeatherCondition(models.Model):
+    """Weather conditions affecting airport operations.
+
+    Attributes:
+        airport: Associated airport.
+        timestamp: Time of weather observation.
+        temperature: Temperature in Celsius.
+        feels_like: Feels-like temperature.
+        humidity: Humidity percentage.
+        pressure: Atmospheric pressure in hPa.
+        wind_speed: Wind speed in km/h.
+        wind_direction: Wind direction in degrees.
+        wind_gust: Wind gust speed in km/h.
+        visibility: Visibility in meters.
+        cloud_cover: Cloud cover percentage.
+        precipitation: Precipitation in mm.
+        weather_code: Weather condition code.
+        weather_description: Human-readable description.
+        severity: Weather severity level.
+        delay_impact: Estimated delay impact in minutes.
+        fetched_at: When data was fetched from API.
+    """
+
+    class Severity(models.TextChoices):
+        NORMAL = 'normal', 'Normal'
+        MODERATE = 'moderate', 'Moderate'
+        HIGH = 'high', 'High'
+        SEVERE = 'severe', 'Severe'
+
+    airport = models.ForeignKey(Airport, on_delete=models.CASCADE, related_name='weather_conditions')
+    timestamp = models.DateTimeField()
+    temperature = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    feels_like = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    humidity = models.PositiveIntegerField(null=True, blank=True)
+    pressure = models.PositiveIntegerField(null=True, blank=True)
+    wind_speed = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    wind_direction = models.PositiveIntegerField(null=True, blank=True, help_text='Degrees 0-360')
+    wind_gust = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    visibility = models.PositiveIntegerField(null=True, blank=True, help_text='Meters')
+    cloud_cover = models.PositiveIntegerField(null=True, blank=True)
+    precipitation = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    weather_code = models.CharField(max_length=20, blank=True, default='')
+    weather_description = models.CharField(max_length=100, blank=True, default='')
+    severity = models.CharField(
+        max_length=20,
+        choices=Severity.choices,
+        default=Severity.NORMAL,
+    )
+    delay_impact = models.PositiveIntegerField(default=0, help_text='Estimated delay in minutes')
+    notes = models.TextField(blank=True, default='')
+    fetched_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+        indexes = [
+            models.Index(fields=['airport', '-timestamp'], name='weather_airport_time_idx'),
+            models.Index(fields=['severity'], name='weather_severity_idx'),
+            models.Index(fields=['timestamp'], name='weather_time_idx'),
+        ]
+
+    def __str__(self):
+        return f"{self.airport.code} - {self.weather_description} ({self.timestamp})"
+
+    def calculate_delay_impact(self):
+        """Calculate estimated delay impact based on weather conditions."""
+        impact = 0
+
+        # Wind impact
+        if self.wind_speed:
+            if self.wind_speed > 50:
+                impact += 30
+            elif self.wind_speed > 30:
+                impact += 15
+            elif self.wind_speed > 20:
+                impact += 5
+
+        # Visibility impact
+        if self.visibility and self.visibility < 1000:
+            impact += 45
+        elif self.visibility and self.visibility < 5000:
+            impact += 20
+
+        # Precipitation impact
+        if self.precipitation and self.precipitation > 10:
+            impact += 25
+        elif self.precipitation and self.precipitation > 5:
+            impact += 10
+
+        # Severe weather
+        if self.severity == self.Severity.SEVERE:
+            impact += 60
+        elif self.severity == self.Severity.HIGH:
+            impact += 30
+
+        return impact
+
+
+class WeatherAlert(models.Model):
+    """Weather alerts and warnings for airports.
+
+    Attributes:
+        airport: Affected airport.
+        alert_type: Type of weather alert.
+        severity: Alert severity.
+        title: Alert title.
+        description: Alert description.
+        start_time: Alert start time.
+        end_time: Expected alert end time.
+        is_active: Whether alert is currently active.
+        acknowledged_by: Staff who acknowledged the alert.
+        acknowledged_at: When alert was acknowledged.
+    """
+
+    class AlertType(models.TextChoices):
+        THUNDERSTORM = 'thunderstorm', 'Thunderstorm'
+        TORNADO = 'tornado', 'Tornado'
+        HURRICANE = 'hurricane', 'Hurricane'
+        HEAVY_RAIN = 'heavy_rain', 'Heavy Rain'
+        HEAVY_SNOW = 'heavy_snow', 'Heavy Snow'
+        FOG = 'fog', 'Fog'
+        ICE = 'ice', 'Ice'
+        HIGH_WIND = 'high_wind', 'High Wind'
+        HEAT_WAVE = 'heat_wave', 'Heat Wave'
+        OTHER = 'other', 'Other'
+
+    airport = models.ForeignKey(Airport, on_delete=models.CASCADE, related_name='weather_alerts')
+    alert_type = models.CharField(max_length=20, choices=AlertType.choices)
+    severity = models.CharField(
+        max_length=20,
+        choices=WeatherCondition.Severity.choices,
+    )
+    title = models.CharField(max_length=200)
+    description = models.TextField()
+    start_time = models.DateTimeField()
+    end_time = models.DateTimeField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    acknowledged_by = models.ForeignKey(
+        Staff,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='acknowledged_weather_alerts',
+    )
+    acknowledged_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['airport', 'is_active'], name='alert_airport_active_idx'),
+            models.Index(fields=['is_active'], name='alert_active_idx'),
+            models.Index(fields=['alert_type'], name='alert_type_idx'),
+        ]
+
+    def __str__(self):
+        return f"{self.alert_type} - {self.airport.code} ({'Active' if self.is_active else 'Inactive'})"
+
+
+class FuelInventory(models.Model):
+    """Tracks fuel inventory at airports.
+
+    Attributes:
+        airport: Associated airport.
+        fuel_type: Type of fuel (Jet A, Jet A-1, Avgas).
+        storage_tank: Storage tank identifier.
+        capacity: Maximum capacity in liters.
+        current_level: Current fuel level in liters.
+        min_level: Minimum safe level.
+        last_delivery: Last fuel delivery date.
+        last_delivery_amount: Amount of last delivery.
+    """
+
+    class FuelType(models.TextChoices):
+        JET_A = 'jet_a', 'Jet A'
+        JET_A1 = 'jet_a1', 'Jet A-1'
+        AVGAS = 'avgas', 'Avgas 100LL'
+
+    airport = models.ForeignKey(Airport, on_delete=models.CASCADE, related_name='fuel_inventories')
+    fuel_type = models.CharField(max_length=20, choices=FuelType.choices)
+    storage_tank = models.CharField(max_length=50)
+    capacity = models.DecimalField(max_digits=10, decimal_places=2, help_text='Liters')
+    current_level = models.DecimalField(max_digits=10, decimal_places=2, help_text='Liters')
+    min_level = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text='Liters')
+    last_delivery = models.DateTimeField(null=True, blank=True)
+    last_delivery_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['airport', 'fuel_type']
+        unique_together = ['airport', 'fuel_type', 'storage_tank']
+        indexes = [
+            models.Index(fields=['airport', 'fuel_type'], name='fuel_airport_type_idx'),
+            models.Index(fields=['fuel_type'], name='fuel_type_idx'),
+        ]
+
+    def __str__(self):
+        return f"{self.airport.code} - {self.fuel_type} ({self.storage_tank})"
+
+    @property
+    def fill_percentage(self):
+        """Calculate current fill percentage."""
+        if self.capacity > 0:
+            return (self.current_level / self.capacity) * 100
+        return 0
+
+    @property
+    def is_low(self):
+        """Check if fuel level is below minimum."""
+        return self.current_level < self.min_level
+
+
+class FuelDispensing(models.Model):
+    """Records fuel dispensing to aircraft.
+
+    Attributes:
+        flight: Associated flight.
+        inventory: Fuel inventory source.
+        amount: Amount dispensed in liters.
+        start_time: Dispensing start time.
+        end_time: Dispensing end time.
+        operator: Staff member who operated dispensing.
+        truck_id: Fuel truck identifier.
+        notes: Optional notes.
+    """
+
+    flight = models.ForeignKey(Flight, on_delete=models.CASCADE, related_name='fuel_dispensing')
+    inventory = models.ForeignKey(FuelInventory, on_delete=models.CASCADE, related_name='dispensing_records')
+    amount = models.DecimalField(max_digits=8, decimal_places=2, help_text='Liters')
+    start_time = models.DateTimeField()
+    end_time = models.DateTimeField(null=True, blank=True)
+    operator = models.ForeignKey(
+        Staff,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='fuel_dispensing_records',
+    )
+    truck_id = models.CharField(max_length=20, blank=True, default='')
+    notes = models.TextField(blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-start_time']
+        indexes = [
+            models.Index(fields=['flight'], name='fuel_disp_flight_idx'),
+            models.Index(fields=['inventory'], name='fuel_disp_inv_idx'),
+            models.Index(fields=['start_time'], name='fuel_disp_time_idx'),
+        ]
+
+    def __str__(self):
+        return f"{self.flight.flight_number} - {self.amount}L ({self.start_time})"
+
+    def save(self, *args, **kwargs):
+        """Update inventory level on save."""
+        if not self.end_time:
+            self.end_time = timezone.now()
+        super().save(*args, **kwargs)
+        
+        # Update inventory level
+        self.inventory.current_level -= self.amount
+        self.inventory.save(update_fields=['current_level', 'updated_at'])
+
+
+class MaintenanceSchedule(models.Model):
+    """Preventive maintenance scheduling.
+
+    Attributes:
+        equipment_type: Type of equipment (gate, vehicle, facility).
+        equipment_id: Reference to equipment.
+        maintenance_type: Type of maintenance.
+        title: Maintenance title.
+        description: Maintenance description.
+        frequency: Maintenance frequency.
+        last_performed: Last maintenance date.
+        next_due: Next due date.
+        priority: Maintenance priority.
+        status: Current status.
+        assigned_to: Staff assigned to maintenance.
+    """
+
+    class EquipmentType(models.TextChoices):
+        GATE = 'gate', 'Gate'
+        VEHICLE = 'vehicle', 'Vehicle'
+        FACILITY = 'facility', 'Facility'
+        EQUIPMENT = 'equipment', 'Equipment'
+        HVAC = 'hvac', 'HVAC System'
+        ELECTRICAL = 'electrical', 'Electrical'
+
+    class Frequency(models.TextChoices):
+        DAILY = 'daily', 'Daily'
+        WEEKLY = 'weekly', 'Weekly'
+        MONTHLY = 'monthly', 'Monthly'
+        QUARTERLY = 'quarterly', 'Quarterly'
+        ANNUALLY = 'annually', 'Annually'
+
+    class Priority(models.TextChoices):
+        LOW = 'low', 'Low'
+        MEDIUM = 'medium', 'Medium'
+        HIGH = 'high', 'High'
+        CRITICAL = 'critical', 'Critical'
+
+    class Status(models.TextChoices):
+        SCHEDULED = 'scheduled', 'Scheduled'
+        IN_PROGRESS = 'in_progress', 'In Progress'
+        COMPLETED = 'completed', 'Completed'
+        OVERDUE = 'overdue', 'Overdue'
+        CANCELLED = 'cancelled', 'Cancelled'
+
+    equipment_type = models.CharField(max_length=20, choices=EquipmentType.choices)
+    equipment_id = models.CharField(max_length=50, help_text='Equipment identifier')
+    airport = models.ForeignKey(Airport, on_delete=models.CASCADE, related_name='maintenance_schedules')
+    maintenance_type = models.CharField(max_length=100)
+    title = models.CharField(max_length=200)
+    description = models.TextField()
+    frequency = models.CharField(max_length=20, choices=Frequency.choices)
+    last_performed = models.DateTimeField(null=True, blank=True)
+    next_due = models.DateTimeField()
+    priority = models.CharField(max_length=20, choices=Priority.choices, default=Priority.MEDIUM)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.SCHEDULED)
+    assigned_to = models.ForeignKey(
+        Staff,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assigned_maintenance',
+    )
+    notes = models.TextField(blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['next_due', 'priority']
+        indexes = [
+            models.Index(fields=['status'], name='maint_sched_status_idx'),
+            models.Index(fields=['next_due'], name='maint_sched_due_idx'),
+            models.Index(fields=['equipment_type', 'equipment_id'], name='maint_sched_equip_idx'),
+            models.Index(fields=['airport', 'status'], name='maint_sched_airport_idx'),
+        ]
+
+    def __str__(self):
+        return f"{self.title} - {self.equipment_id} ({self.next_due})"
+
+    def calculate_next_due(self):
+        """Calculate next due date based on frequency."""
+        from datetime import timedelta
+
+        now = timezone.now()
+        if self.frequency == self.Frequency.DAILY:
+            return now + timedelta(days=1)
+        elif self.frequency == self.Frequency.WEEKLY:
+            return now + timedelta(weeks=1)
+        elif self.frequency == self.Frequency.MONTHLY:
+            return now + timedelta(days=30)
+        elif self.frequency == self.Frequency.QUARTERLY:
+            return now + timedelta(days=90)
+        elif self.frequency == self.Frequency.ANNUALLY:
+            return now + timedelta(days=365)
+        return now
+
+    def check_overdue(self):
+        """Check if maintenance is overdue and update status."""
+        if self.status == self.Status.SCHEDULED and timezone.now() > self.next_due:
+            self.status = self.Status.OVERDUE
+            self.save(update_fields=['status', 'updated_at'])
+            return True
+        return False
+
+
+class CustomField(models.Model):
+    """Custom field definitions for extensible data models.
+    
+    Allows admins to add custom fields to models without code changes.
+    
+    Attributes:
+        name: Field name (internal identifier).
+        label: Display label for the field.
+        model_name: Target model name.
+        field_type: Type of field.
+        required: Whether field is required.
+        choices: JSON list of choices.
+        default_value: Default value.
+        help_text: Help text for the field.
+        is_active: Whether field is active.
+    """
+
+    class FieldType(models.TextChoices):
+        TEXT = 'text', 'Text'
+        NUMBER = 'number', 'Number'
+        DATE = 'date', 'Date'
+        BOOLEAN = 'boolean', 'Yes/No'
+        CHOICE = 'choice', 'Dropdown'
+        EMAIL = 'email', 'Email'
+        URL = 'url', 'URL'
+
+    name = models.CharField(max_length=50)
+    label = models.CharField(max_length=100)
+    model_name = models.CharField(max_length=50)
+    field_type = models.CharField(max_length=20, choices=FieldType.choices, default=FieldType.TEXT)
+    required = models.BooleanField(default=False)
+    choices = models.JSONField(blank=True, default=list)
+    default_value = models.CharField(max_length=255, blank=True, default='')
+    help_text = models.CharField(max_length=255, blank=True, default='')
+    is_active = models.BooleanField(default=True)
+    order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['model_name', 'order', 'name']
+        unique_together = ['model_name', 'name']
+
+    def __str__(self):
+        return f"{self.model_name}.{self.name}"
+
+
+class CustomFieldValue(models.Model):
+    """Stores custom field values for model instances."""
+
+    field = models.ForeignKey(CustomField, on_delete=models.CASCADE, related_name='values')
+    object_id = models.PositiveIntegerField()
+    model_name = models.CharField(max_length=50)
+    value = models.JSONField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ['field', 'object_id', 'model_name']
+        indexes = [
+            models.Index(fields=['model_name', 'object_id']),
+        ]
+
+    def __str__(self):
+        return f"{self.model_name} #{self.object_id}.{self.field.name}"
 
 
 from django.db.models.signals import post_save, post_delete, m2m_changed
