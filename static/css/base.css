@@ -590,3 +590,193 @@ input[class*="hp-"] {
     top: -9999px;
     left: -9999px;
 }
+
+/* ============================================
+   MOBILE RESPONSIVE IMPROVEMENTS
+   ============================================ */
+
+/* Small devices (landscape phones, 576px and up) */
+@media (max-width: 575.98px) {
+    /* Reduce padding on containers */
+    .container-fluid {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+
+    /* Stack metric cards vertically */
+    .metric-card {
+        margin-bottom: 1rem;
+    }
+
+    /* Adjust table for mobile */
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+
+    .table th,
+    .table td {
+        padding: 0.5rem;
+        white-space: nowrap;
+    }
+
+    /* Stack form elements */
+    .form-row > * {
+        margin-bottom: 1rem;
+    }
+
+    /* Full-width buttons */
+    .btn-group .btn,
+    .btn-group-vertical .btn {
+        min-width: 100px;
+    }
+
+    /* Adjust card headers */
+    .card-header h5 {
+        font-size: 1rem;
+    }
+
+    /* Mobile-friendly navigation */
+    .navbar-brand {
+        font-size: 1.1rem;
+    }
+
+    /* Adjust modal for mobile */
+    .modal-dialog {
+        margin: 0.5rem;
+    }
+
+    .modal-body {
+        max-height: calc(100vh - 150px);
+        overflow-y: auto;
+    }
+
+    /* Touch-friendly form elements */
+    .form-control,
+    .form-select,
+    .btn {
+        min-height: 44px;  /* WCAG touch target size */
+    }
+
+    /* Adjust pagination */
+    .pagination {
+        flex-wrap: wrap;
+    }
+
+    .page-link {
+        margin: 2px;
+    }
+}
+
+/* Medium devices (tablets, 768px and up) */
+@media (max-width: 767.98px) {
+    /* Stack columns */
+    .col-md-3,
+    .col-md-4,
+    .col-md-6 {
+        margin-bottom: 1rem;
+    }
+
+    /* Adjust dashboard metrics */
+    .metric-value {
+        font-size: 1.5rem;
+    }
+
+    /* Hide less important columns on tables */
+    .table-hide-mobile {
+        display: none;
+    }
+
+    /* Adjust chart containers */
+    .chart-container {
+        height: 250px;
+    }
+}
+
+/* Large devices (desktops, 992px and up) */
+@media (min-width: 992px) {
+    .chart-container {
+        height: 350px;
+    }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+    /* Larger touch targets */
+    .btn,
+    .nav-link,
+    .dropdown-item {
+        min-height: 44px;
+        padding-top: 0.75rem;
+        padding-bottom: 0.75rem;
+    }
+
+    /* Remove hover effects on touch devices */
+    .flight-card:hover,
+    .analytics-card:hover {
+        transform: none;
+    }
+
+    /* Larger form controls */
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="search"],
+    input[type="tel"],
+    input[type="url"],
+    textarea,
+    select {
+        font-size: 16px;  /* Prevents zoom on iOS */
+    }
+}
+
+/* Reduced motion preference (WCAG 2.3.3) */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .btn {
+        border-width: 2px;
+    }
+
+    .card {
+        border-width: 2px;
+    }
+
+    :focus {
+        outline-width: 4px;
+    }
+}
+
+/* Print styles */
+@media print {
+    .navbar,
+    .sidebar,
+    .btn,
+    .no-print {
+        display: none !important;
+    }
+
+    .container-fluid {
+        width: 100%;
+        padding: 0;
+    }
+
+    .card {
+        break-inside: avoid;
+        border: none;
+        box-shadow: none;
+    }
+
+    a[href]::after {
+        content: " (" attr(href) ")";
+    }
+}

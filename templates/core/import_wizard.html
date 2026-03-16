@@ -1,0 +1,421 @@
+{% extends 'simulation/dashboard.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    .wizard-step {
+        display: none;
+    }
+    .wizard-step.active {
+        display: block;
+    }
+    .step-indicator {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 2rem;
+    }
+    .step {
+        flex: 1;
+        text-align: center;
+        padding: 1rem;
+        background: rgba(255,255,255,0.05);
+        border-radius: 8px;
+        margin: 0 0.5rem;
+    }
+    .step:first-child {
+        margin-left: 0;
+    }
+    .step:last-child {
+        margin-right: 0;
+    }
+    .step.active {
+        background: var(--bs-primary);
+        color: white;
+    }
+    .step.completed {
+        background: rgba(25, 135, 84, 0.3);
+        color: #75b798;
+    }
+    .step-number {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 0.5rem;
+        font-weight: bold;
+    }
+    .mapping-row {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.75rem;
+        background: rgba(255,255,255,0.03);
+        border-radius: 6px;
+        margin-bottom: 0.5rem;
+    }
+    .preview-table {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-file-import"></i> Data Import Wizard</h1>
+        <a href="{{ back_url }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back
+        </a>
+    </div>
+
+    <!-- Step Indicator -->
+    <div class="step-indicator">
+        <div class="step active" id="step1-indicator">
+            <div class="step-number">1</div>
+            <div>Upload File</div>
+        </div>
+        <div class="step" id="step2-indicator">
+            <div class="step-number">2</div>
+            <div>Map Columns</div>
+        </div>
+        <div class="step" id="step3-indicator">
+            <div class="step-number">3</div>
+            <div>Preview</div>
+        </div>
+        <div class="step" id="step4-indicator">
+            <div class="step-number">4</div>
+            <div>Import</div>
+        </div>
+    </div>
+
+    <form id="importWizard" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="hidden" name="model" value="{{ model_name }}">
+        <input type="hidden" name="mapping" id="mappingData">
+
+        <!-- Step 1: Upload File -->
+        <div class="wizard-step active" id="step1">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-upload"></i> Step 1: Upload CSV File</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="csvFile" class="form-label">Select CSV File</label>
+                        <input type="file" class="form-control" id="csvFile" name="file" accept=".csv" required>
+                        <div class="form-text">Maximum file size: 5MB. Supported format: CSV (comma-separated values).</div>
+                    </div>
+                    <div id="fileInfo" class="alert alert-info" style="display: none;"></div>
+                </div>
+                <div class="card-footer">
+                    <button type="button" class="btn btn-primary" onclick="nextStep(2)">
+                        Next: Map Columns <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: Map Columns -->
+        <div class="wizard-step" id="step2">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-exchange-alt"></i> Step 2: Map CSV Columns to Fields</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">Map each column from your CSV file to the corresponding field in the system.</p>
+                    <div id="columnMapping"></div>
+                </div>
+                <div class="card-footer">
+                    <button type="button" class="btn btn-secondary" onclick="prevStep(1)">
+                        <i class="fas fa-arrow-left"></i> Back
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="nextStep(3)">
+                        Next: Preview <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 3: Preview -->
+        <div class="wizard-step" id="step3">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-eye"></i> Step 3: Preview Data</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">Review the data before importing. Showing first 10 rows.</p>
+                    <div class="preview-table">
+                        <table class="table table-sm table-dark" id="previewTable"></table>
+                    </div>
+                    <div id="importSummary" class="alert alert-info mt-3"></div>
+                </div>
+                <div class="card-footer">
+                    <button type="button" class="btn btn-secondary" onclick="prevStep(2)">
+                        <i class="fas fa-arrow-left"></i> Back
+                    </button>
+                    <button type="button" class="btn btn-success" onclick="nextStep(4)">
+                        Next: Import <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 4: Import -->
+        <div class="wizard-step" id="step4">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-check-circle"></i> Step 4: Confirm Import</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Important:</strong> This action will import <span id="recordCount">0</span> records.
+                        This cannot be undone.
+                    </div>
+                    <div id="importProgress" class="mb-3" style="display: none;">
+                        <div class="progress">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                 role="progressbar" style="width: 0%"></div>
+                        </div>
+                        <p class="text-center mt-2" id="progressText">Importing...</p>
+                    </div>
+                    <div id="importResult"></div>
+                </div>
+                <div class="card-footer">
+                    <button type="button" class="btn btn-secondary" onclick="prevStep(3)" id="backBtn">
+                        <i class="fas fa-arrow-left"></i> Back
+                    </button>
+                    <button type="submit" class="btn btn-success" id="importBtn">
+                        <i class="fas fa-download"></i> Import Data
+                    </button>
+                    <a href="{{ back_url }}" class="btn btn-primary" id="doneBtn" style="display: none;">
+                        <i class="fas fa-check"></i> Done
+                    </a>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let csvData = [];
+let csvHeaders = [];
+let fieldMapping = {};
+
+// File upload handler
+document.getElementById('csvFile').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const fileInfo = document.getElementById('fileInfo');
+    fileInfo.style.display = 'block';
+    fileInfo.innerHTML = `<i class="fas fa-file-csv"></i> Selected: ${file.name} (${(file.size/1024).toFixed(1)} KB)`;
+
+    // Parse CSV
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const text = e.target.result;
+        const lines = text.split('\n').filter(line => line.trim());
+        
+        if (lines.length < 2) {
+            alert('CSV file must have a header row and at least one data row.');
+            return;
+        }
+
+        csvHeaders = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+        csvData = lines.slice(1).map(line => {
+            const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
+            const row = {};
+            csvHeaders.forEach((h, i) => row[h] = values[i] || '');
+            return row;
+        });
+
+        // Generate column mapping UI
+        generateColumnMapping();
+        
+        // Auto-advance to step 2
+        nextStep(2);
+    };
+    reader.readAsText(file);
+});
+
+// Generate column mapping UI
+function generateColumnMapping() {
+    const fields = {{ fields|safe }};
+    const container = document.getElementById('columnMapping');
+    container.innerHTML = '';
+
+    csvHeaders.forEach(header => {
+        const row = document.createElement('div');
+        row.className = 'mapping-row';
+        row.innerHTML = `
+            <strong style="min-width: 150px;">${header}</strong>
+            <span>→</span>
+            <select class="form-select" data-column="${header}" style="max-width: 300px;">
+                <option value="">-- Skip Column --</option>
+                ${fields.map(f => `<option value="${f.name}" ${f.name.toLowerCase() === header.toLowerCase() ? 'selected' : ''}>${f.label}</option>`).join('')}
+            </select>
+        `;
+        container.appendChild(row);
+    });
+}
+
+// Get current mapping
+function getCurrentMapping() {
+    const mapping = {};
+    document.querySelectorAll('#columnMapping select').forEach(select => {
+        if (select.value) {
+            mapping[select.dataset.column] = select.value;
+        }
+    });
+    return mapping;
+}
+
+// Preview data
+function showPreview() {
+    fieldMapping = getCurrentMapping();
+    document.getElementById('mappingData').value = JSON.stringify(fieldMapping);
+
+    const table = document.getElementById('previewTable');
+    const mappedHeaders = Object.values(fieldMapping);
+    
+    let html = '<thead class="table-light"><tr>';
+    mappedHeaders.forEach(h => html += `<th>${h || '-'}</th>`);
+    html += '</tr></thead><tbody>';
+
+    csvData.slice(0, 10).forEach(row => {
+        html += '<tr>';
+        Object.keys(fieldMapping).forEach(col => {
+            html += `<td>${row[col] || ''}</td>`;
+        });
+        html += '</tr>';
+    });
+    html += '</tbody>';
+
+    table.innerHTML = html;
+    document.getElementById('recordCount').textContent = csvData.length;
+    document.getElementById('importSummary').innerHTML = 
+        `<i class="fas fa-info-circle"></i> Will import ${csvData.length} records with ${Object.keys(fieldMapping).length} mapped fields.`;
+}
+
+// Step navigation
+function nextStep(step) {
+    // Validate before advancing
+    if (step === 2 && !csvData.length) {
+        alert('Please upload a CSV file first.');
+        return;
+    }
+    if (step === 3) {
+        fieldMapping = getCurrentMapping();
+        if (Object.keys(fieldMapping).length === 0) {
+            alert('Please map at least one column.');
+            return;
+        }
+        showPreview();
+    }
+
+    // Update steps
+    document.querySelectorAll('.wizard-step').forEach((el, i) => {
+        el.classList.toggle('active', i + 1 === step);
+    });
+
+    // Update indicators
+    for (let i = 1; i <= 4; i++) {
+        const indicator = document.getElementById(`step${i}-indicator`);
+        indicator.classList.toggle('active', i === step);
+        indicator.classList.toggle('completed', i < step);
+    }
+
+    // Hide back button on step 4
+    document.getElementById('backBtn').style.display = step === 4 ? 'none' : 'inline-block';
+}
+
+function prevStep(step) {
+    document.querySelectorAll('.wizard-step').forEach((el, i) => {
+        el.classList.toggle('active', i + 1 === step);
+    });
+
+    for (let i = 1; i <= 4; i++) {
+        const indicator = document.getElementById(`step${i}-indicator`);
+        indicator.classList.toggle('active', i === step);
+        indicator.classList.toggle('completed', i < step);
+    }
+}
+
+// Form submission
+document.getElementById('importWizard').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const formData = new FormData(this);
+    const fileInput = document.getElementById('csvFile');
+    
+    // Show progress
+    document.getElementById('importProgress').style.display = 'block';
+    document.getElementById('importBtn').disabled = true;
+    document.getElementById('backBtn').disabled = true;
+
+    // Simulate progress
+    let progress = 0;
+    const progressBar = document.querySelector('.progress-bar');
+    const progressInterval = setInterval(() => {
+        progress += 10;
+        progressBar.style.width = progress + '%';
+        if (progress >= 90) clearInterval(progressInterval);
+    }, 200);
+
+    // Submit to server
+    fetch(window.location.href, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        clearInterval(progressInterval);
+        progressBar.style.width = '100%';
+        document.getElementById('progressText').textContent = 'Import complete!';
+
+        const resultDiv = document.getElementById('importResult');
+        if (data.success) {
+            resultDiv.innerHTML = `
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i>
+                    <strong>Success!</strong> Imported ${data.imported} records.
+                    ${data.errors ? `<br><small>${data.errors.length} errors encountered.</small>` : ''}
+                </div>
+            `;
+        } else {
+            resultDiv.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <strong>Error:</strong> ${data.error}
+                </div>
+            `;
+        }
+
+        document.getElementById('importBtn').style.display = 'none';
+        document.getElementById('backBtn').style.display = 'none';
+        document.getElementById('doneBtn').style.display = 'inline-block';
+    })
+    .catch(error => {
+        clearInterval(progressInterval);
+        document.getElementById('importResult').innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-circle"></i>
+                <strong>Error:</strong> ${error.message}
+            </div>
+        `;
+        document.getElementById('importBtn').disabled = false;
+        document.getElementById('backBtn').disabled = false;
+    });
+});
+</script>
+{% endblock %}

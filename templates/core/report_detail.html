@@ -45,6 +45,9 @@
                         <a href="{% url 'core:report_export' report.id %}?format=csv" class="btn btn-sm btn-outline-success" target="_blank">
                             <i class="fas fa-file-csv"></i> CSV
                         </a>
+                        <a href="{% url 'core:report_export' report.id %}?format=xlsx" class="btn btn-sm btn-outline-success" target="_blank">
+                            <i class="fas fa-file-excel"></i> Excel
+                        </a>
                         <a href="{% url 'core:report_detail' report.id %}?print=1" class="btn btn-sm btn-outline-secondary" target="_blank">
                             <i class="fas fa-print"></i> Print
                         </a>
@@ -95,7 +98,7 @@
                             <th style="width: 50%;">{{ key|title|replace_underscore }}</th>
                             <td>
                                 {% if key == 'total_revenue' or key == 'total_expenses' or key == 'net_profit' %}
-                                ${{ value|floatformat:2 }}
+                                ${{ value|floatformat:2|intcomma }}
                                 {% else %}
                                 {{ value }}
                                 {% endif %}
@@ -125,9 +128,9 @@
                         <tr>
                             <td>{{ assessment.period }}</td>
                             <td>{{ assessment.type|title }}</td>
-                            <td class="text-end">${{ assessment.revenue|floatformat:2 }}</td>
-                            <td class="text-end">${{ assessment.expenses|floatformat:2 }}</td>
-                            <td class="text-end">${{ assessment.profit|floatformat:2 }}</td>
+                            <td class="text-end">${{ assessment.revenue|floatformat:2|intcomma }}</td>
+                            <td class="text-end">${{ assessment.expenses|floatformat:2|intcomma }}</td>
+                            <td class="text-end">${{ assessment.profit|floatformat:2|intcomma }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -143,7 +146,7 @@
                         {% for key, value in report.content.revenue_breakdown.items %}
                         <tr>
                             <th>{{ key|title|replace_underscore }}</th>
-                            <td class="text-end">${{ value|floatformat:2 }}</td>
+                            <td class="text-end">${{ value|floatformat:2|intcomma }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -159,7 +162,7 @@
                         {% for key, value in report.content.expense_breakdown.items %}
                         <tr>
                             <th>{{ key|title|replace_underscore }}</th>
-                            <td class="text-end">${{ value|floatformat:2 }}</td>
+                            <td class="text-end">${{ value|floatformat:2|intcomma }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>

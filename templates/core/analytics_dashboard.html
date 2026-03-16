@@ -1,0 +1,604 @@
+{% extends 'simulation/dashboard.html' %}
+{% load core_filters %}
+{% load static %}
+
+{% block title %}Analytics Dashboard - Blue Falcon{% endblock %}
+
+{% block extra_css %}
+<style>
+    .analytics-chart-container {
+        position: relative;
+        height: 300px;
+        width: 100%;
+    }
+    .analytics-chart-container-lg {
+        height: 400px;
+    }
+    .time-range-selector {
+        min-width: 150px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-chart-line"></i> Analytics Dashboard</h1>
+        <div class="d-flex gap-2">
+            <select id="timeRangeSelector" class="form-select time-range-selector" aria-label="Select time range">
+                <option value="30days">Last 30 Days</option>
+                <option value="6months" selected>Last 6 Months</option>
+                <option value="1year">Last Year</option>
+            </select>
+            <button class="btn btn-outline-primary" onclick="refreshAnalytics()">
+                <i class="fas fa-sync-alt" aria-hidden="true"></i> Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- Summary Metrics -->
+    <div class="row mb-4">
+        <div class="col-md-2">
+            <div class="metric-card metric-scheduled">
+                <div class="metric-value" id="totalAirports">-</div>
+                <div class="metric-label">Airports</div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="metric-card metric-arrived">
+                <div class="metric-value" id="totalGates">-</div>
+                <div class="metric-label">Gates</div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="metric-card metric-boarding">
+                <div class="metric-value" id="totalFlights">-</div>
+                <div class="metric-label">Flights</div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="metric-card metric-departed">
+                <div class="metric-value" id="totalPassengers">-</div>
+                <div class="metric-label">Passengers</div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="metric-card metric-ontime">
+                <div class="metric-value" id="totalAssessments">-</div>
+                <div class="metric-label">Assessments</div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="metric-card metric-cancelled">
+                <div class="metric-value" id="onTimeRate">-</div>
+                <div class="metric-label">On-Time Rate</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Revenue & Expenses Trend -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-dollar-sign"></i> Revenue & Expenses Trend</h5>
+        </div>
+        <div class="card-body">
+            <div class="analytics-chart-container analytics-chart-container-lg">
+                <canvas id="revenueChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Flight Trends -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-plane"></i> Flight Trends</h5>
+                </div>
+                <div class="card-body">
+                    <div class="analytics-chart-container">
+                        <canvas id="flightTrendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-pie"></i> Flight Status Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <div class="analytics-chart-container">
+                        <canvas id="statusDistributionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Passenger & Airport Comparison -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-users"></i> Passenger Trends</h5>
+                </div>
+                <div class="card-body">
+                    <div class="analytics-chart-container">
+                        <canvas id="passengerTrendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-building"></i> Airport Comparison</h5>
+                </div>
+                <div class="card-body">
+                    <div class="analytics-chart-container">
+                        <canvas id="airportComparisonChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gate Utilization -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-door-open"></i> Top 10 Gate Utilization</h5>
+        </div>
+        <div class="card-body">
+            <div class="analytics-chart-container">
+                <canvas id="gateUtilizationChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+    'use strict';
+
+    // Chart instances
+    let revenueChart, flightTrendChart, statusDistributionChart;
+    let passengerTrendChart, airportComparisonChart, gateUtilizationChart;
+
+    // Color schemes (matching Bootstrap theme)
+    const colors = {
+        primary: getComputedStyle(document.documentElement).getPropertyValue('--bs-primary') || '#0d6efd',
+        success: getComputedStyle(document.documentElement).getPropertyValue('--bs-success') || '#198754',
+        info: getComputedStyle(document.documentElement).getPropertyValue('--bs-info') || '#0dcaf0',
+        warning: getComputedStyle(document.documentElement).getPropertyValue('--bs-warning') || '#ffc107',
+        danger: getComputedStyle(document.documentElement).getPropertyValue('--bs-danger') || '#dc3545',
+        secondary: getComputedStyle(document.documentElement).getPropertyValue('--bs-secondary') || '#6c757d',
+    };
+
+    /**
+     * Load analytics data from API
+     */
+    async function loadAnalytics(timeRange = '6months') {
+        try {
+            const response = await fetch(`/api/v1/analytics/?range=${timeRange}`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to load analytics data');
+            }
+
+            const data = await response.json();
+            updateDashboard(data);
+        } catch (error) {
+            console.error('Error loading analytics:', error);
+            if (window.BlueFalcon?.notify) {
+                window.BlueFalcon.notify('Failed to load analytics data', 'danger');
+            }
+        }
+    }
+
+    /**
+     * Update dashboard with analytics data
+     */
+    function updateDashboard(data) {
+        // Update summary metrics
+        if (data.summary) {
+            document.getElementById('totalAirports').textContent = data.summary.total_airports.toLocaleString();
+            document.getElementById('totalGates').textContent = data.summary.total_gates.toLocaleString();
+            document.getElementById('totalFlights').textContent = data.summary.total_flights.toLocaleString();
+            document.getElementById('totalPassengers').textContent = data.summary.total_passengers.toLocaleString();
+            document.getElementById('totalAssessments').textContent = data.summary.approved_assessments.toLocaleString();
+        }
+
+        // Calculate on-time rate from flight data
+        if (data.flight_trend && data.flight_trend.total.length > 0) {
+            const totalFlights = data.flight_trend.total.reduce((a, b) => a + b, 0);
+            const delayedFlights = data.flight_trend.delayed.reduce((a, b) => a + b, 0);
+            const cancelledFlights = data.flight_trend.cancelled.reduce((a, b) => a + b, 0);
+            const onTimeFlights = totalFlights - delayedFlights - cancelledFlights;
+            const onTimeRate = totalFlights > 0 ? Math.round((onTimeFlights / totalFlights) * 100) : 0;
+            document.getElementById('onTimeRate').textContent = onTimeRate + '%';
+        }
+
+        // Update charts
+        updateRevenueChart(data.revenue_trend);
+        updateFlightTrendChart(data.flight_trend);
+        updateStatusDistributionChart(data.status_distribution);
+        updatePassengerTrendChart(data.passenger_trend);
+        updateAirportComparisonChart(data.airport_comparison);
+        updateGateUtilizationChart(data.gate_utilization);
+    }
+
+    /**
+     * Update Revenue & Expenses Chart
+     */
+    function updateRevenueChart(data) {
+        const ctx = document.getElementById('revenueChart').getContext('2d');
+
+        if (revenueChart) {
+            revenueChart.destroy();
+        }
+
+        revenueChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.labels || [],
+                datasets: [
+                    {
+                        label: 'Revenue',
+                        data: data.revenue || [],
+                        borderColor: colors.success,
+                        backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Expenses',
+                        data: data.expenses || [],
+                        borderColor: colors.danger,
+                        backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Profit',
+                        data: data.profit || [],
+                        borderColor: colors.info,
+                        backgroundColor: 'rgba(13, 202, 240, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.parsed.y;
+                                return context.dataset.label + ': $' + value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toLocaleString();
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Update Flight Trend Chart
+     */
+    function updateFlightTrendChart(data) {
+        const ctx = document.getElementById('flightTrendChart').getContext('2d');
+
+        if (flightTrendChart) {
+            flightTrendChart.destroy();
+        }
+
+        flightTrendChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: data.labels || [],
+                datasets: [
+                    {
+                        label: 'Total Flights',
+                        data: data.total || [],
+                        backgroundColor: colors.primary,
+                        order: 3
+                    },
+                    {
+                        label: 'Delayed',
+                        data: data.delayed || [],
+                        backgroundColor: colors.warning,
+                        order: 2
+                    },
+                    {
+                        label: 'Cancelled',
+                        data: data.cancelled || [],
+                        backgroundColor: colors.danger,
+                        order: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Update Status Distribution Chart
+     */
+    function updateStatusDistributionChart(data) {
+        const ctx = document.getElementById('statusDistributionChart').getContext('2d');
+
+        if (statusDistributionChart) {
+            statusDistributionChart.destroy();
+        }
+
+        statusDistributionChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: data.labels || [],
+                datasets: [{
+                    data: data.counts || [],
+                    backgroundColor: [
+                        colors.primary,
+                        colors.success,
+                        colors.info,
+                        colors.warning,
+                        colors.danger,
+                        colors.secondary
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'right'
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Update Passenger Trend Chart
+     */
+    function updatePassengerTrendChart(data) {
+        const ctx = document.getElementById('passengerTrendChart').getContext('2d');
+
+        if (passengerTrendChart) {
+            passengerTrendChart.destroy();
+        }
+
+        passengerTrendChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.labels || [],
+                datasets: [
+                    {
+                        label: 'Total Passengers',
+                        data: data.total || [],
+                        borderColor: colors.info,
+                        backgroundColor: 'rgba(13, 202, 240, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Boarded',
+                        data: data.boarded || [],
+                        borderColor: colors.success,
+                        backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Checked In',
+                        data: data.checked_in || [],
+                        borderColor: colors.warning,
+                        backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Update Airport Comparison Chart
+     */
+    function updateAirportComparisonChart(data) {
+        const ctx = document.getElementById('airportComparisonChart').getContext('2d');
+
+        if (airportComparisonChart) {
+            airportComparisonChart.destroy();
+        }
+
+        airportComparisonChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: data.labels || [],
+                datasets: [
+                    {
+                        label: 'Revenue',
+                        data: data.revenue || [],
+                        backgroundColor: colors.success,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Assessments',
+                        data: data.assessments || [],
+                        backgroundColor: colors.primary,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toLocaleString();
+                            }
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        beginAtZero: true,
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Update Gate Utilization Chart
+     */
+    function updateGateUtilizationChart(data) {
+        const ctx = document.getElementById('gateUtilizationChart').getContext('2d');
+
+        if (gateUtilizationChart) {
+            gateUtilizationChart.destroy();
+        }
+
+        gateUtilizationChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: data.labels || [],
+                datasets: [{
+                    label: 'Flights',
+                    data: data.flights || [],
+                    backgroundColor: colors.info,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Refresh analytics data
+     */
+    window.refreshAnalytics = function() {
+        const timeRange = document.getElementById('timeRangeSelector').value;
+        loadAnalytics(timeRange);
+        if (window.BlueFalcon?.notify) {
+            window.BlueFalcon.notify('Analytics refreshed', 'success');
+        }
+    };
+
+    /**
+     * Initialize analytics dashboard
+     */
+    function initAnalyticsDashboard() {
+        // Load initial data
+        const timeRange = document.getElementById('timeRangeSelector').value || '6months';
+        loadAnalytics(timeRange);
+
+        // Listen for time range changes
+        document.getElementById('timeRangeSelector').addEventListener('change', function(e) {
+            loadAnalytics(e.target.value);
+        });
+
+        // Listen for theme changes to update chart colors
+        document.addEventListener('themeChanged', function() {
+            // Charts will automatically adapt to CSS variable changes on refresh
+        });
+    }
+
+    // Initialize on DOM ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initAnalyticsDashboard);
+    } else {
+        initAnalyticsDashboard();
+    }
+})();
+</script>
+{% endblock %}

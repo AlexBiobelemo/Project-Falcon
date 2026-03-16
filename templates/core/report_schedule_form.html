@@ -1,0 +1,296 @@
+{% extends 'simulation/dashboard.html' %}
+{% load core_filters %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    .form-section {
+        margin-bottom: 1.5rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid #dee2e6;
+    }
+    .form-section:last-child {
+        border-bottom: none;
+    }
+    .form-section h5 {
+        color: var(--bs-primary);
+        margin-bottom: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-calendar-plus"></i> {% if action == 'create' %}New{% else %}Edit{% endif %} Report Schedule</h1>
+        <a href="{% url 'core:report_schedule_list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to List
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-body">
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+
+                        <!-- Basic Information -->
+                        <div class="form-section">
+                            <h5><i class="fas fa-info-circle"></i> Basic Information</h5>
+                            
+                            <div class="mb-3">
+                                <label for="id_name" class="form-label">Schedule Name *</label>
+                                <input type="text" 
+                                       name="name" 
+                                       id="id_name" 
+                                       class="form-control {% if form.name.errors %}is-invalid{% endif %}"
+                                       value="{{ form.name.value|default:'' }}"
+                                       placeholder="e.g., Weekly Financial Summary"
+                                       required>
+                                {% if form.name.errors %}
+                                    <div class="invalid-feedback">{{ form.name.errors.0 }}</div>
+                                {% endif %}
+                                <small class="form-text text-muted">A descriptive name for this schedule</small>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="id_report_type" class="form-label">Report Type *</label>
+                                    <select name="report_type" 
+                                            id="id_report_type" 
+                                            class="form-select {% if form.report_type.errors %}is-invalid{% endif %}"
+                                            required>
+                                        <option value="">Select Type</option>
+                                        {% for value, label in form.report_type.field.choices %}
+                                            <option value="{{ value }}" {% if form.report_type.value == value %}selected{% endif %}>
+                                                {{ label }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                    {% if form.report_type.errors %}
+                                        <div class="invalid-feedback">{{ form.report_type.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="id_airport" class="form-label">Airport</label>
+                                    <select name="airport" 
+                                            id="id_airport" 
+                                            class="form-select {% if form.airport.errors %}is-invalid{% endif %}">
+                                        <option value="">System-wide</option>
+                                        {% for airport in form.airport.field.queryset %}
+                                            <option value="{{ airport.id }}" {% if form.airport.value == airport.id|stringformat:"s" %}selected{% endif %}>
+                                                {{ airport.code }} - {{ airport.name }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                    {% if form.airport.errors %}
+                                        <div class="invalid-feedback">{{ form.airport.errors.0 }}</div>
+                                    {% endif %}
+                                    <small class="form-text text-muted">Leave empty for system-wide reports</small>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="id_format" class="form-label">Report Format</label>
+                                <select name="format" 
+                                        id="id_format" 
+                                        class="form-select {% if form.format.errors %}is-invalid{% endif %}">
+                                    {% for value, label in form.format.field.choices %}
+                                        <option value="{{ value }}" {% if form.format.value == value %}selected{% endif %}>
+                                            {{ label }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                {% if form.format.errors %}
+                                    <div class="invalid-feedback">{{ form.format.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Schedule Settings -->
+                        <div class="form-section">
+                            <h5><i class="fas fa-clock"></i> Schedule Settings</h5>
+                            
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label for="id_frequency" class="form-label">Frequency *</label>
+                                    <select name="frequency" 
+                                            id="id_frequency" 
+                                            class="form-select {% if form.frequency.errors %}is-invalid{% endif %}"
+                                            required
+                                            onchange="toggleFrequencyFields()">
+                                        <option value="">Select Frequency</option>
+                                        {% for value, label in form.frequency.field.choices %}
+                                            <option value="{{ value }}" {% if form.frequency.value == value %}selected{% endif %}>
+                                                {{ label }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                    {% if form.frequency.errors %}
+                                        <div class="invalid-feedback">{{ form.frequency.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-4 mb-3" id="dayOfWeekField" style="display: none;">
+                                    <label for="id_day_of_week" class="form-label">Day of Week</label>
+                                    <select name="day_of_week" 
+                                            id="id_day_of_week" 
+                                            class="form-select {% if form.day_of_week.errors %}is-invalid{% endif %}">
+                                        <option value="">Select Day</option>
+                                        {% for value, label in form.day_of_week.field.choices %}
+                                            <option value="{{ value }}" {% if form.day_of_week.value == value|stringformat:"s" %}selected{% endif %}>
+                                                {{ label }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                    {% if form.day_of_week.errors %}
+                                        <div class="invalid-feedback">{{ form.day_of_week.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-4 mb-3" id="dayOfMonthField" style="display: none;">
+                                    <label for="id_day_of_month" class="form-label">Day of Month</label>
+                                    <select name="day_of_month" 
+                                            id="id_day_of_month" 
+                                            class="form-select {% if form.day_of_month.errors %}is-invalid{% endif %}">
+                                        <option value="">Select Day</option>
+                                        {% for value, label in form.day_of_month.field.choices %}
+                                            <option value="{{ value }}" {% if form.day_of_month.value == value|stringformat:"s" %}selected{% endif %}>
+                                                {{ label }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                    {% if form.day_of_month.errors %}
+                                        <div class="invalid-feedback">{{ form.day_of_month.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="id_hour" class="form-label">Time (Hour) *</label>
+                                    <select name="hour" 
+                                            id="id_hour" 
+                                            class="form-select {% if form.hour.errors %}is-invalid{% endif %}"
+                                            required>
+                                        {% for value, label in form.hour.field.choices %}
+                                            <option value="{{ value }}" {% if form.hour.value == value|stringformat:"s" %}selected{% endif %}>
+                                                {{ label }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                    {% if form.hour.errors %}
+                                        <div class="invalid-feedback">{{ form.hour.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recipients -->
+                        <div class="form-section">
+                            <h5><i class="fas fa-envelope"></i> Email Recipients</h5>
+                            
+                            <div class="mb-3">
+                                <label for="id_recipients" class="form-label">Email Addresses *</label>
+                                <textarea name="recipients" 
+                                          id="id_recipients" 
+                                          rows="3" 
+                                          class="form-control {% if form.recipients.errors %}is-invalid{% endif %}"
+                                          placeholder="user@example.com, manager@example.com"
+                                          required>{{ form.recipients.value|default:'' }}</textarea>
+                                {% if form.recipients.errors %}
+                                    <div class="invalid-feedback">{{ form.recipients.errors.0 }}</div>
+                                {% endif %}
+                                <small class="form-text text-muted">Comma-separated list of email addresses</small>
+                            </div>
+                        </div>
+
+                        <!-- Options -->
+                        <div class="form-section">
+                            <h5><i class="fas fa-cog"></i> Options</h5>
+                            
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" 
+                                       type="checkbox" 
+                                       name="is_active" 
+                                       id="id_is_active"
+                                       {% if form.is_active.value %}checked{% endif %}>
+                                <label class="form-check-label" for="id_is_active">
+                                    Active
+                                </label>
+                                <small class="form-text text-muted d-block">
+                                    Inactive schedules will not generate reports
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- Submit Buttons -->
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Schedule
+                            </button>
+                            <a href="{% url 'core:report_schedule_list' %}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Help Sidebar -->
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0"><i class="fas fa-lightbulb"></i> Tips</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="mb-0 small">
+                        <li class="mb-2">Choose a descriptive name to easily identify the schedule</li>
+                        <li class="mb-2">Select "System-wide" airport for reports across all airports</li>
+                        <li class="mb-2">Daily reports are useful for operational summaries</li>
+                        <li class="mb-2">Weekly reports work well for financial reviews</li>
+                        <li class="mb-2">Monthly reports are ideal for executive summaries</li>
+                        <li class="mb-2">Schedule reports during off-peak hours for better performance</li>
+                        <li>Test your schedule with "Run Now" after creation</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Important</h6>
+                </div>
+                <div class="card-body small">
+                    <p class="mb-2">
+                        <strong>Email Configuration:</strong> Ensure email is properly configured in your Django settings for report delivery.
+                    </p>
+                    <p class="mb-0">
+                        <strong>Time Zone:</strong> All times are in UTC. Adjust accordingly for your local time zone.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleFrequencyFields() {
+    const frequency = document.getElementById('id_frequency').value;
+    const dayOfWeekField = document.getElementById('dayOfWeekField');
+    const dayOfMonthField = document.getElementById('dayOfMonthField');
+    
+    // Hide all optional fields first
+    dayOfWeekField.style.display = 'none';
+    dayOfMonthField.style.display = 'none';
+    
+    // Show appropriate field based on frequency
+    if (frequency === 'weekly') {
+        dayOfWeekField.style.display = 'block';
+    } else if (frequency === 'monthly') {
+        dayOfMonthField.style.display = 'block';
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    toggleFrequencyFields();
+});
+</script>
+{% endblock %}

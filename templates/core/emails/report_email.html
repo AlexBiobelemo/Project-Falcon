@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ report.title }}</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 8px 8px 0 0;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .content {
+            background: #f9f9f9;
+            padding: 30px;
+            border: 1px solid #e0e0e0;
+            border-top: none;
+        }
+        .info-box {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        .label {
+            font-weight: 600;
+            color: #666;
+        }
+        .value {
+            color: #333;
+        }
+        .button {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            padding: 12px 30px;
+            border-radius: 6px;
+            margin-top: 20px;
+            font-weight: 600;
+        }
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #999;
+            font-size: 12px;
+            border-top: 1px solid #e0e0e0;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📊 Scheduled Report</h1>
+        <p style="margin: 10px 0 0 0; opacity: 0.9;">{{ schedule_name }}</p>
+    </div>
+
+    <div class="content">
+        <p>Hello,</p>
+        <p>Your scheduled report has been generated and is ready to view.</p>
+
+        <div class="info-box">
+            <div class="info-row">
+                <span class="label">Report Title:</span>
+                <span class="value">{{ report.title }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Report Type:</span>
+                <span class="value">{{ report.get_report_type_display }}</span>
+            </div>
+            {% if report.airport %}
+            <div class="info-row">
+                <span class="label">Airport:</span>
+                <span class="value">{{ report.airport.code }} - {{ report.airport.name }}</span>
+            </div>
+            {% endif %}
+            <div class="info-row">
+                <span class="label">Period:</span>
+                <span class="value">{{ report.period_start|date:"M d, Y" }} - {{ report.period_end|date:"M d, Y" }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Format:</span>
+                <span class="value">{{ report.get_format_display }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Generated:</span>
+                <span class="value">{{ report.generated_at|date:"M d, Y H:i" }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Status:</span>
+                <span class="value">
+                    {% if report.is_generated %}
+                        <span class="status-badge status-success">Generated</span>
+                    {% else %}
+                        <span class="status-badge status-pending">Pending</span>
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+
+        {% if report.content and report.content.summary %}
+        <div class="info-box">
+            <h3 style="margin-top: 0;">Summary</h3>
+            {% for key, value in report.content.summary.items %}
+            <div class="info-row">
+                <span class="label">{{ key|title|replace_underscore }}:</span>
+                <span class="value">
+                    {% if 'revenue' in key or 'expenses' in key or 'profit' in key %}
+                        ${{ value|floatformat:2|intcomma }}
+                    {% else %}
+                        {{ value|intcomma }}
+                    {% endif %}
+                </span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div style="text-align: center;">
+            <a href="{{ site_url }}/core/reports/{{ report.id }}/" class="button">
+                View Full Report
+            </a>
+        </div>
+
+        <p style="margin-top: 30px; color: #666; font-size: 14px;">
+            This is an automated message from your scheduled report system.
+            If you have any questions, please contact your system administrator.
+        </p>
+    </div>
+
+    <div class="footer">
+        <p>Blue Falcon Airport Operations Management System</p>
+        <p>This email was sent because you are subscribed to scheduled reports.</p>
+    </div>
+</body>
+</html>

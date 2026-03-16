@@ -1,0 +1,218 @@
+{% extends 'simulation/dashboard.html' %}
+{% load core_filters %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    /* Dark mode support for table headers */
+    .table thead {
+        background-color: var(--bs-table-bg, rgba(0, 0, 0, 0.02));
+        color: var(--bs-body-color);
+    }
+    [data-bs-theme="dark"] .table thead {
+        background-color: rgba(255, 255, 255, 0.05);
+        color: var(--bs-body-color-dark);
+    }
+    [data-bs-theme="dark"] .table {
+        --bs-table-bg: transparent;
+        --bs-table-color: var(--bs-body-color);
+        border-color: var(--bs-border-color-dark, rgba(255, 255, 255, 0.1));
+    }
+    [data-bs-theme="dark"] .table-hover tbody tr:hover {
+        background-color: rgba(255, 255, 255, 0.02);
+    }
+    /* Card header dark mode */
+    .card-header {
+        background-color: var(--bs-card-cap-bg, rgba(0, 0, 0, 0.03));
+        color: var(--bs-body-color);
+        border-bottom-color: var(--bs-border-color, rgba(0, 0, 0, 0.1));
+    }
+    [data-bs-theme="dark"] .card-header {
+        background-color: var(--bs-card-cap-bg-dark, rgba(255, 255, 255, 0.03));
+        color: var(--bs-body-color-dark);
+        border-bottom-color: var(--bs-border-color-dark, rgba(255, 255, 255, 0.1));
+    }
+    /* Info boxes */
+    .info-card {
+        background: var(--bs-card-bg, #fff);
+        border: 1px solid var(--bs-border-color, rgba(0, 0, 0, 0.1));
+    }
+    [data-bs-theme="dark"] .info-card {
+        background: var(--bs-card-bg-dark, #2b3035);
+        border-color: var(--bs-border-color-dark, rgba(255, 255, 255, 0.1));
+    }
+    .info-card .card-header {
+        background: linear-gradient(135deg, var(--bs-primary-bg-subtle, rgba(13, 110, 253, 0.1)) 0%, var(--bs-card-cap-bg, rgba(0, 0, 0, 0.03)) 100%);
+        font-weight: 600;
+    }
+    [data-bs-theme="dark"] .info-card .card-header {
+        background: linear-gradient(135deg, rgba(13, 110, 253, 0.2) 0%, rgba(255, 255, 255, 0.03) 100%);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-calendar-alt"></i> Scheduled Reports</h1>
+        <a href="{% url 'core:report_schedule_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> New Schedule
+        </a>
+    </div>
+
+    <!-- Info Alert -->
+    <div class="alert alert-info alert-dismissible fade show" role="alert">
+        <i class="fas fa-info-circle me-2" aria-hidden="true"></i>
+        <strong>Scheduled Reports:</strong> Automatically generate and email reports on a recurring basis.
+        Reports are generated at the specified time and sent to the configured recipients.
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+
+    <!-- Schedules Table -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th scope="col">Name</th>
+                            <th scope="col">Report Type</th>
+                            <th scope="col">Airport</th>
+                            <th scope="col">Frequency</th>
+                            <th scope="col">Next Run</th>
+                            <th scope="col">Last Run</th>
+                            <th scope="col">Recipients</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for schedule in schedules %}
+                        <tr>
+                            <td>
+                                <strong>{{ schedule.name }}</strong>
+                            </td>
+                            <td>{{ schedule.get_report_type_display }}</td>
+                            <td>{{ schedule.airport.code|default:"System-wide" }}</td>
+                            <td>
+                                <span class="badge bg-info">{{ schedule.get_frequency_display }}</span>
+                                {% if schedule.frequency == 'weekly' and schedule.day_of_week != None %}
+                                    <small class="text-muted">
+                                        ({{ schedule.get_day_of_week_display }})
+                                    </small>
+                                {% endif %}
+                                {% if schedule.frequency == 'monthly' and schedule.day_of_month != None %}
+                                    <small class="text-muted">
+                                        (Day {{ schedule.day_of_month }})
+                                    </small>
+                                {% endif %}
+                                at {{ schedule.hour|stringformat:"02d" }}:00
+                            </td>
+                            <td>
+                                {% if schedule.next_run %}
+                                    {{ schedule.next_run|date:"M d, Y H:i" }}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if schedule.last_run %}
+                                    {{ schedule.last_run|date:"M d, Y H:i" }}
+                                {% else %}
+                                    <span class="text-muted">Never</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small>{{ schedule.recipients|truncatechars:30 }}</small>
+                            </td>
+                            <td>
+                                {% if schedule.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{% url 'core:report_schedule_update' schedule.id %}" 
+                                       class="btn btn-outline-warning" 
+                                       title="Edit"
+                                       aria-label="Edit schedule {{ schedule.name }}">
+                                        <i class="fas fa-edit" aria-hidden="true"></i>
+                                    </a>
+                                    <form method="post" action="{% url 'core:report_schedule_run' schedule.id %}" 
+                                          class="d-inline"
+                                          onsubmit="return confirm('Generate this report now?')">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-outline-primary" 
+                                                title="Run now"
+                                                aria-label="Run schedule {{ schedule.name }}">
+                                            <i class="fas fa-play" aria-hidden="true"></i>
+                                        </button>
+                                    </form>
+                                    <form method="post" action="{% url 'core:report_schedule_delete' schedule.id %}" 
+                                          class="d-inline"
+                                          onsubmit="return confirm('Are you sure you want to delete this schedule?')">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-outline-danger" 
+                                                title="Delete"
+                                                aria-label="Delete schedule {{ schedule.name }}">
+                                            <i class="fas fa-trash" aria-hidden="true"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center py-4">
+                                <p class="text-muted mb-0">No scheduled reports configured.</p>
+                                <a href="{% url 'core:report_schedule_create' %}" class="btn btn-sm btn-primary mt-2">
+                                    <i class="fas fa-plus"></i> Create Your First Schedule
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Info -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card info-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-question-circle"></i> How It Works</h6>
+                </div>
+                <div class="card-body">
+                    <ol class="mb-0">
+                        <li>Create a new schedule with your desired settings</li>
+                        <li>Select report type, frequency, and recipients</li>
+                        <li>Reports are automatically generated at the scheduled time</li>
+                        <li>Recipients receive an email with the report summary and link</li>
+                        <li>Monitor last run and next run times in this table</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card info-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-cog"></i> Configuration Notes</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="mb-0">
+                        <li>Email must be configured in settings for delivery</li>
+                        <li>Daily reports run every day at the specified hour</li>
+                        <li>Weekly reports run on the selected day of week</li>
+                        <li>Monthly reports run on the selected day of month</li>
+                        <li>Use "Run Now" to test a schedule immediately</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

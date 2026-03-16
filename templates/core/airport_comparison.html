@@ -1,0 +1,838 @@
+{% extends 'simulation/dashboard.html' %}
+{% load core_filters %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    .comparison-card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        border: none;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+    .comparison-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+    .metric-value-lg {
+        font-size: 1.75rem;
+        font-weight: 700;
+    }
+    .metric-value-sm {
+        font-size: 0.875rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .airport-header {
+        background: linear-gradient(135deg, var(--bs-primary), var(--bs-primary-dark));
+        color: white;
+        padding: 1.25rem;
+        border-radius: 0.5rem 0.5rem 0 0;
+        position: relative;
+        overflow: hidden;
+    }
+    .airport-header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.1);
+        transform: rotate(45deg);
+    }
+    .airport-code-badge {
+        font-size: 2rem;
+        font-weight: 800;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+    }
+    .comparison-chart {
+        height: 300px;
+    }
+    .best-value {
+        background: rgba(25, 135, 84, 0.05);
+        border: 2px solid #198754;
+    }
+    .worst-value {
+        background: rgba(220, 53, 69, 0.05);
+        border: 2px solid #dc3545;
+    }
+    .filter-card {
+        background: linear-gradient(135deg, var(--bs-light, #f8f9fa) 0%, var(--bs-secondary-bg, #e9ecef) 100%);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+    [data-bs-theme="dark"] .filter-card {
+        background: linear-gradient(135deg, var(--bs-dark-bg, #212529) 0%, var(--bs-secondary-bg-dark, #2b3035) 100%);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .airport-checkbox {
+        cursor: pointer;
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.375rem;
+        transition: background-color 0.2s;
+        overflow: hidden;
+    }
+    .airport-checkbox:hover {
+        background-color: rgba(13, 110, 253, 0.05);
+    }
+    .airport-checkbox input:checked + label {
+        font-weight: 600;
+        color: var(--bs-primary);
+    }
+    .airport-checkbox label {
+        overflow: hidden;
+        min-width: 0;
+    }
+    .airport-checkbox small {
+        display: block !important;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 100%;
+    }
+    .date-range-inputs {
+        display: none;
+    }
+    .date-range-inputs.active {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    .metric-icon {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 0.5rem;
+        font-size: 1.25rem;
+        flex-shrink: 0;
+    }
+    .metric-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+    .metric-row:last-child {
+        border-bottom: none;
+    }
+    [data-bs-theme="dark"] .metric-row {
+        border-bottom-color: rgba(255, 255, 255, 0.05);
+    }
+    .table {
+        --bs-table-bg: transparent;
+    }
+    [data-bs-theme="dark"] .table {
+        --bs-table-bg: transparent;
+        --bs-table-color: var(--bs-body-color);
+    }
+    .card-header {
+        background-color: var(--bs-card-cap-bg, rgba(0, 0, 0, 0.03));
+    }
+    [data-bs-theme="dark"] .card-header {
+        background-color: var(--bs-card-cap-bg-dark, rgba(255, 255, 255, 0.03));
+    }
+    /* Fix alignment for filter form */
+    .filter-form-row {
+        display: flex;
+        align-items: flex-end;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+    }
+    .filter-form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+    .filter-form-group.airports {
+        flex: 1;
+        min-width: 280px;
+    }
+    .filter-form-group.period {
+        min-width: 200px;
+    }
+    .filter-form-group.actions {
+        min-width: 220px;
+    }
+    .filter-form-group .form-label {
+        margin-bottom: 0;
+    }
+    /* Scrollable airport list */
+    .airport-list-scroll {
+        max-height: 180px;
+        overflow-y: auto;
+        padding: 0.5rem;
+        background: var(--bs-body-bg, #fff);
+        border: 1px solid var(--bs-border-color, rgba(0,0,0,0.1));
+        border-radius: 0.375rem;
+    }
+    [data-bs-theme="dark"] .airport-list-scroll {
+        background: var(--bs-body-bg-dark, #212529);
+        border-color: var(--bs-border-color-dark, rgba(255,255,255,0.1));
+    }
+    .airport-list-scroll::-webkit-scrollbar {
+        width: 6px;
+    }
+    .airport-list-scroll::-webkit-scrollbar-track {
+        background: var(--bs-body-bg, #f1f1f1);
+        border-radius: 3px;
+    }
+    .airport-list-scroll::-webkit-scrollbar-thumb {
+        background: var(--bs-secondary, #888);
+        border-radius: 3px;
+    }
+    .airport-list-scroll::-webkit-scrollbar-thumb:hover {
+        background: var(--bs-secondary-text, #555);
+    }
+    [data-bs-theme="dark"] .airport-list-scroll::-webkit-scrollbar-track {
+        background: var(--bs-body-bg-dark, #2d3136);
+    }
+    [data-bs-theme="dark"] .airport-list-scroll::-webkit-scrollbar-thumb {
+        background: var(--bs-secondary-text, #6c757d);
+    }
+    /* Table dark mode support */
+    .table-group-divider {
+        border-top: 2px solid var(--bs-border-color, currentColor);
+    }
+    [data-bs-theme="dark"] .table thead {
+        background-color: var(--bs-tertiary-bg-dark, rgba(255,255,255,0.05));
+        color: var(--bs-body-color);
+    }
+    [data-bs-theme="dark"] .table-bordered {
+        border-color: var(--bs-border-color-dark, rgba(255,255,255,0.1));
+    }
+    [data-bs-theme="dark"] .table-bordered th,
+    [data-bs-theme="dark"] .table-bordered td {
+        border-color: var(--bs-border-color-dark, rgba(255,255,255,0.1));
+    }
+    /* Summary stats card */
+    .summary-stats-card {
+        background: var(--bs-card-bg, #fff);
+    }
+    [data-bs-theme="dark"] .summary-stats-card {
+        background: var(--bs-card-bg-dark, #2b3035);
+    }
+    /* Table with many columns */
+    .table-responsive-comparison {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    .table-comparison-wide {
+        min-width: 800px;
+    }
+    .table-comparison-wide th,
+    .table-comparison-wide td {
+        white-space: nowrap;
+        padding: 0.75rem 1rem;
+        min-width: 120px;
+    }
+    .table-comparison-wide th:first-child,
+    .table-comparison-wide td:first-child {
+        position: sticky;
+        left: 0;
+        z-index: 10;
+        min-width: 180px;
+        max-width: 250px;
+        text-overflow: ellipsis;
+        overflow: hidden;
+    }
+    [data-bs-theme="dark"] .table-comparison-wide th:first-child,
+    [data-bs-theme="dark"] .table-comparison-wide td:first-child {
+        background-color: var(--bs-body-bg-dark, #212529);
+    }
+    .table-comparison-wide th:first-child {
+        background-color: var(--bs-body-bg, #fff);
+        z-index: 11;
+    }
+    .airport-count-warning {
+        display: none;
+    }
+    .airport-count-warning.show {
+        display: block;
+    }
+    /* Limit visible airports in cards */
+    .airport-card-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 1.5rem;
+    }
+    .airport-card-item {
+        margin-bottom: 1rem;
+    }
+    @media (max-width: 576px) {
+        .airport-card-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-1"><i class="fas fa-building"></i> Airport Comparison</h1>
+            <p class="text-muted mb-0">Compare performance metrics across multiple airports</p>
+        </div>
+        <a href="{% url 'core:analytics_dashboard' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-chart-line"></i> Analytics Dashboard
+        </a>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-card card mb-4">
+        <div class="card-body">
+            <form method="get">
+                <div class="filter-form-row">
+                    <!-- Airport Selection -->
+                    <div class="filter-form-group airports">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label fw-semibold mb-0">
+                                <i class="fas fa-check-square"></i> Select Airports
+                            </label>
+                            <small class="text-muted" id="airportCount">0 selected</small>
+                        </div>
+                        <div class="airport-list-scroll">
+                            <div class="row g-2">
+                                {% for airport in all_airports %}
+                                <div class="col-6">
+                                    <div class="airport-checkbox form-check">
+                                        <input class="form-check-input airport-checkbox-input"
+                                               type="checkbox"
+                                               name="airports"
+                                               value="{{ airport.id }}"
+                                               id="airport_{{ airport.id }}"
+                                               {% if airport.id in selected_airport_ids %}checked{% endif %}
+                                               onchange="updateAirportCount()">
+                                        <label class="form-check-label w-100" for="airport_{{ airport.id }}">
+                                            <span class="fw-bold">{{ airport.code }}</span>
+                                            <small class="text-muted">{{ airport.name }}</small>
+                                        </label>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="form-text">
+                            <i class="fas fa-info-circle"></i> Recommended: 2-6 airports for optimal viewing. Maximum 10 suggested.
+                        </div>
+                    </div>
+                    
+                    <!-- Time Period -->
+                    <div class="filter-form-group period">
+                        <label for="period" class="form-label fw-semibold">
+                            <i class="fas fa-calendar-alt"></i> Time Period
+                        </label>
+                        <select name="period" id="period" class="form-select" onchange="toggleCustomDateRange()">
+                            <option value="7days" {% if comparison_period == '7days' %}selected{% endif %}>Last 7 Days</option>
+                            <option value="30days" {% if comparison_period == '30days' %}selected{% endif %}>Last 30 Days</option>
+                            <option value="90days" {% if comparison_period == '90days' %}selected{% endif %}>Last 90 Days</option>
+                            <option value="6months" {% if comparison_period == '6months' %}selected{% endif %}>Last 6 Months</option>
+                            <option value="1year" {% if comparison_period == '1year' %}selected{% endif %}>Last Year</option>
+                            <option value="custom" {% if comparison_period == 'custom' %}selected{% endif %}>Custom Range</option>
+                        </select>
+                        <div id="customDateRange" class="date-range-inputs">
+                            <input type="date" name="start_date" class="form-control form-control-sm" 
+                                   value="{{ start_date|default:'' }}" placeholder="Start Date" title="Start Date">
+                            <input type="date" name="end_date" class="form-control form-control-sm" 
+                                   value="{{ end_date|default:'' }}" placeholder="End Date" title="End Date">
+                        </div>
+                    </div>
+                    
+                    <!-- Actions -->
+                    <div class="filter-form-group actions">
+                        <label class="form-label fw-semibold">&nbsp;</label>
+                        <button type="submit" class="btn btn-primary w-100 mb-2">
+                            <i class="fas fa-sync-alt"></i> Compare
+                        </button>
+                        <small class="text-muted d-block text-center" style="font-size: 0.75rem;">
+                            <i class="fas fa-info-circle"></i> 2-6 airports recommended
+                        </small>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if comparison_data %}
+    <!-- Warning for many airports -->
+    {% if comparison_data|length > 6 %}
+    <div class="alert alert-warning airport-count-warning show" role="alert">
+        <i class="fas fa-exclamation-triangle"></i>
+        <strong>Comparing {{ comparison_data|length }} airports.</strong>
+        For better readability, consider selecting 2-6 airports. The detailed comparison table below can be scrolled horizontally.
+    </div>
+    {% endif %}
+    
+    <!-- Summary Statistics -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-0 summary-stats-card">
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3 col-6 mb-3 mb-md-0">
+                            <div class="metric-icon bg-success bg-opacity-10 text-success mx-auto mb-2">
+                                <i class="fas fa-dollar-sign"></i>
+                            </div>
+                            <div class="metric-value-sm text-muted">Total Revenue (All)</div>
+                            <div class="metric-value-lg text-success">
+                                ${{ comparison_data|sum_attr:'total_revenue'|floatformat:0|intcomma }}
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6 mb-3 mb-md-0">
+                            <div class="metric-icon bg-info bg-opacity-10 text-info mx-auto mb-2">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="metric-value-sm text-muted">Total Passengers</div>
+                            <div class="metric-value-lg">
+                                {{ comparison_data|sum_attr:'total_passengers'|intcomma }}
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <div class="metric-icon bg-primary bg-opacity-10 text-primary mx-auto mb-2">
+                                <i class="fas fa-plane"></i>
+                            </div>
+                            <div class="metric-value-sm text-muted">Total Flights</div>
+                            <div class="metric-value-lg">
+                                {{ comparison_data|sum_attr:'total_flights'|intcomma }}
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <div class="metric-icon bg-warning bg-opacity-10 text-warning mx-auto mb-2">
+                                <i class="fas fa-chart-pie"></i>
+                            </div>
+                            <div class="metric-value-sm text-muted">Avg Profit Margin</div>
+                            <div class="metric-value-lg">
+                                {{ comparison_data|avg_attr:'profit_margin'|floatformat:1 }}%
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Comparison Cards -->
+    <div class="row mb-4 airport-card-grid">
+        {% for item in comparison_data %}
+        <div class="airport-card-item">
+            <div class="card comparison-card {% if forloop.first %}best-value{% endif %} h-100">
+                <div class="airport-header text-center">
+                    <div class="airport-code-badge">{{ item.airport.code }}</div>
+                    <small class="opacity-75">{{ item.airport.name }}</small>
+                </div>
+                <div class="card-body">
+                    <!-- Revenue -->
+                    <div class="metric-row">
+                        <div class="d-flex align-items-center">
+                            <div class="metric-icon bg-success bg-opacity-10 text-success me-3">
+                                <i class="fas fa-dollar-sign"></i>
+                            </div>
+                            <div>
+                                <div class="metric-value-sm text-muted">Revenue</div>
+                                <div class="metric-value-lg text-success">${{ item.total_revenue|floatformat:0|intcomma }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Net Profit -->
+                    <div class="metric-row">
+                        <div class="d-flex align-items-center">
+                            <div class="metric-icon {% if item.net_profit >= 0 %}bg-success bg-opacity-10 text-success{% else %}bg-danger bg-opacity-10 text-danger{% endif %} me-3">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <div>
+                                <div class="metric-value-sm text-muted">Net Profit</div>
+                                <div class="metric-value-lg {% if item.net_profit >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                    ${{ item.net_profit|floatformat:0|intcomma }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Passengers -->
+                    <div class="metric-row">
+                        <div class="d-flex align-items-center">
+                            <div class="metric-icon bg-info bg-opacity-10 text-info me-3">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div>
+                                <div class="metric-value-sm text-muted">Passengers</div>
+                                <div class="metric-value-lg">{{ item.total_passengers|intcomma }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Flights -->
+                    <div class="metric-row">
+                        <div class="d-flex align-items-center">
+                            <div class="metric-icon bg-primary bg-opacity-10 text-primary me-3">
+                                <i class="fas fa-plane"></i>
+                            </div>
+                            <div>
+                                <div class="metric-value-sm text-muted">Flights</div>
+                                <div class="metric-value-lg">{{ item.total_flights|intcomma }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- On-Time Rate -->
+                    <div class="metric-row">
+                        <div class="d-flex align-items-center">
+                            <div class="metric-icon {% if item.on_time_rate >= 80 %}bg-success bg-opacity-10 text-success{% elif item.on_time_rate >= 60 %}bg-warning bg-opacity-10 text-warning{% else %}bg-danger bg-opacity-10 text-danger{% endif %} me-3">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div>
+                                <div class="metric-value-sm text-muted">On-Time</div>
+                                <div class="metric-value-lg {% if item.on_time_rate >= 80 %}text-success{% elif item.on_time_rate >= 60 %}text-warning{% else %}text-danger{% endif %}">
+                                    {{ item.on_time_rate }}%
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Profit Margin -->
+                    <div class="metric-row">
+                        <div class="d-flex align-items-center">
+                            <div class="metric-icon bg-warning bg-opacity-10 text-warning me-3">
+                                <i class="fas fa-chart-pie"></i>
+                            </div>
+                            <div>
+                                <div class="metric-value-sm text-muted">Profit Margin</div>
+                                <div class="metric-value-lg {% if item.profit_margin >= 20 %}text-success{% elif item.profit_margin >= 10 %}text-warning{% else %}text-danger{% endif %}">
+                                    {{ item.profit_margin }}%
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-center mt-4">
+                        <a href="{% url 'core:fiscal_assessment_list' %}?airport={{ item.airport.id }}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-file-alt"></i> View Assessments
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Comparison Charts -->
+    <div class="row mb-4">
+        <div class="col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header py-3">
+                    <h5 class="mb-0"><i class="fas fa-dollar-sign text-success"></i> Revenue Comparison</h5>
+                </div>
+                <div class="card-body">
+                    <div class="comparison-chart">
+                        <canvas id="revenueComparisonChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header py-3">
+                    <h5 class="mb-0"><i class="fas fa-users text-info"></i> Passenger Comparison</h5>
+                </div>
+                <div class="card-body">
+                    <div class="comparison-chart">
+                        <canvas id="passengerComparisonChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header py-3">
+                    <h5 class="mb-0"><i class="fas fa-plane text-primary"></i> Flight Operations</h5>
+                </div>
+                <div class="card-body">
+                    <div class="comparison-chart">
+                        <canvas id="flightComparisonChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header py-3">
+                    <h5 class="mb-0"><i class="fas fa-chart-pie text-warning"></i> Profit Margin Comparison</h5>
+                </div>
+                <div class="card-body">
+                    <div class="comparison-chart">
+                        <canvas id="profitMarginChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Comparison Table -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-table"></i> Detailed Comparison</h5>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-info mb-3">
+                <i class="fas fa-info-circle"></i>
+                <strong>Tip:</strong> Scroll horizontally to view all {{ comparison_data|length }} airports. The first column is sticky for easy reference.
+            </div>
+            <div class="table-responsive-comparison">
+                <table class="table table-bordered table-hover table-comparison-wide">
+                    <thead class="table-group-divider">
+                        <tr>
+                            <th>Metric</th>
+                            {% for item in comparison_data %}
+                            <th class="text-center">{{ item.airport.code }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Total Revenue</strong></td>
+                            {% for item in comparison_data %}
+                            <td class="text-end">${{ item.total_revenue|floatformat:0|intcomma }}</td>
+                            {% endfor %}
+                        </tr>
+                        <tr>
+                            <td><strong>Total Expenses</strong></td>
+                            {% for item in comparison_data %}
+                            <td class="text-end">${{ item.total_expenses|floatformat:0|intcomma }}</td>
+                            {% endfor %}
+                        </tr>
+                        <tr>
+                            <td><strong>Net Profit</strong></td>
+                            {% for item in comparison_data %}
+                            <td class="text-end {% if item.net_profit >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                ${{ item.net_profit|floatformat:0|intcomma }}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        <tr>
+                            <td><strong>Profit Margin</strong></td>
+                            {% for item in comparison_data %}
+                            <td class="text-end {% if item.profit_margin >= 20 %}text-success{% elif item.profit_margin >= 10 %}text-warning{% else %}text-danger{% endif %}">
+                                {{ item.profit_margin|floatformat:1 }}%
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        <tr>
+                            <td><strong>Total Passengers</strong></td>
+                            {% for item in comparison_data %}
+                            <td class="text-end">{{ item.total_passengers|intcomma }}</td>
+                            {% endfor %}
+                        </tr>
+                        <tr>
+                            <td><strong>Total Flights</strong></td>
+                            {% for item in comparison_data %}
+                            <td class="text-end">{{ item.total_flights|intcomma }}</td>
+                            {% endfor %}
+                        </tr>
+                        <tr>
+                            <td><strong>On-Time Rate</strong></td>
+                            {% for item in comparison_data %}
+                            <td class="text-end {% if item.on_time_rate >= 80 %}text-success{% elif item.on_time_rate >= 60 %}text-warning{% else %}text-danger{% endif %}">
+                                {{ item.on_time_rate }}%
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        <tr>
+                            <td><strong>Assessments</strong></td>
+                            {% for item in comparison_data %}
+                            <td class="text-end">{{ item.assessment_count }}</td>
+                            {% endfor %}
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle"></i>
+        No airports selected or no data available. Please select airports to compare.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+    'use strict';
+
+    const comparisonData = {{ comparison_data|jsonify|safe }};
+
+    // Extract data for charts
+    const labels = comparisonData.map(item => item.airport.code);
+    const revenues = comparisonData.map(item => item.total_revenue);
+    const expenses = comparisonData.map(item => item.total_expenses);
+    const profits = comparisonData.map(item => item.net_profit);
+    const passengers = comparisonData.map(item => item.total_passengers);
+    const flights = comparisonData.map(item => item.total_flights);
+    const onTimeRates = comparisonData.map(item => item.on_time_rate);
+
+    // Revenue Comparison Chart
+    const revenueCtx = document.getElementById('revenueComparisonChart').getContext('2d');
+    new Chart(revenueCtx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Revenue',
+                data: revenues,
+                backgroundColor: 'rgba(25, 135, 84, 0.8)',
+                borderColor: '#198754',
+                borderWidth: 1
+            }, {
+                label: 'Expenses',
+                data: expenses,
+                backgroundColor: 'rgba(220, 53, 69, 0.8)',
+                borderColor: '#dc3545',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'top' }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { callback: v => '$' + v.toLocaleString() }
+                }
+            }
+        }
+    });
+
+    // Passenger Comparison Chart
+    const passengerCtx = document.getElementById('passengerComparisonChart').getContext('2d');
+    new Chart(passengerCtx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Passengers',
+                data: passengers,
+                backgroundColor: 'rgba(13, 202, 240, 0.8)',
+                borderColor: '#0dcaf0',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+
+    // Flight Comparison Chart
+    const flightCtx = document.getElementById('flightComparisonChart').getContext('2d');
+    new Chart(flightCtx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Total Flights',
+                data: flights,
+                backgroundColor: 'rgba(13, 110, 253, 0.8)',
+                borderColor: '#0d6efd',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+
+    // Profit Margin Chart
+    const marginCtx = document.getElementById('profitMarginChart').getContext('2d');
+    new Chart(marginCtx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Profit Margin %',
+                data: comparisonData.map(item => item.profit_margin),
+                backgroundColor: 'rgba(255, 193, 7, 0.2)',
+                borderColor: '#ffc107',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+})();
+
+/**
+ * Toggle custom date range inputs visibility
+ */
+function toggleCustomDateRange() {
+    const periodSelect = document.getElementById('period');
+    const customDateRange = document.getElementById('customDateRange');
+
+    if (periodSelect.value === 'custom') {
+        customDateRange.classList.add('active');
+    } else {
+        customDateRange.classList.remove('active');
+    }
+}
+
+/**
+ * Update airport selection count and show warning if too many selected
+ */
+function updateAirportCount() {
+    const checkboxes = document.querySelectorAll('.airport-checkbox-input');
+    const countLabel = document.getElementById('airportCount');
+    const selectedCount = document.querySelectorAll('.airport-checkbox-input:checked').length;
+    
+    countLabel.textContent = selectedCount + ' selected';
+    
+    // Show warning if more than 6 airports selected
+    if (selectedCount > 6) {
+        countLabel.classList.add('text-warning');
+        countLabel.innerHTML = '<i class="fas fa-exclamation-triangle"></i> ' + selectedCount + ' selected';
+    } else {
+        countLabel.classList.remove('text-warning');
+    }
+    
+    // Show strong warning if more than 10
+    if (selectedCount > 10) {
+        countLabel.classList.add('text-danger');
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    toggleCustomDateRange();
+    updateAirportCount();
+});
+</script>
+{% endblock %}

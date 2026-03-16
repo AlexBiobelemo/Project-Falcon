@@ -5,88 +5,969 @@
 
 {% block extra_css %}
 <style>
-    /* Page-specific styles can be added here if needed */
+    /* Dashboard Cards */
+    .dashboard-card {
+        border: none;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        margin-bottom: 1.5rem;
+    }
+    .dashboard-card:hover {
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+    [data-bs-theme="dark"] .dashboard-card {
+        background: var(--bs-card-bg-dark, #2b3035);
+        border-color: var(--bs-border-color-dark, rgba(255,255,255,0.1));
+    }
+    
+    /* KPI Cards */
+    .kpi-card {
+        background: linear-gradient(135deg, var(--bs-card-bg, #fff) 0%, var(--bs-secondary-bg, #f8f9fa) 100%);
+        border-radius: 0.75rem;
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        transition: transform 0.2s;
+    }
+    .kpi-card:hover {
+        transform: translateY(-2px);
+    }
+    [data-bs-theme="dark"] .kpi-card {
+        background: linear-gradient(135deg, var(--bs-card-bg-dark, #2b3035) 0%, var(--bs-secondary-bg-dark, #212529) 100%);
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+    .kpi-icon {
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 0.75rem;
+        font-size: 1.5rem;
+        flex-shrink: 0;
+    }
+    .kpi-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        line-height: 1;
+    }
+    .kpi-label {
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        opacity: 0.8;
+    }
+    .kpi-trend {
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 0.25rem 0.5rem;
+        border-radius: 1rem;
+        display: inline-flex;
+        gap: 0.25rem;
+        align-items: center;
+    }
+    .kpi-trend.up {
+        background: rgba(25, 135, 84, 0.1);
+        color: #198754;
+    }
+    .kpi-trend.down {
+        background: rgba(220, 53, 69, 0.1);
+        color: #dc3545;
+    }
+    
+    /* Alert Cards */
+    .alert-item {
+        padding: 0.75rem;
+        border-radius: 0.5rem;
+        margin-bottom: 0.5rem;
+        background: var(--bs-tertiary-bg, rgba(0,0,0,0.02));
+        border-left: 3px solid;
+        transition: background 0.2s;
+    }
+    .alert-item:hover {
+        background: var(--bs-secondary-bg, rgba(0,0,0,0.05));
+    }
+    [data-bs-theme="dark"] .alert-item {
+        background: rgba(255,255,255,0.03);
+    }
+    .alert-item.critical {
+        border-left-color: #dc3545;
+    }
+    .alert-item.warning {
+        border-left-color: #ffc107;
+    }
+    .alert-item.info {
+        border-left-color: #0dcaf0;
+    }
+    
+    /* Filter Bar */
+    .filter-bar {
+        background: var(--bs-card-bg, #fff);
+        border-radius: 0.75rem;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid var(--bs-border-color, rgba(0,0,0,0.1));
+    }
+    [data-bs-theme="dark"] .filter-bar {
+        background: var(--bs-card-bg-dark, #2b3035);
+        border-color: var(--bs-border-color-dark, rgba(255,255,255,0.1));
+    }
+    
+    /* Weather Widget */
+    .weather-widget {
+        border-radius: 0.75rem;
+        padding: 1.5rem;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.5s ease;
+        min-height: 180px;
+    }
+    .weather-widget::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 100%;
+        height: 100%;
+        background: rgba(255,255,255,0.1);
+        transform: rotate(45deg);
+        transition: all 0.5s ease;
+    }
+    /* Weather Themes */
+    .weather-widget.theme-sunny {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        color: white;
+    }
+    .weather-widget.theme-sunny-night {
+        background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+        color: white;
+    }
+    .weather-widget.theme-cloudy {
+        background: linear-gradient(135deg, #606c88 0%, #3f4c6b 100%);
+        color: white;
+    }
+    .weather-widget.theme-rainy {
+        background: linear-gradient(135deg, #232526 0%, #414345 100%);
+        color: white;
+    }
+    .weather-widget.theme-snowy {
+        background: linear-gradient(135deg, #83a4d4 0%, #b6fbff 100%);
+        color: #1a1a2e;
+    }
+    .weather-widget.theme-stormy {
+        background: linear-gradient(135deg, #141e30 0%, #243b55 100%);
+        color: white;
+    }
+    .weather-widget.theme-fallback {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+    .weather-temp {
+        font-size: 3rem;
+        font-weight: 700;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+    }
+    .weather-condition {
+        font-size: 1.1rem;
+        opacity: 0.95;
+        font-weight: 500;
+    }
+    .weather-details {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1rem;
+        font-size: 0.875rem;
+        opacity: 0.9;
+        flex-wrap: wrap;
+    }
+    .weather-detail-item {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        background: rgba(255,255,255,0.15);
+        padding: 0.35rem 0.75rem;
+        border-radius: 1rem;
+    }
+    .weather-source {
+        font-size: 0.65rem;
+        opacity: 0.7;
+        margin-top: 0.75rem;
+    }
+    .weather-icon-large {
+        font-size: 4rem;
+        opacity: 0.9;
+        text-shadow: 2px 2px 8px rgba(0,0,0,0.3);
+        animation: float 3s ease-in-out infinite;
+    }
+    @keyframes float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
+    }
+    .weather-search-container {
+        position: relative;
+        margin-bottom: 1rem;
+    }
+    .weather-search-input {
+        background: rgba(255,255,255,0.2);
+        border: 1px solid rgba(255,255,255,0.3);
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        width: 100%;
+        font-size: 0.875rem;
+    }
+    .weather-search-input::placeholder {
+        color: rgba(255,255,255,0.7);
+    }
+    .weather-search-input:focus {
+        outline: none;
+        background: rgba(255,255,255,0.3);
+        border-color: rgba(255,255,255,0.5);
+    }
+    .weather-search-results {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        max-height: 250px;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none;
+    }
+    .weather-search-results.show {
+        display: block;
+    }
+    .weather-search-result-item {
+        padding: 0.75rem 1rem;
+        cursor: pointer;
+        border-bottom: 1px solid #eee;
+        transition: background 0.2s;
+    }
+    .weather-search-result-item:hover {
+        background: #f8f9fa;
+    }
+    .weather-search-result-item:last-child {
+        border-bottom: none;
+    }
+    .weather-location-badge {
+        font-size: 0.875rem;
+        opacity: 0.9;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        background: rgba(255,255,255,0.2);
+        padding: 0.35rem 0.85rem;
+        border-radius: 1rem;
+        max-width: 200px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .weather-location-name {
+        font-weight: 600;
+        color: #333;
+    }
+    .weather-location-sub {
+        font-size: 0.75rem;
+        color: #666;
+    }
+    
+    /* Chart Containers */
+    .chart-container {
+        position: relative;
+        height: 250px;
+        width: 100%;
+    }
+    .chart-container-sm {
+        height: 200px;
+    }
+    
+    /* Flight Status Cards */
+    .status-card {
+        text-align: center;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        background: var(--bs-tertiary-bg, rgba(0,0,0,0.02));
+        cursor: pointer;
+        transition: all 0.2s;
+        border: 2px solid transparent;
+    }
+    [data-bs-theme="dark"] .status-card {
+        background: rgba(255,255,255,0.03);
+    }
+    .status-card:hover {
+        transform: scale(1.05);
+    }
+    .status-card.active {
+        border-color: var(--bs-primary);
+        background: rgba(13, 110, 253, 0.1);
+    }
+    .status-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+    }
+    .status-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    /* Map Container */
+    .map-container {
+        height: 500px;
+        border-radius: 0.75rem;
+        overflow: hidden;
+        border: 1px solid var(--bs-border-color, rgba(0,0,0,0.1));
+    }
+    [data-bs-theme="dark"] .map-container {
+        border-color: var(--bs-border-color-dark, rgba(255,255,255,0.1));
+    }
+    #flightMap {
+        height: 100%;
+        width: 100%;
+        z-index: 1;
+    }
+    /* Dark mode map tiles filter */
+    [data-bs-theme="dark"] .leaflet-tile-pane {
+        filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+    }
+    [data-bs-theme="dark"] .leaflet-overlay-pane {
+        filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+    }
+    .map-legend {
+        background: var(--bs-card-bg, #fff);
+        padding: 0.75rem;
+        border-radius: 0.5rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        font-size: 0.75rem;
+        border: 1px solid var(--bs-border-color, rgba(0,0,0,0.1));
+    }
+    [data-bs-theme="dark"] .map-legend {
+        background: var(--bs-card-bg-dark, #2b3035);
+        border-color: var(--bs-border-color-dark, rgba(255,255,255,0.1));
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.25rem;
+    }
+    .legend-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+    
+    /* Tab Navigation */
+    .dashboard-tabs {
+        border-bottom: 2px solid var(--bs-border-color, rgba(0,0,0,0.1));
+        margin-bottom: 1.5rem;
+    }
+    .dashboard-tab {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        background: transparent;
+        color: var(--bs-secondary-color, #6c757d);
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -2px;
+    }
+    .dashboard-tab:hover {
+        color: var(--bs-body-color);
+    }
+    .dashboard-tab.active {
+        color: var(--bs-primary);
+        border-bottom-color: var(--bs-primary);
+    }
+    [data-bs-theme="dark"] .dashboard-tab {
+        color: var(--bs-secondary-color-dark, #adb5bd);
+    }
+    
+    /* Export Buttons */
+    .export-btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+    }
+    
+    /* Export Modal */
+    .export-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+        overflow-y: auto;
+    }
+    .export-modal.show {
+        display: block;
+    }
+    .export-modal-content {
+        background: var(--bs-body-bg, #fff);
+        margin: 2rem auto;
+        max-width: 900px;
+        border-radius: 0.75rem;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        max-height: calc(100vh - 4rem);
+        overflow-y: auto;
+    }
+    [data-bs-theme="dark"] .export-modal-content {
+        background: var(--bs-body-bg-dark, #212529);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    }
+    .export-modal-header {
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--bs-border-color, rgba(0, 0, 0, 0.1));
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    [data-bs-theme="dark"] .export-modal-header {
+        border-bottom-color: var(--bs-border-color-dark, rgba(255, 255, 255, 0.1));
+    }
+    .export-modal-body {
+        padding: 1.5rem;
+    }
+    .export-options {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+    }
+    .export-option {
+        flex: 1;
+        min-width: 200px;
+        padding: 1rem;
+        border: 2px solid var(--bs-border-color, rgba(0, 0, 0, 0.1));
+        border-radius: 0.5rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: center;
+    }
+    [data-bs-theme="dark"] .export-option {
+        border-color: var(--bs-border-color-dark, rgba(255, 255, 255, 0.1));
+    }
+    .export-option:hover {
+        border-color: var(--bs-primary);
+        background: rgba(13, 110, 253, 0.05);
+    }
+    [data-bs-theme="dark"] .export-option:hover {
+        background: rgba(13, 110, 253, 0.1);
+    }
+    .export-option.selected {
+        border-color: var(--bs-primary);
+        background: rgba(13, 110, 253, 0.1);
+    }
+    .export-option i {
+        font-size: 2rem;
+        color: var(--bs-primary);
+        margin-bottom: 0.5rem;
+    }
+    .export-option-label {
+        font-weight: 600;
+        display: block;
+        margin-bottom: 0.25rem;
+    }
+    .export-option-desc {
+        font-size: 0.75rem;
+        color: var(--bs-secondary-color, #6c757d);
+    }
+    .export-preview {
+        background: var(--bs-tertiary-bg, #f8f9fa);
+        border: 1px solid var(--bs-border-color, rgba(0, 0, 0, 0.1));
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    [data-bs-theme="dark"] .export-preview {
+        background: var(--bs-tertiary-bg-dark, rgba(255, 255, 255, 0.03));
+        border-color: var(--bs-border-color-dark, rgba(255, 255, 255, 0.1));
+    }
+    .export-preview-content {
+        background: var(--bs-body-bg, white);
+        color: var(--bs-body-color, #333);
+        padding: 2rem;
+        border-radius: 0.25rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    [data-bs-theme="dark"] .export-preview-content {
+        background: var(--bs-body-bg-dark, #212529);
+        color: var(--bs-body-color-dark, #e0e0e0);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+    .export-preview-content h1 {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+        color: var(--bs-body-color, #333);
+    }
+    [data-bs-theme="dark"] .export-preview-content h1 {
+        color: var(--bs-body-color-dark, #e0e0e0);
+    }
+    .export-preview-content .timestamp {
+        font-size: 0.875rem;
+        color: var(--bs-secondary-color, #666);
+        margin-bottom: 1.5rem;
+    }
+    [data-bs-theme="dark"] .export-preview-content .timestamp {
+        color: var(--bs-secondary-color-dark, #adb5bd);
+    }
+    .export-preview-content .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    .export-preview-content .kpi-item {
+        background: var(--bs-tertiary-bg, #f8f9fa);
+        padding: 1rem;
+        border-radius: 0.5rem;
+        text-align: center;
+    }
+    [data-bs-theme="dark"] .export-preview-content .kpi-item {
+        background: var(--bs-tertiary-bg-dark, rgba(255, 255, 255, 0.03));
+    }
+    .export-preview-content .kpi-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--bs-primary, #0d6efd);
+    }
+    [data-bs-theme="dark"] .export-preview-content .kpi-value {
+        color: var(--bs-primary-dark, #6ea8fe);
+    }
+    .export-preview-content .kpi-label {
+        font-size: 0.75rem;
+        color: var(--bs-secondary-color, #666);
+        text-transform: uppercase;
+    }
+    [data-bs-theme="dark"] .export-preview-content .kpi-label {
+        color: var(--bs-secondary-color-dark, #adb5bd);
+    }
+    .export-preview-content table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 1rem;
+    }
+    .export-preview-content table th,
+    .export-preview-content table td {
+        border: 1px solid var(--bs-border-color, #dee2e6);
+        padding: 0.75rem;
+        text-align: left;
+    }
+    [data-bs-theme="dark"] .export-preview-content table th,
+    [data-bs-theme="dark"] .export-preview-content table td {
+        border-color: var(--bs-border-color-dark, #495057);
+    }
+    .export-preview-content table th {
+        background: var(--bs-tertiary-bg, #f8f9fa);
+        font-weight: 600;
+        color: var(--bs-body-color, #333);
+    }
+    [data-bs-theme="dark"] .export-preview-content table th {
+        background: var(--bs-tertiary-bg-dark, rgba(255, 255, 255, 0.03));
+        color: var(--bs-body-color-dark, #e0e0e0);
+    }
+    [data-bs-theme="dark"] .export-preview-content table td {
+        color: var(--bs-body-color-dark, #e0e0e0);
+    }
+    @media print {
+        .export-modal {
+            position: absolute;
+            background: white;
+        }
+        .export-modal-content {
+            margin: 0;
+            max-width: 100%;
+            box-shadow: none;
+        }
+        .export-options,
+        .export-modal-header .btn-close,
+        .export-modal-footer {
+            display: none !important;
+        }
+        .export-preview {
+            border: none;
+            padding: 0;
+            max-height: none;
+            overflow: visible;
+        }
+        .export-preview-content {
+            box-shadow: none;
+            padding: 0;
+        }
+    }
+    
+    /* Real-time indicator */
+    .live-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.25rem 0.75rem;
+        background: rgba(25, 135, 84, 0.1);
+        color: #198754;
+        border-radius: 1rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    .live-dot {
+        width: 8px;
+        height: 8px;
+        background: #198754;
+        border-radius: 50%;
+        animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+    
+    /* Scrollable sections */
+    .scrollable-section {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    
+    /* Badge improvements */
+    .badge {
+        font-weight: 500;
+        padding: 0.35rem 0.65rem;
+    }
+    
+    /* Custom map markers */
+    .flight-marker {
+        background: white;
+        border-radius: 50%;
+        border: 3px solid;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    .flight-marker i {
+        font-size: 10px;
+        color: #333;
+    }
+    .airport-marker {
+        background: #0d6efd;
+        border-radius: 50%;
+        border: 3px solid white;
+        width: 24px;
+        height: 24px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    
+    /* Dashboard Tables - Dark Mode Support */
+    .dashboard-card .table {
+        --bs-table-bg: transparent;
+        --bs-table-color: var(--bs-body-color);
+        border-color: var(--bs-border-color, rgba(0,0,0,0.1));
+    }
+    [data-bs-theme="dark"] .dashboard-card .table {
+        --bs-table-bg: transparent;
+        --bs-table-color: var(--bs-body-color-dark);
+        border-color: var(--bs-border-color-dark, rgba(255,255,255,0.1));
+    }
+    .dashboard-card .table thead {
+        background-color: var(--bs-tertiary-bg, rgba(0,0,0,0.02));
+        color: var(--bs-body-color);
+        border-bottom: 2px solid var(--bs-border-color, rgba(0,0,0,0.1));
+    }
+    [data-bs-theme="dark"] .dashboard-card .table thead {
+        background-color: var(--bs-tertiary-bg-dark, rgba(255,255,255,0.05));
+        color: var(--bs-body-color-dark);
+        border-bottom-color: var(--bs-border-color-dark, rgba(255,255,255,0.1));
+    }
+    .dashboard-card .table-hover tbody tr:hover {
+        background-color: var(--bs-tertiary-bg, rgba(0,0,0,0.02));
+    }
+    [data-bs-theme="dark"] .dashboard-card .table-hover tbody tr:hover {
+        background-color: var(--bs-tertiary-bg-dark, rgba(255,255,255,0.03));
+    }
+    .dashboard-card .table-sm td,
+    .dashboard-card .table-sm th {
+        border-color: var(--bs-border-color, rgba(0,0,0,0.1));
+    }
+    [data-bs-theme="dark"] .dashboard-card .table-sm td,
+    [data-bs-theme="dark"] .dashboard-card .table-sm th {
+        border-color: var(--bs-border-color-dark, rgba(255,255,255,0.1));
+    }
+    /* Sticky table headers */
+    .dashboard-card .table .sticky-top {
+        background-color: var(--bs-tertiary-bg, rgba(0,0,0,0.02)) !important;
+    }
+    [data-bs-theme="dark"] .dashboard-card .table .sticky-top {
+        background-color: var(--bs-tertiary-bg-dark, rgba(255,255,255,0.05)) !important;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1><i class="fas fa-plane-departure"></i> Airport Operations Dashboard</h1>
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
         <div>
+            <h1 class="mb-1"><i class="fas fa-plane-departure"></i> Airport Operations Dashboard</h1>
+            <p class="text-muted mb-0">Real-time overview of airport operations and performance</p>
+        </div>
+        <div class="d-flex gap-2 align-items-center flex-wrap">
+            <span class="live-indicator">
+                <span class="live-dot"></span>
+                LIVE
+            </span>
             {% if can_access_admin %}
-            <a href="/admin/" class="btn btn-outline-danger btn-sm me-2">
-                <i class="fas fa-cog"></i> Admin Panel
+            <a href="/admin/" class="btn btn-outline-danger btn-sm">
+                <i class="fas fa-cog"></i> Admin
             </a>
-            <a href="{% url 'core:activity_log_list' %}" class="btn btn-outline-info btn-sm me-2">
-                <i class="fas fa-history"></i> Activity Logs
+            <a href="{% url 'core:activity_log_list' %}" class="btn btn-outline-info btn-sm">
+                <i class="fas fa-history"></i> Logs
             </a>
             {% endif %}
+            <button class="btn btn-outline-primary btn-sm export-btn" onclick="openExportModal()">
+                <i class="fas fa-download"></i> Export
+            </button>
             <span class="badge bg-{% if user_role == 'admin' %}danger{% elif user_role == 'approver' %}success{% elif user_role == 'editor' %}warning{% else %}secondary{% endif %}">
-                {{ user_role|title }} Access
+                {{ user_role|title }}
             </span>
         </div>
     </div>
 
-    <!-- Flight Status Summary -->
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label fw-semibold small">
+                    <i class="fas fa-building"></i> Airport
+                </label>
+                <select name="airport" class="form-select form-select-sm">
+                    <option value="">All Airports</option>
+                    {% for airport in airports %}
+                    <option value="{{ airport.code }}" {% if filter_airport == airport.code %}selected{% endif %}>
+                        {{ airport.code }} - {{ airport.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-semibold small">
+                    <i class="fas fa-calendar"></i> Date
+                </label>
+                <input type="date" name="date" class="form-control form-control-sm" 
+                       value="{{ filter_date|default:today }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-semibold small">
+                    <i class="fas fa-filter"></i> Status
+                </label>
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">All Statuses</option>
+                    <option value="scheduled" {% if filter_status == 'scheduled' %}selected{% endif %}>Scheduled</option>
+                    <option value="boarding" {% if filter_status == 'boarding' %}selected{% endif %}>Boarding</option>
+                    <option value="departed" {% if filter_status == 'departed' %}selected{% endif %}>Departed</option>
+                    <option value="arrived" {% if filter_status == 'arrived' %}selected{% endif %}>Arrived</option>
+                    <option value="delayed" {% if filter_status == 'delayed' %}selected{% endif %}>Delayed</option>
+                    <option value="cancelled" {% if filter_status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary btn-sm w-100">
+                    <i class="fas fa-search"></i> Filter
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- KPI Metrics Row -->
     <div class="row mb-4">
-        <div class="col-md-2">
-            <div class="metric-card metric-scheduled">
-                <div class="metric-value">{{ flight_status_counts.scheduled|default:0 }}</div>
-                <div class="metric-label">Scheduled</div>
+        <div class="col-xl-3 col-md-6">
+            <div class="kpi-card">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="kpi-icon bg-primary bg-opacity-10 text-primary">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="kpi-value">{{ on_time_rate }}%</div>
+                        <div class="kpi-label">On-Time Rate</div>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <span class="kpi-trend {% if on_time_rate >= 80 %}up{% else %}down{% endif %}">
+                        {% if on_time_rate >= 80 %}
+                        <i class="fas fa-arrow-up"></i> Good
+                        {% else %}
+                        <i class="fas fa-arrow-down"></i> Needs Attention
+                        {% endif %}
+                    </span>
+                </div>
             </div>
         </div>
-        <div class="col-md-2">
-            <div class="metric-card metric-boarding">
-                <div class="metric-value">{{ flight_status_counts.boarding|default:0 }}</div>
-                <div class="metric-label">Boarding</div>
+        <div class="col-xl-3 col-md-6">
+            <div class="kpi-card">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="kpi-icon bg-success bg-opacity-10 text-success">
+                        <i class="fas fa-door-open"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="kpi-value">{{ gate_utilization_rate }}%</div>
+                        <div class="kpi-label">Gate Utilization</div>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <span class="text-muted small">
+                        {{ gates|length }} gates • {{ active_gates|default:0 }} active
+                    </span>
+                </div>
             </div>
         </div>
-        <div class="col-md-2">
-            <div class="metric-card metric-departed">
-                <div class="metric-value">{{ flight_status_counts.departed|default:0 }}</div>
-                <div class="metric-label">Departed</div>
+        <div class="col-xl-3 col-md-6">
+            <div class="kpi-card">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="kpi-icon bg-info bg-opacity-10 text-info">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="kpi-value">{{ total_passengers|intcomma }}</div>
+                        <div class="kpi-label">Passengers</div>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <span class="text-muted small">Total throughput</span>
+                </div>
             </div>
         </div>
-        <div class="col-md-2">
-            <div class="metric-card metric-arrived">
-                <div class="metric-value">{{ flight_status_counts.arrived|default:0 }}</div>
-                <div class="metric-label">Arrived</div>
-            </div>
-        </div>
-        <div class="col-md-2">
-            <div class="metric-card metric-delayed">
-                <div class="metric-value">{{ flight_status_counts.delayed|default:0 }}</div>
-                <div class="metric-label">Delayed</div>
-            </div>
-        </div>
-        <div class="col-md-2">
-            <div class="metric-card metric-cancelled">
-                <div class="metric-value">{{ flight_status_counts.cancelled|default:0 }}</div>
-                <div class="metric-label">Cancelled</div>
+        <div class="col-xl-3 col-md-6">
+            <div class="kpi-card">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="kpi-icon bg-warning bg-opacity-10 text-warning">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="kpi-value">{{ avg_delay }}<small class="fs-6">min</small></div>
+                        <div class="kpi-label">Avg Delay</div>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <span class="kpi-trend {% if avg_delay < 15 %}up{% else %}down{% endif %}">
+                        {% if avg_delay < 15 %}
+                        <i class="fas fa-check"></i> On Track
+                        {% else %}
+                        <i class="fas fa-exclamation"></i> Elevated
+                        {% endif %}
+                    </span>
+                </div>
             </div>
         </div>
     </div>
 
+    <!-- Main Content Grid -->
     <div class="row">
-        <!-- Upcoming Flights -->
-        <div class="col-md-8">
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-plane"></i> Upcoming Flights</h5>
+        <!-- Left Column - Charts & Tables -->
+        <div class="col-lg-8">
+            <!-- Flight Status Cards -->
+            <div class="dashboard-card card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-plane"></i> Flight Status Overview</h5>
+                    <span class="badge bg-primary">{{ total_flights|intcomma }} Total</span>
                 </div>
                 <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-4 col-md-2">
+                            <div class="status-card" onclick="filterByStatus('scheduled')">
+                                <div class="status-value text-secondary">{{ flight_status_counts.scheduled|default:0 }}</div>
+                                <div class="status-label text-muted">Scheduled</div>
+                            </div>
+                        </div>
+                        <div class="col-4 col-md-2">
+                            <div class="status-card" onclick="filterByStatus('boarding')">
+                                <div class="status-value text-primary">{{ flight_status_counts.boarding|default:0 }}</div>
+                                <div class="status-label text-muted">Boarding</div>
+                            </div>
+                        </div>
+                        <div class="col-4 col-md-2">
+                            <div class="status-card" onclick="filterByStatus('departed')">
+                                <div class="status-value text-success">{{ flight_status_counts.departed|default:0 }}</div>
+                                <div class="status-label text-muted">Departed</div>
+                            </div>
+                        </div>
+                        <div class="col-4 col-md-2">
+                            <div class="status-card" onclick="filterByStatus('arrived')">
+                                <div class="status-value text-info">{{ flight_status_counts.arrived|default:0 }}</div>
+                                <div class="status-label text-muted">Arrived</div>
+                            </div>
+                        </div>
+                        <div class="col-4 col-md-2">
+                            <div class="status-card" onclick="filterByStatus('delayed')">
+                                <div class="status-value text-warning">{{ flight_status_counts.delayed|default:0 }}</div>
+                                <div class="status-label text-muted">Delayed</div>
+                            </div>
+                        </div>
+                        <div class="col-4 col-md-2">
+                            <div class="status-card" onclick="filterByStatus('cancelled')">
+                                <div class="status-value text-danger">{{ flight_status_counts.cancelled|default:0 }}</div>
+                                <div class="status-label text-muted">Cancelled</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 7-Day Flight Trend Chart -->
+            <div class="dashboard-card card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-chart-area"></i> 7-Day Flight Trend</h5>
+                    <div class="d-flex gap-2">
+                        <span class="text-muted small">
+                            <i class="fas fa-arrow-up text-success"></i> {{ daily_trend }}% vs last week
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="flightTrendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hourly Traffic Heatmap -->
+            <div class="dashboard-card card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-clock"></i> Today's Hourly Traffic</h5>
+                    <span class="text-muted small">{{ today_flights }} flights today</span>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container chart-container-sm">
+                        <canvas id="hourlyTrafficChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upcoming Flights Table -->
+            <div class="dashboard-card card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-plane-departure"></i> Upcoming Flights</h5>
+                </div>
+                <div class="card-body p-0">
                     {% if upcoming_flights %}
                     <div class="table-responsive">
-                        <table class="table table-hover flight-table">
-                            <thead>
+                        <table class="table table-hover mb-0">
+                            <thead class="table-group-divider">
                                 <tr>
-                                    <th scope="col">Flight</th>
-                                    <th scope="col">Route</th>
-                                    <th scope="col">Gate</th>
-                                    <th scope="col">Departure</th>
-                                    <th scope="col">Arrival</th>
-                                    <th scope="col">Status</th>
+                                    <th>Flight</th>
+                                    <th>Route</th>
+                                    <th>Gate</th>
+                                    <th>Departure</th>
+                                    <th>Status</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -96,9 +977,8 @@
                                     <td>{{ flight.origin }} → {{ flight.destination }}</td>
                                     <td>{{ flight.gate.gate_number|default:"-" }}</td>
                                     <td>{{ flight.scheduled_departure|time:"H:i" }}</td>
-                                    <td>{{ flight.scheduled_arrival|time:"H:i" }}</td>
                                     <td>
-                                        <span class="badge bg-{% if flight.status == 'cancelled' %}danger{% elif flight.status == 'delayed' %}warning{% elif flight.status == 'departed' %}success{% else %}secondary{% endif %}">
+                                        <span class="badge bg-{% if flight.status == 'cancelled' %}danger{% elif flight.status == 'delayed' %}warning{% elif flight.status == 'departed' %}success{% elif flight.status == 'boarding' %}primary{% else %}secondary{% endif %}">
                                             {{ flight.get_status_display|title }}
                                         </span>
                                     </td>
@@ -108,27 +988,27 @@
                         </table>
                     </div>
                     {% else %}
-                    <p class="text-muted">No upcoming flights scheduled for today.</p>
+                    <p class="text-muted text-center py-4">No upcoming flights scheduled.</p>
                     {% endif %}
                 </div>
             </div>
 
-            <!-- Recent Flights -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-history"></i> Recent Flight Activity</h5>
+            <!-- Recent Flight Activity -->
+            <div class="dashboard-card card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-history"></i> Recent Activity</h5>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-0">
                     {% if recent_flights %}
-                    <div class="table-responsive">
-                        <table class="table table-hover flight-table">
-                            <thead>
+                    <div class="table-responsive scrollable-section">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light sticky-top">
                                 <tr>
-                                    <th scope="col">Flight</th>
-                                    <th scope="col">Route</th>
-                                    <th scope="col">Gate</th>
-                                    <th scope="col">Departure</th>
-                                    <th scope="col">Status</th>
+                                    <th>Flight</th>
+                                    <th>Route</th>
+                                    <th>Gate</th>
+                                    <th>Time</th>
+                                    <th>Status</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -137,7 +1017,7 @@
                                     <td><strong>{{ flight.flight_number }}</strong></td>
                                     <td>{{ flight.origin }} → {{ flight.destination }}</td>
                                     <td>{{ flight.gate.gate_number|default:"-" }}</td>
-                                    <td>{{ flight.scheduled_departure|date:"M d H:i" }}</td>
+                                    <td>{{ flight.scheduled_departure|date:"M d, H:i" }}</td>
                                     <td>
                                         <span class="badge bg-{% if flight.status == 'cancelled' %}danger{% elif flight.status == 'delayed' %}warning{% elif flight.status == 'departed' %}success{% elif flight.status == 'arrived' %}info{% else %}secondary{% endif %}">
                                             {{ flight.get_status_display|title }}
@@ -149,38 +1029,206 @@
                         </table>
                     </div>
                     {% else %}
-                    <p class="text-muted">No flights in the system.</p>
+                    <p class="text-muted text-center py-4">No recent flight activity.</p>
                     {% endif %}
                 </div>
             </div>
         </div>
 
-        <!-- Sidebar -->
-        <div class="col-md-4">
-            <!-- Gate Status -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-door-open"></i> Gate Status</h5>
+        <!-- Right Column - Sidebar -->
+        <div class="col-lg-4">
+            <!-- Weather Widget -->
+            <div class="weather-widget mb-4 theme-{{ weather_data.theme }}{% if weather_data.is_night %}-night{% endif %}" id="weatherWidget">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="weather-location-badge">
+                        <i class="fas fa-map-marker-alt"></i> <span id="weatherLocationText">{{ weather_data.airport_code|default:"Current Location" }}</span>
+                    </div>
+                    <button class="btn btn-sm btn-light" onclick="refreshWeather()" title="Refresh Weather" style="opacity: 0.8; font-size: 0.75rem;">
+                        <i class="fas fa-sync-alt" id="weatherRefreshIcon"></i>
+                    </button>
                 </div>
-                <div class="card-body">
+                <div class="weather-search-container">
+                    <input type="text" 
+                           class="weather-search-input" 
+                           id="weatherSearchInput"
+                           placeholder="Search location (e.g., London, Tokyo)..."
+                           autocomplete="off">
+                    <div class="weather-search-results" id="weatherSearchResults"></div>
+                </div>
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="weather-temp" id="weatherTemp">{{ weather_data.temperature }}°F</div>
+                        <div class="weather-condition" id="weatherCondition">
+                            <i class="fas fa-{{ weather_data.icon }}"></i> {{ weather_data.condition }}
+                        </div>
+                        <div class="weather-source">
+                            <i class="fas fa-satellite-dish"></i> <span id="weatherSourceText">Live from Open-Meteo</span>
+                        </div>
+                    </div>
+                    <div class="weather-icon-large">
+                        <i class="fas fa-{{ weather_data.icon }}" id="weatherIconLarge"></i>
+                    </div>
+                </div>
+                <div class="weather-details">
+                    <div class="weather-detail-item">
+                        <i class="fas fa-wind"></i> 
+                        <span id="weatherWind">{{ weather_data.wind_speed }} mph</span>
+                    </div>
+                    <div class="weather-detail-item">
+                        <i class="fas fa-tint"></i> 
+                        <span id="weatherHumidity">{{ weather_data.humidity }}%</span>
+                    </div>
+                    <div class="weather-detail-item">
+                        <i class="fas fa-eye"></i> 
+                        <span id="weatherVisibility">{{ weather_data.visibility }} mi</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interactive Flight Map -->
+            <div class="dashboard-card card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-map"></i> Live Flight Map</h5>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-primary" onclick="resetMapZoom()">
+                            <i class="fas fa-compress-arrows-alt"></i> Reset
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="toggleFlightLabels()">
+                            <i class="fas fa-tags"></i> Labels
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="map-container">
+                        <div id="flightMap"></div>
+                    </div>
+                    <div class="p-3">
+                        <div class="map-legend">
+                            <h6 class="small fw-bold mb-2">Legend</h6>
+                            <div class="legend-item">
+                                <span class="legend-dot" style="background: #0d6efd;"></span>
+                                <span>Airport</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-dot" style="background: #198754;"></span>
+                                <span>Departed/En Route</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-dot" style="background: #0dcaf0;"></span>
+                                <span>Arrived</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-dot" style="background: #ffc107;"></span>
+                                <span>Delayed</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-dot" style="background: #dc3545;"></span>
+                                <span>Cancelled</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-dot" style="background: #6c757d;"></span>
+                                <span>Scheduled</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alerts & Action Items -->
+            <div class="dashboard-card card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bell"></i> Alerts
+                        {% if alert_count > 0 %}
+                        <span class="badge bg-danger ms-2">{{ alert_count }}</span>
+                        {% endif %}
+                    </h5>
+                </div>
+                <div class="card-body scrollable-section" style="max-height: 350px;">
+                    {% if delayed_flights_alert %}
+                    <h6 class="small text-muted text-uppercase mb-2">Delayed Flights</h6>
+                    {% for flight in delayed_flights_alert %}
+                    <div class="alert-item warning">
+                        <div class="d-flex justify-content-between">
+                            <strong>{{ flight.flight_number }}</strong>
+                            <span class="badge bg-warning text-dark">{{ flight.delay_minutes }}min</span>
+                        </div>
+                        <small class="text-muted">{{ flight.origin }} → {{ flight.destination }}</small>
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+                    
+                    {% if cancelled_flights_alert %}
+                    <h6 class="small text-muted text-uppercase mb-2 mt-3">Cancelled Flights</h6>
+                    {% for flight in cancelled_flights_alert %}
+                    <div class="alert-item critical">
+                        <strong>{{ flight.flight_number }}</strong>
+                        <br>
+                        <small class="text-muted">{{ flight.origin }} → {{ flight.destination }}</small>
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+                    
+                    {% if pending_assessments %}
+                    <h6 class="small text-muted text-uppercase mb-2 mt-3">Pending Assessments</h6>
+                    {% for assessment in pending_assessments %}
+                    <div class="alert-item info">
+                        <div class="d-flex justify-content-between">
+                            <strong>{{ assessment.airport.code }}</strong>
+                            <a href="{% url 'core:fiscal_assessment_detail' assessment.id %}" class="btn btn-sm btn-outline-primary">Review</a>
+                        </div>
+                        <small class="text-muted">{{ assessment.period_type|title }}</small>
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+                    
+                    {% if gate_conflicts %}
+                    <h6 class="small text-muted text-uppercase mb-2 mt-3">Gate Conflicts</h6>
+                    {% for conflict in gate_conflicts %}
+                    <div class="alert-item critical">
+                        <strong>Gate {{ conflict.gate.gate_number }}</strong>
+                        <br>
+                        <small class="text-muted">
+                            {{ conflict.flight1.flight_number }} / {{ conflict.flight2.flight_number }}
+                        </small>
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+                    
+                    {% if not delayed_flights_alert and not cancelled_flights_alert and not pending_assessments and not gate_conflicts %}
+                    <p class="text-muted text-center py-3 mb-0">
+                        <i class="fas fa-check-circle text-success"></i><br>
+                        No alerts at this time
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Gate Status -->
+            <div class="dashboard-card card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-door-open"></i> Gates</h5>
+                    <span class="badge bg-success">{{ gates|length }} Total</span>
+                </div>
+                <div class="card-body p-0">
                     {% if gates %}
-                    <div class="table-responsive">
-                        <table class="table table-sm">
-                            <thead>
+                    <div class="table-responsive scrollable-section" style="max-height: 300px;">
+                        <table class="table table-sm mb-0">
+                            <thead class="table-light sticky-top">
                                 <tr>
-                                    <th scope="col">Gate</th>
-                                    <th scope="col">Terminal</th>
-                                    <th scope="col">Status</th>
+                                    <th>Gate</th>
+                                    <th>Terminal</th>
+                                    <th>Status</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for gate in gates %}
-                                <tr class="{% if gate.flight_count > 0 %}gate-occupied{% else %}gate-available{% endif %}">
-                                    <td>{{ gate.gate_id }}</td>
+                                <tr class="{% if gate.flight_count > 0 %}table-active{% endif %}">
+                                    <td><strong>{{ gate.gate_id }}</strong></td>
                                     <td>{{ gate.terminal|default:"-" }}</td>
                                     <td>
                                         {% if gate.flight_count > 0 %}
-                                        <span class="badge bg-warning">Occupied</span>
+                                        <span class="badge bg-warning text-dark">{{ gate.flight_count }} flights</span>
                                         {% else %}
                                         <span class="badge bg-success">Available</span>
                                         {% endif %}
@@ -191,15 +1239,16 @@
                         </table>
                     </div>
                     {% else %}
-                    <p class="text-muted">No gates configured.</p>
+                    <p class="text-muted text-center py-3 mb-0">No gates configured.</p>
                     {% endif %}
                 </div>
             </div>
 
             <!-- Recent Assessments -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-calculator"></i> Recent Assessments</h5>
+            <div class="dashboard-card card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-calculator"></i> Assessments</h5>
+                    <a href="{% url 'core:fiscal_assessment_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
                 </div>
                 <div class="card-body">
                     {% if recent_assessments %}
@@ -220,36 +1269,38 @@
                         {% endfor %}
                     </div>
                     {% else %}
-                    <p class="text-muted">No assessments yet.</p>
+                    <p class="text-muted text-center py-3 mb-0">No assessments yet.</p>
                     {% endif %}
-                    
-                    <div class="mt-3">
-                        <a href="{% url 'core:fiscal_assessment_list' %}" class="btn btn-sm btn-outline-primary">
-                            View All Assessments
-                        </a>
-                        {% if can_create_assessment %}
-                        <a href="{% url 'core:fiscal_assessment_create' %}" class="btn btn-sm btn-primary">
-                            <i class="fas fa-plus"></i> New Assessment
-                        </a>
-                        {% endif %}
-                    </div>
+                    {% if can_create_assessment %}
+                    <a href="{% url 'core:fiscal_assessment_create' %}" class="btn btn-primary btn-sm w-100 mt-3">
+                        <i class="fas fa-plus"></i> New Assessment
+                    </a>
+                    {% endif %}
                 </div>
             </div>
 
             <!-- Quick Stats -->
-            <div class="card mb-4">
+            <div class="dashboard-card card">
                 <div class="card-header">
                     <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Quick Stats</h5>
                 </div>
                 <div class="card-body">
                     <div class="row text-center">
                         <div class="col-6">
-                            <h4>{{ total_flights }}</h4>
+                            <h3 class="text-primary">{{ total_flights|intcomma }}</h3>
                             <small class="text-muted">Total Flights</small>
                         </div>
                         <div class="col-6">
-                            <h4>{{ total_gates }}</h4>
+                            <h3 class="text-success">{{ total_gates|intcomma }}</h3>
                             <small class="text-muted">Total Gates</small>
+                        </div>
+                        <div class="col-6 mt-3">
+                            <h3 class="text-info">{{ today_flights }}</h3>
+                            <small class="text-muted">Today's Flights</small>
+                        </div>
+                        <div class="col-6 mt-3">
+                            <h3 class="text-warning">{{ yesterday_flights }}</h3>
+                            <small class="text-muted">Yesterday</small>
                         </div>
                     </div>
                 </div>
@@ -257,4 +1308,739 @@
         </div>
     </div>
 </div>
+
+<!-- Export Modal -->
+<div class="export-modal" id="exportModal">
+    <div class="export-modal-content">
+        <div class="export-modal-header">
+            <h4 class="mb-0"><i class="fas fa-file-export"></i> Export Dashboard</h4>
+            <button type="button" class="btn-close" onclick="closeExportModal()" aria-label="Close"></button>
+        </div>
+        <div class="export-modal-body">
+            <!-- Export Options -->
+            <div class="export-options">
+                <div class="export-option selected" onclick="selectExportOption('full')">
+                    <i class="fas fa-file-alt"></i>
+                    <span class="export-option-label">Full Report</span>
+                    <span class="export-option-desc">KPIs, Tables & Charts</span>
+                </div>
+                <div class="export-option" onclick="selectExportOption('kpi')">
+                    <i class="fas fa-chart-line"></i>
+                    <span class="export-option-label">KPI Summary</span>
+                    <span class="export-option-desc">Key Metrics Only</span>
+                </div>
+                <div class="export-option" onclick="selectExportOption('flights')">
+                    <i class="fas fa-plane"></i>
+                    <span class="export-option-label">Flight Data</span>
+                    <span class="export-option-desc">Flight Tables Only</span>
+                </div>
+                <div class="export-option" onclick="selectExportOption('gates')">
+                    <i class="fas fa-door-open"></i>
+                    <span class="export-option-label">Gate Status</span>
+                    <span class="export-option-desc">Gate Information</span>
+                </div>
+            </div>
+            
+            <!-- Preview -->
+            <div class="export-preview">
+                <div id="exportPreviewContent" class="export-preview-content">
+                    <!-- Content will be dynamically generated -->
+                </div>
+            </div>
+        </div>
+        <div class="export-modal-footer p-3 border-top d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-outline-secondary" onclick="closeExportModal()">Cancel</button>
+            <button type="button" class="btn btn-primary" onclick="printExport()">
+                <i class="fas fa-print"></i> Print / Save as PDF
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Leaflet CSS for maps -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+    'use strict';
+    
+    // ============ Map Initialization ============
+    const mapConfig = {{ map_config|safe }};
+    const activeFlights = {{ active_flights|safe }};
+    const gatesData = {{ gates_data|safe }};
+    const airportsData = {{ airports_data|safe }};
+    
+    // Initialize Leaflet map
+    const flightMap = L.map('flightMap').setView(
+        [mapConfig.center.latitude, mapConfig.center.longitude],
+        mapConfig.zoom
+    );
+    
+    // Add OpenStreetMap tile layer
+    L.tileLayer(mapConfig.tile_layer, {
+        attribution: mapConfig.attribution,
+        maxZoom: mapConfig.max_zoom,
+        minZoom: mapConfig.min_zoom,
+    }).addTo(flightMap);
+    
+    // Store markers for updates
+    const flightMarkers = {};
+    const airportMarkers = {};
+    let showFlightLabels = true;
+    
+    // Add airport markers
+    airportsData.forEach(airport => {
+        const marker = L.circleMarker([airport.lat, airport.lng], {
+            radius: 8,
+            fillColor: '#0d6efd',
+            color: '#fff',
+            weight: 2,
+            opacity: 1,
+            fillOpacity: 0.8,
+            className: 'airport-marker'
+        }).addTo(flightMap);
+        
+        marker.bindPopup(`
+            <strong>${airport.code}</strong><br>
+            ${airport.name}<br>
+            ${airport.city}
+        `);
+        
+        airportMarkers[airport.code] = marker;
+    });
+    
+    // Add flight markers
+    function updateFlightMarkers() {
+        // Clear existing markers
+        Object.values(flightMarkers).forEach(marker => {
+            flightMap.removeLayer(marker);
+        });
+        
+        activeFlights.forEach(flight => {
+            const position = flight.current_position || flight.origin_coords;
+            if (!position) return;
+            
+            const marker = L.circleMarker([position.lat, position.lng], {
+                radius: 10,
+                fillColor: flight.status_color,
+                color: '#fff',
+                weight: 2,
+                opacity: 1,
+                fillOpacity: 1,
+                className: 'flight-marker'
+            }).addTo(flightMap);
+            
+            // Add flight number label
+            if (showFlightLabels) {
+                marker.bindTooltip(flight.flight_number, {
+                    permanent: true,
+                    direction: 'top',
+                    className: 'flight-label'
+                });
+            }
+            
+            // Bind popup with flight details
+            marker.bindPopup(`
+                <strong>${flight.flight_number}</strong><br>
+                ${flight.origin} → ${flight.destination}<br>
+                Status: <span style="color: ${flight.status_color}">${flight.status}</span><br>
+                ${flight.gate ? 'Gate: ' + flight.gate + '<br>' : ''}
+                Departure: ${new Date(flight.scheduled_departure).toLocaleTimeString()}<br>
+                Arrival: ${new Date(flight.scheduled_arrival).toLocaleTimeString()}
+            `);
+            
+            flightMarkers[flight.id] = marker;
+            
+            // Draw flight path line
+            if (flight.current_position) {
+                const polyline = L.polyline(
+                    [
+                        [flight.origin_coords.lat, flight.origin_coords.lng],
+                        [flight.current_position.lat, flight.current_position.lng],
+                        [flight.dest_coords.lat, flight.dest_coords.lng]
+                    ],
+                    {
+                        color: flight.status_color,
+                        weight: 2,
+                        opacity: 0.6,
+                        dashArray: '5, 10',
+                        lineCap: 'round'
+                    }
+                ).addTo(flightMap);
+                
+                polyline.bindPopup(`Flight Path: ${flight.flight_number}`);
+            }
+        });
+    }
+    
+    // Initial update
+    updateFlightMarkers();
+    
+    // Fit map to show all markers
+    function fitMapToMarkers() {
+        const allPoints = [];
+        airportsData.forEach(airport => {
+            allPoints.push([airport.lat, airport.lng]);
+        });
+        activeFlights.forEach(flight => {
+            if (flight.current_position) {
+                allPoints.push([flight.current_position.lat, flight.current_position.lng]);
+            }
+        });
+        
+        if (allPoints.length > 0) {
+            const group = L.featureGroup(allPoints.map(p => L.circleMarker(p)));
+            flightMap.fitBounds(group.getBounds(), { padding: [50, 50] });
+        }
+    }
+    
+    // Global functions for map controls
+    window.resetMapZoom = function() {
+        fitMapToMarkers();
+    };
+    
+    window.toggleFlightLabels = function() {
+        showFlightLabels = !showFlightLabels;
+        updateFlightMarkers();
+    };
+    
+    // ============ Charts ============
+    
+    // 7-Day Flight Trend Chart
+    const trendCtx = document.getElementById('flightTrendChart');
+    const trendLabels = {{ flight_trend_labels|safe }};
+    const trendData = {{ flight_trend_data|safe }};
+    
+    const flightTrendChart = new Chart(trendCtx, {
+        type: 'line',
+        data: {
+            labels: trendLabels,
+            datasets: [{
+                label: 'Flights',
+                data: trendData,
+                borderColor: '#0d6efd',
+                backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+                pointBackgroundColor: '#0d6efd',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointRadius: 5,
+                pointHoverRadius: 7
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    titleFont: { size: 14 },
+                    bodyFont: { size: 13 },
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    borderWidth: 1
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    },
+                    ticks: {
+                        precision: 0
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+    
+    // Hourly Traffic Chart
+    const hourlyCtx = document.getElementById('hourlyTrafficChart');
+    const hourlyData = {{ hourly_data|safe }};
+    const hours = Array.from({length: 24}, (_, i) => i + ':00');
+    
+    const hourlyTrafficChart = new Chart(hourlyCtx, {
+        type: 'bar',
+        data: {
+            labels: hours,
+            datasets: [{
+                label: 'Flights',
+                data: hourlyData,
+                backgroundColor: 'rgba(13, 202, 240, 0.7)',
+                borderColor: '#0dcaf0',
+                borderWidth: 1,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    titleFont: { size: 14 },
+                    bodyFont: { size: 13 }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    },
+                    ticks: {
+                        precision: 0
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+    
+    // Filter by status function
+    window.filterByStatus = function(status) {
+        const url = new URL(window.location);
+        url.searchParams.set('status', status);
+        window.location.href = url.toString();
+    };
+
+    // Export dashboard function
+    window.exportDashboard = function() {
+        // Create a simple print view
+        window.print();
+    };
+    
+    // ============ Export Modal Functions ============
+    let currentExportOption = 'full';
+    
+    window.openExportModal = function() {
+        document.getElementById('exportModal').classList.add('show');
+        document.body.style.overflow = 'hidden';
+        generateExportPreview('full');
+    };
+    
+    window.closeExportModal = function() {
+        document.getElementById('exportModal').classList.remove('show');
+        document.body.style.overflow = '';
+    };
+    
+    window.selectExportOption = function(option) {
+        currentExportOption = option;
+        
+        // Update selected state
+        document.querySelectorAll('.export-option').forEach(el => {
+            el.classList.remove('selected');
+        });
+        event.currentTarget.classList.add('selected');
+        
+        // Generate preview
+        generateExportPreview(option);
+    };
+    
+    window.generateExportPreview = function(option) {
+        const preview = document.getElementById('exportPreviewContent');
+        const now = new Date().toLocaleString();
+        
+        // Get KPI values from the page
+        const onTimeRate = document.querySelector('.kpi-value')?.textContent || '{{ on_time_rate }}%';
+        
+        let html = `
+            <h1><i class="fas fa-plane-departure"></i> Airport Operations Dashboard</h1>
+            <div class="timestamp">Generated: ${now}</div>
+        `;
+        
+        // KPI Grid
+        if (option === 'full' || option === 'kpi') {
+            html += `
+                <div class="kpi-grid">
+                    <div class="kpi-item">
+                        <div class="kpi-value">${onTimeRate}</div>
+                        <div class="kpi-label">On-Time Rate</div>
+                    </div>
+                    <div class="kpi-item">
+                        <div class="kpi-value">{{ gate_utilization_rate }}%</div>
+                        <div class="kpi-label">Gate Utilization</div>
+                    </div>
+                    <div class="kpi-item">
+                        <div class="kpi-value">{{ total_passengers|intcomma }}</div>
+                        <div class="kpi-label">Passengers</div>
+                    </div>
+                    <div class="kpi-item">
+                        <div class="kpi-value">{{ avg_delay }}min</div>
+                        <div class="kpi-label">Avg Delay</div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Flight Status Summary
+        if (option === 'full' || option === 'flights') {
+            html += `
+                <h3>Flight Status Summary</h3>
+                <table>
+                    <thead>
+                        <tr><th>Status</th><th>Count</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Scheduled</td><td>{{ flight_status_counts.scheduled|default:0 }}</td></tr>
+                        <tr><td>Boarding</td><td>{{ flight_status_counts.boarding|default:0 }}</td></tr>
+                        <tr><td>Departed</td><td>{{ flight_status_counts.departed|default:0 }}</td></tr>
+                        <tr><td>Arrived</td><td>{{ flight_status_counts.arrived|default:0 }}</td></tr>
+                        <tr><td>Delayed</td><td>{{ flight_status_counts.delayed|default:0 }}</td></tr>
+                        <tr><td>Cancelled</td><td>{{ flight_status_counts.cancelled|default:0 }}</td></tr>
+                    </tbody>
+                </table>
+            `;
+        }
+        
+        // Upcoming Flights
+        if (option === 'full' || option === 'flights') {
+            html += `
+                <h3>Upcoming Flights</h3>
+                <table>
+                    <thead>
+                        <tr><th>Flight</th><th>Route</th><th>Gate</th><th>Departure</th><th>Status</th></tr>
+                    </thead>
+                    <tbody>
+            `;
+            {% for flight in upcoming_flights %}
+            html += `<tr><td>{{ flight.flight_number }}</td><td>{{ flight.origin }} → {{ flight.destination }}</td><td>{{ flight.gate.gate_number|default:"-" }}</td><td>{{ flight.scheduled_departure|time:"H:i" }}</td><td>{{ flight.get_status_display }}</td></tr>`;
+            {% endfor %}
+            html += `
+                    </tbody>
+                </table>
+            `;
+        }
+        
+        // Gate Status
+        if (option === 'full' || option === 'gates') {
+            html += `
+                <h3>Gate Status</h3>
+                <table>
+                    <thead>
+                        <tr><th>Gate</th><th>Terminal</th><th>Status</th></tr>
+                    </thead>
+                    <tbody>
+            `;
+            {% for gate in gates %}
+            html += `<tr><td>{{ gate.gate_id }}</td><td>{{ gate.terminal|default:"-" }}</td><td>{% if gate.flight_count > 0 %}Occupied ({{ gate.flight_count }} flights){% else %}Available{% endif %}</td></tr>`;
+            {% endfor %}
+            html += `
+                    </tbody>
+                </table>
+            `;
+        }
+        
+        html += `
+            <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #dee2e6; font-size: 0.75rem; color: #666;">
+                <p>Blue Falcon Airport Operations Management System</p>
+            </div>
+        `;
+        
+        preview.innerHTML = html;
+    };
+    
+    window.printExport = function() {
+        window.print();
+    };
+    
+    // Close modal when clicking outside
+    window.addEventListener('click', function(e) {
+        const modal = document.getElementById('exportModal');
+        if (e.target === modal) {
+            closeExportModal();
+        }
+    });
+    
+    // Close modal with Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeExportModal();
+        }
+    });
+
+    // ============ Weather Search Functionality ============
+    let weatherSearchTimeout;
+    const weatherSearchInput = document.getElementById('weatherSearchInput');
+    const weatherSearchResults = document.getElementById('weatherSearchResults');
+    const weatherWidget = document.getElementById('weatherWidget');
+    const weatherRefreshIcon = document.getElementById('weatherRefreshIcon');
+    const weatherSourceText = document.getElementById('weatherSourceText');
+    const weatherLocationText = document.getElementById('weatherLocationText');
+    
+    // Refresh weather function
+    window.refreshWeather = async function() {
+        if (weatherRefreshIcon) {
+            weatherRefreshIcon.classList.add('fa-spin');
+        }
+        
+        try {
+            // Get current location from widget or use default
+            const response = await fetch('/api/v1/weather/location/?lat=39.8283&lng=-98.5795&name=Current');
+            if (response.ok) {
+                const weather = await response.json();
+                updateWeatherWidget(weather);
+                if (weatherSourceText) {
+                    weatherSourceText.textContent = 'Just now • Open-Meteo';
+                }
+            }
+        } catch (error) {
+            console.warn('[Weather] Refresh failed:', error);
+            if (weatherSourceText) {
+                weatherSourceText.textContent = 'Refresh failed';
+            }
+        } finally {
+            if (weatherRefreshIcon) {
+                setTimeout(() => weatherRefreshIcon.classList.remove('fa-spin'), 500);
+            }
+        }
+    };
+    
+    // Search location on input
+    if (weatherSearchInput) {
+        weatherSearchInput.addEventListener('input', function() {
+            const query = this.value.trim();
+            
+            clearTimeout(weatherSearchTimeout);
+            
+            if (query.length < 2) {
+                weatherSearchResults.classList.remove('show');
+                return;
+            }
+            
+            // Debounce search
+            weatherSearchTimeout = setTimeout(async () => {
+                try {
+                    const response = await fetch(`/api/v1/weather/search/?q=${encodeURIComponent(query)}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        displayWeatherSearchResults(data.locations);
+                    }
+                } catch (error) {
+                    console.warn('[Weather] Search failed:', error);
+                }
+            }, 300);
+        });
+        
+        // Close search results when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!weatherSearchInput.contains(e.target) && !weatherSearchResults.contains(e.target)) {
+                weatherSearchResults.classList.remove('show');
+            }
+        });
+    }
+    
+    function displayWeatherSearchResults(locations) {
+        if (!locations || locations.length === 0) {
+            weatherSearchResults.innerHTML = '<div class="weather-search-result-item">No locations found</div>';
+            weatherSearchResults.classList.add('show');
+            return;
+        }
+        
+        weatherSearchResults.innerHTML = locations.map(loc => `
+            <div class="weather-search-result-item" onclick="selectWeatherLocation('${loc.name}', ${loc.latitude}, ${loc.longitude})">
+                <div class="weather-location-name">
+                    <i class="fas fa-map-marker-alt"></i> ${loc.name}
+                </div>
+                <div class="weather-location-sub">
+                    ${loc.admin1 ? loc.admin1 + ', ' : ''}${loc.country}
+                </div>
+            </div>
+        `).join('');
+        weatherSearchResults.classList.add('show');
+    }
+    
+    // Select location and fetch weather
+    window.selectWeatherLocation = async function(name, latitude, longitude) {
+        try {
+            const response = await fetch(`/api/v1/weather/location/?lat=${latitude}&lng=${longitude}&name=${encodeURIComponent(name)}`);
+            if (response.ok) {
+                const weather = await response.json();
+                updateWeatherWidget(weather);
+                weatherSearchResults.classList.remove('show');
+                weatherSearchInput.value = '';
+                if (weatherLocationText) {
+                    weatherLocationText.textContent = name;
+                }
+                if (weatherSourceText) {
+                    weatherSourceText.textContent = 'Live • Open-Meteo';
+                }
+            }
+        } catch (error) {
+            console.warn('[Weather] Failed to fetch weather:', error);
+        }
+    };
+
+    // Update weather widget with new data
+    window.updateWeatherWidget = function(weather) {
+        // Update theme class
+        const themeClass = `theme-${weather.theme}${weather.is_night ? '-night' : ''}`;
+        weatherWidget.className = `weather-widget mb-4 ${themeClass}`;
+
+        // Update location text (use full location name, fallback to airport code then condition)
+        if (weatherLocationText) {
+            weatherLocationText.textContent = weather.location_name || weather.airport_code || weather.condition || 'Location';
+        }
+        
+        // Update temperature
+        document.getElementById('weatherTemp').textContent = `${weather.temperature}°F`;
+        
+        // Update condition with icon
+        document.getElementById('weatherCondition').innerHTML = `
+            <i class="fas fa-${weather.icon}"></i> ${weather.condition}
+        `;
+        
+        // Update large icon
+        document.getElementById('weatherIconLarge').className = `fas fa-${weather.icon}`;
+        
+        // Update details
+        document.getElementById('weatherWind').textContent = `${weather.wind_speed} mph`;
+        document.getElementById('weatherHumidity').textContent = `${weather.humidity}%`;
+        document.getElementById('weatherVisibility').textContent = `${weather.visibility} mi`;
+        
+        // Update source indicator
+        if (weatherSourceText) {
+            if (weather.source === 'offline') {
+                weatherSourceText.textContent = 'Offline • Using defaults';
+            } else if (weather.source === 'Open-Meteo') {
+                weatherSourceText.textContent = 'Live • Open-Meteo';
+            }
+        }
+    };
+
+    // Fetch and update map data
+    window.refreshMapData = async function() {
+        try {
+            const response = await fetch('/api/v1/map-data/');
+            if (response.ok) {
+                const data = await response.json();
+                // Update activeFlights array
+                activeFlights.length = 0;
+                activeFlights.push(...data.flights);
+                // Update markers
+                updateFlightMarkers();
+                console.log('[Dashboard] Map data refreshed');
+            }
+        } catch (error) {
+            console.warn('[Dashboard] Failed to refresh map data:', error);
+        }
+    };
+
+    // WebSocket connection for real-time updates
+    function connectWebSocket() {
+        if ('WebSocket' in window) {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws/notifications/`;
+
+            try {
+                const ws = new WebSocket(wsUrl);
+
+                ws.onopen = () => {
+                    console.log('[Dashboard] Connected to real-time updates');
+                };
+
+                ws.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    console.log('[Dashboard] Real-time update:', data);
+
+                    // Handle different types of updates
+                    if (data.type === 'flight_update') {
+                        // Refresh map data
+                        refreshMapData();
+                    }
+                };
+
+                ws.onclose = () => {
+                    console.log('[Dashboard] Disconnected from real-time updates');
+                    // Attempt reconnect after 5 seconds
+                    setTimeout(connectWebSocket, 5000);
+                };
+
+                ws.onerror = (error) => {
+                    console.warn('[Dashboard] WebSocket error:', error);
+                };
+            } catch (e) {
+                console.warn('[Dashboard] WebSocket connection failed:', e);
+            }
+        }
+    }
+
+    // Connect to WebSocket for real-time updates
+    connectWebSocket();
+
+    // Auto-refresh every 60 seconds
+    setInterval(() => {
+        console.log('[Dashboard] Auto-refreshing data...');
+        // Refresh map data
+        refreshMapData();
+        // Update live indicator
+        const indicator = document.querySelector('.live-dot');
+        if (indicator) {
+            indicator.style.animation = 'none';
+            indicator.offsetHeight; // Trigger reflow
+            indicator.style.animation = 'pulse 2s infinite';
+        }
+    }, 60000);
+    
+    // Fit map to show all markers after a short delay
+    setTimeout(fitMapToMarkers, 500);
+    
+    // ============ Dark Mode Map Adaptation ============
+    // Update map theme when dark mode changes
+    const themeToggle = document.getElementById('themeToggle');
+    if (themeToggle) {
+        themeToggle.addEventListener('click', function() {
+            setTimeout(() => {
+                const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+                
+                // Update map tile filter
+                const mapContainer = document.querySelector('#flightMap');
+                if (mapContainer) {
+                    const tiles = document.querySelectorAll('.leaflet-tile-pane, .leaflet-overlay-pane');
+                    tiles.forEach(tile => {
+                        if (isDark) {
+                            tile.style.filter = 'invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%)';
+                        } else {
+                            tile.style.filter = 'none';
+                        }
+                    });
+                }
+                
+                // Re-render map markers with updated colors
+                updateFlightMarkers();
+            }, 100);
+        });
+    }
+    
+    // Initial map theme setup
+    setTimeout(() => {
+        const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+        if (isDark && typeof flightMap !== 'undefined') {
+            const tiles = document.querySelectorAll('.leaflet-tile-pane, .leaflet-overlay-pane');
+            tiles.forEach(tile => {
+                tile.style.filter = 'invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%)';
+            });
+        }
+    }, 1000);
+})();
+</script>
 {% endblock %}

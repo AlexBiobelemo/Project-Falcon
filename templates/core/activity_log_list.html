@@ -65,8 +65,19 @@
             <form method="get" class="row g-3">
                 <div class="col-md-2">
                     <label for="search" class="form-label">Search</label>
-                    <input type="text" name="search" id="search" class="form-control" 
-                           placeholder="Search description..." value="{{ search_query|default:'' }}">
+                    <div class="input-group">
+                        <span class="input-group-text bg-dark border-secondary">
+                            <i class="fas fa-search text-muted"></i>
+                        </span>
+                        <input type="text" name="search" id="search" class="form-control bg-dark border-secondary" 
+                               placeholder="Search description, user, flight, event type..." 
+                               value="{{ search_query|default:'' }}">
+                        {% if search_query %}
+                        <a href="{% url 'core:activity_log_list' %}" class="btn btn-outline-secondary" type="button">
+                            <i class="fas fa-times"></i>
+                        </a>
+                        {% endif %}
+                    </div>
                 </div>
                 <div class="col-md-2">
                     <label for="event_type" class="form-label">Event Type</label>

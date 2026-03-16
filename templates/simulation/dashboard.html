@@ -28,7 +28,17 @@
                         <a class="nav-link" href="/" {% if request.path == '/' %}aria-current="page"{% endif %}>Dashboard</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'core:fiscal_assessment_list' %}" {% if '/fiscal-assessments/' in request.path %}aria-current="page"{% endif %}>Assessments</a>
+                        <a class="nav-link" href="{% url 'core:analytics_dashboard' %}" {% if '/analytics/' in request.path %}aria-current="page"{% endif %}>Analytics</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Operations
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'core:airport_comparison' %}">Airport Comparison</a></li>
+                            <li><a class="dropdown-item" href="{% url 'core:fiscal_assessment_list' %}">Assessments</a></li>
+                            <li><a class="dropdown-item" href="{% url 'core:report_schedule_list' %}">Scheduled Reports</a></li>
+                        </ul>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'core:report_list' %}" {% if '/reports/' in request.path %}aria-current="page"{% endif %}>Reports</a>
@@ -76,6 +86,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{% static 'js/base.js' %}"></script>
+    <script src="{% static 'js/notifications.js' %}"></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

@@ -10,9 +10,14 @@
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1><i class="fas fa-file-alt"></i> Reports</h1>
-        <a href="{% url 'core:report_create' %}" class="btn btn-primary">
-            <i class="fas fa-plus"></i> Generate Report
-        </a>
+        <div class="d-flex gap-2">
+            <a href="{% url 'core:report_schedule_list' %}" class="btn btn-outline-primary">
+                <i class="fas fa-calendar-alt"></i> Scheduled Reports
+            </a>
+            <a href="{% url 'core:report_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Generate Report
+            </a>
+        </div>
     </div>
 
     <!-- Filters -->

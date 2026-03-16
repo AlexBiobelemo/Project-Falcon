@@ -60,7 +60,7 @@
             <div class="card bg-primary text-white">
                 <div class="card-body">
                     <h6>Total Revenue</h6>
-                    <h2>${{ assessment.total_revenue|floatformat:2 }}</h2>
+                    <h2>${{ assessment.total_revenue|floatformat:2|intcomma }}</h2>
                 </div>
             </div>
         </div>
@@ -68,7 +68,7 @@
             <div class="card bg-danger text-white">
                 <div class="card-body">
                     <h6>Total Expenses</h6>
-                    <h2>${{ assessment.total_expenses|floatformat:2 }}</h2>
+                    <h2>${{ assessment.total_expenses|floatformat:2|intcomma }}</h2>
                 </div>
             </div>
         </div>
@@ -76,7 +76,7 @@
             <div class="card bg-{% if assessment.net_profit >= 0 %}success{% else %}danger{% endif %} text-white">
                 <div class="card-body">
                     <h6>Net Profit</h6>
-                    <h2>${{ assessment.net_profit|floatformat:2 }}</h2>
+                    <h2>${{ assessment.net_profit|floatformat:2|intcomma }}</h2>
                 </div>
             </div>
         </div>
@@ -110,31 +110,31 @@
                     <table class="table table-sm">
                         <tr>
                             <td>Fuel Revenue</td>
-                            <td class="text-end">${{ assessment.fuel_revenue|floatformat:2 }}</td>
+                            <td class="text-end">${{ assessment.fuel_revenue|floatformat:2|intcomma }}</td>
                         </tr>
                         <tr>
                             <td>Parking Revenue</td>
-                            <td class="text-end">${{ assessment.parking_revenue|floatformat:2 }}</td>
+                            <td class="text-end">${{ assessment.parking_revenue|floatformat:2|intcomma }}</td>
                         </tr>
                         <tr>
                             <td>Retail Revenue</td>
-                            <td class="text-end">${{ assessment.retail_revenue|floatformat:2 }}</td>
+                            <td class="text-end">${{ assessment.retail_revenue|floatformat:2|intcomma }}</td>
                         </tr>
                         <tr>
                             <td>Landing Fees</td>
-                            <td class="text-end">${{ assessment.landing_fees|floatformat:2 }}</td>
+                            <td class="text-end">${{ assessment.landing_fees|floatformat:2|intcomma }}</td>
                         </tr>
                         <tr>
                             <td>Cargo Revenue</td>
-                            <td class="text-end">${{ assessment.cargo_revenue|floatformat:2 }}</td>
+                            <td class="text-end">${{ assessment.cargo_revenue|floatformat:2|intcomma }}</td>
                         </tr>
                         <tr>
                             <td>Other Revenue</td>
-                            <td class="text-end">${{ assessment.other_revenue|floatformat:2 }}</td>
+                            <td class="text-end">${{ assessment.other_revenue|floatformat:2|intcomma }}</td>
                         </tr>
                         <tr class="table-success">
                             <td><strong>Total</strong></td>
-                            <td class="text-end"><strong>${{ assessment.total_revenue|floatformat:2 }}</strong></td>
+                            <td class="text-end"><strong>${{ assessment.total_revenue|floatformat:2|intcomma }}</strong></td>
                         </tr>
                     </table>
                 </div>
@@ -149,31 +149,31 @@
                     <table class="table table-sm">
                         <tr>
                             <td>Security Costs</td>
-                            <td class="text-end">${{ assessment.security_costs|floatformat:2 }}</td>
+                            <td class="text-end">${{ assessment.security_costs|floatformat:2|intcomma }}</td>
                         </tr>
                         <tr>
                             <td>Maintenance Costs</td>
-                            <td class="text-end">${{ assessment.maintenance_costs|floatformat:2 }}</td>
+                            <td class="text-end">${{ assessment.maintenance_costs|floatformat:2|intcomma }}</td>
                         </tr>
                         <tr>
                             <td>Operational Costs</td>
-                            <td class="text-end">${{ assessment.operational_costs|floatformat:2 }}</td>
+                            <td class="text-end">${{ assessment.operational_costs|floatformat:2|intcomma }}</td>
                         </tr>
                         <tr>
                             <td>Staff Costs</td>
-                            <td class="text-end">${{ assessment.staff_costs|floatformat:2 }}</td>
+                            <td class="text-end">${{ assessment.staff_costs|floatformat:2|intcomma }}</td>
                         </tr>
                         <tr>
                             <td>Utility Costs</td>
-                            <td class="text-end">${{ assessment.utility_costs|floatformat:2 }}</td>
+                            <td class="text-end">${{ assessment.utility_costs|floatformat:2|intcomma }}</td>
                         </tr>
                         <tr>
                             <td>Other Expenses</td>
-                            <td class="text-end">${{ assessment.other_expenses|floatformat:2 }}</td>
+                            <td class="text-end">${{ assessment.other_expenses|floatformat:2|intcomma }}</td>
                         </tr>
                         <tr class="table-danger">
                             <td><strong>Total</strong></td>
-                            <td class="text-end"><strong>${{ assessment.total_expenses|floatformat:2 }}</strong></td>
+                            <td class="text-end"><strong>${{ assessment.total_expenses|floatformat:2|intcomma }}</strong></td>
                         </tr>
                     </table>
                 </div>
