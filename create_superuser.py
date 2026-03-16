@@ -12,12 +12,18 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
-#kept here obivously
-if not User.objects.filter(username='admin').exists():
-    User.objects.create_superuser('admin', 'admin@airportsim.local', 'admin123')
+if not User.objects.filter(username='alex').exists():
+    User.objects.create_superuser('alex', 'alex@airportsim.local', '12345')
     print('Superuser created successfully!')
-    print('Username: admin')
-    print('Password: admin123') 
+    print('Username: alex')
+    print('Password: 12345')
 else:
-    print('Superuser already exists!')
-
+    # Update existing user
+    user = User.objects.get(username='alex')
+    user.set_password('12345')
+    user.is_superuser = True
+    user.is_staff = True
+    user.save()
+    print('Superuser credentials updated successfully!')
+    print('Username: alex')
+    print('Password: 12345')
