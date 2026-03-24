@@ -153,31 +153,28 @@ MIDDLEWARE = [
     # Debug toolbar (development only)
     'debug_toolbar.middleware.DebugToolbarMiddleware',
 
-    # WhiteNoise for static files (must be after SecurityMiddleware)
-    'whitenoise.middleware.WhiteNoiseMiddleware',
-    
     # CORS support (for API versioning)
     'corsheaders.middleware.CorsMiddleware',
-    
+
     # Common middleware
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    
+
     # CSRF protection
     'django.middleware.csrf.CsrfViewMiddleware',
-    
+
     # Authentication
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    
+
     # Messages
     'django.contrib.messages.middleware.MessageMiddleware',
-    
+
     # Clickjacking protection
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    
+
     # Custom middleware for request tracking in signals
     'core.middleware.RequestMiddleware',
-    
+
     # Honeypot protection middleware
     'core.middleware.HoneypotMiddleware',
     'core.middleware.HoneypotTokenMiddleware',
@@ -277,17 +274,14 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# WhiteNoise for serving static files in production
-# Use CompressedManifestStaticFilesStorage for hashed filenames and compression
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-
 # Additional static files locations
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]
 
-# WhiteNoise configuration - add headers for better caching
-WHITENOISE_IMMUTABLE_FILE_TEST = lambda filename, url: r'-[a-f0-9]{16}\.' in url
+# Static files storage - use default for ASGI compatibility
+# WhiteNoise doesn't support ASGI, so we use Django's default storage
+# Static files are served by Daphne directly from STATIC_ROOT
 
 # Media files (user uploads)
 MEDIA_URL = 'media/'
