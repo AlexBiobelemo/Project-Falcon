@@ -16,10 +16,16 @@ from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.auth import AuthMiddlewareStack
 from channels.security.websocket import AllowedHostsOriginValidator
 
+# WhiteNoise for serving static files in ASGI
+from whitenoise import WhiteNoise
+
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'airport_sim.settings')
 
 # Initialize Django ASGI application early to ensure settings are loaded
 django_asgi_app = get_asgi_application()
+
+# Wrap the ASGI application with WhiteNoise for static file serving
+django_asgi_app = WhiteNoise(django_asgi_app, root='staticfiles/')
 
 # Import WebSocket routing after Django is set up
 from airport_sim.websocket_routing import websocket_urlpatterns

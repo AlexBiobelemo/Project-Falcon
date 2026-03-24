@@ -20,6 +20,7 @@ echo "  DEBUG=$DEBUG"
 echo "  PORT=$PORT"
 echo "  DATABASE_ENGINE=$DATABASE_ENGINE"
 echo "  DATABASE_NAME=$DATABASE_NAME"
+echo "  SECURE_SSL_REDIRECT=$SECURE_SSL_REDIRECT"
 echo ""
 
 # Run migrations
@@ -35,8 +36,22 @@ echo "Static files collected."
 echo ""
 
 # Verify static files directory
-echo "Static files directory contents:"
-ls -la staticfiles/ || echo "Warning: staticfiles directory not found"
+echo "========================================="
+echo "Static files verification:"
+echo "========================================="
+if [ -d "staticfiles" ]; then
+    echo "Static files directory exists:"
+    ls -la staticfiles/
+    echo ""
+    echo "Admin static files:"
+    ls -la staticfiles/admin/ 2>/dev/null || echo "No admin static files found"
+    echo ""
+    echo "Total static files count:"
+    find staticfiles -type f | wc -l
+else
+    echo "WARNING: staticfiles directory does not exist!"
+fi
+echo "========================================="
 echo ""
 
 # Check Django configuration

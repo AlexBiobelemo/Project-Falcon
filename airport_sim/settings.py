@@ -278,12 +278,16 @@ STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # WhiteNoise for serving static files in production
+# Use CompressedManifestStaticFilesStorage for hashed filenames and compression
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Additional static files locations
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]
+
+# WhiteNoise configuration - add headers for better caching
+WHITENOISE_IMMUTABLE_FILE_TEST = lambda filename, url: r'-[a-f0-9]{16}\.' in url
 
 # Media files (user uploads)
 MEDIA_URL = 'media/'
