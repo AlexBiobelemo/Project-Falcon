@@ -1,9 +1,9 @@
-# Blue Falcon - Airport Operations Management System
+# Project Falcon - Airport Operations Management System
 
-> **Version:** 1.0  
-> **Last Updated:** March 15, 2026  
-> **Status:** Production Ready  
-> **Category:** Aviation Management System  
+> **Version:** 1.0
+> **Last Updated:** March 24, 2026
+> **Status:** Production Ready
+> **Category:** Aviation Management System
 
 ---
 
@@ -26,7 +26,7 @@
 
 ## Introduction
 
-**Blue Falcon** is a comprehensive, enterprise-grade Airport Operations Management System built with Django 5.1. It provides a complete solution for managing real-world airport operations including flight scheduling, gate management, passenger tracking, staff assignments, fiscal assessments, and regulatory compliance.
+**Project Falcon** is a comprehensive, enterprise-grade Airport Operations Management System built with Django 5.1.7. It provides a complete solution for managing real-world airport operations including flight scheduling, gate management, passenger tracking, staff assignments, fiscal assessments, and regulatory compliance.
 
 ### Purpose
 
@@ -124,6 +124,7 @@ The system is designed to:
 | **Caching** | Django Cache Framework | Built-in |
 | **Authentication** | Django Auth + Token Auth | Built-in |
 | **Two-Factor Auth** | django-two-factor-auth | 1.16.0 |
+| **Self-Ping Scheduler** | APScheduler | 3.10.4 |
 
 ### Database
 | Component | Technology | Version |
@@ -173,7 +174,7 @@ The system is designed to:
 
 ```bash
 git clone <repository-url>
-cd "Blue Falcon"
+cd Project-Falcon
 ```
 
 #### 2. Create Virtual Environment
@@ -308,7 +309,7 @@ python manage.py qcluster
 ### Project Structure
 
 ```
-Blue Falcon/
+Project-Falcon/
 ├── airport_sim/                 # Django Project Configuration
 │   ├── settings.py              # Application settings
 │   ├── urls.py                  # Root URL configuration
@@ -317,11 +318,11 @@ Blue Falcon/
 │   └── websocket_routing.py     # WebSocket URL routing
 │
 ├── core/                        # Main Application Module
-│   ├── models.py                # Database models (2117 lines)
-│   ├── views.py                 # Django views (2299 lines)
+│   ├── models.py                # Database models (25 models)
+│   ├── views.py                 # Django views
 │   ├── forms.py                 # Form validation
 │   ├── serializers.py           # DRF serializers
-│   ├── api.py                   # API ViewSets (983 lines)
+│   ├── api.py                   # API ViewSets
 │   ├── api_urls.py              # API URL routing
 │   ├── urls.py                  # App URL patterns
 │   ├── admin.py                 # Django admin configuration
@@ -329,10 +330,11 @@ Blue Falcon/
 │   ├── permissions.py           # Role-based permissions
 │   ├── middleware.py            # Custom middleware
 │   ├── signals.py               # Django signals
-│   ├── tasks.py                 # Background tasks
+│   ├── tasks.py                 # Background tasks (Django-Q2)
 │   ├── honeypot.py              # Bot protection
 │   ├── weather_service.py       # Weather API integration
 │   ├── map_service.py           # Map visualization
+│   ├── self_ping.py             # Self-ping keep-alive system
 │   │
 │   ├── management/commands/     # Custom Django commands
 │   │   ├── populate_demo_data.py
@@ -876,7 +878,18 @@ DATABASE_USER=postgres
 DATABASE_PASSWORD=<secure-password>
 ALLOWED_HOSTS=blue-falcon.onrender.com,your-domain.com
 REDIS_URL=<redis-connection-string>
+
+# Self-Ping (auto-enabled on Render)
+RENDER_EXTERNAL_URL=https://your-app.onrender.com
+SELF_PING_ENABLED=1
+SELF_PING_INTERVAL_MINUTES=12
 ```
+
+**Self-Ping Configuration:**
+- `RENDER_EXTERNAL_URL`: Your Render app URL (auto-detected on Render)
+- `SELF_PING_ENABLED`: Enable/disable self-ping (1=enabled, 0=disabled)
+- `SELF_PING_INTERVAL_MINUTES`: Ping interval in minutes (default: 12)
+- `SELF_PING_PATH`: Health endpoint path (default: `/core/health/`)
 
 #### 3. Database Setup
 
@@ -1271,9 +1284,9 @@ Contributions are welcome! Please follow these guidelines:
 
 ### License
 
-Copyright © 2026 Blue Falcon Project. All rights reserved.
+Copyright © 2026 Project Falcon. All rights reserved.
 
 ---
 
-*Last Updated: March 15, 2026*  
+*Last Updated: March 24, 2026*
 *Version: 1.0*

@@ -2296,3 +2296,12 @@ class DataImportWizardView(LoginRequiredMixin, View):
             
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
+
+
+def health_check(request: HttpRequest) -> JsonResponse:
+    """Lightweight health check endpoint for monitoring/self-ping.
+    
+    Returns:
+        JsonResponse with status 'ok' if the application is healthy.
+    """
+    return JsonResponse({'status': 'ok'}, status=200)

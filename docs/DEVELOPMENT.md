@@ -1,8 +1,8 @@
 # Development Guide
 
-> **Project:** Blue Falcon - Airport Operations Management System  
-> **Version:** 1.0  
-> **Last Updated:** March 15, 2026  
+> **Project:** Project Falcon - Airport Operations Management System
+> **Version:** 1.0
+> **Last Updated:** March 24, 2026
 
 ---
 
@@ -43,7 +43,7 @@
 
 ```bash
 git clone <repository-url>
-cd "Blue Falcon"
+cd Project-Falcon
 ```
 
 ### Step 2: Create Virtual Environment
@@ -145,7 +145,7 @@ pip install django-debug-toolbar ipdb
 ## Project Structure
 
 ```
-Blue Falcon/
+Project-Falcon/
 ├── airport_sim/                 # Django Project Configuration
 │   ├── settings.py              # Application settings
 │   ├── urls.py                  # Root URL configuration
@@ -1334,5 +1334,5 @@ LOGGING['loggers']['django.db.backends'] = {
 
 ---
 
-*Last Updated: March 15, 2026*  
+*Last Updated: March 24, 2026*
 *Version: 1.0*

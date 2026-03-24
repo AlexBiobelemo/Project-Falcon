@@ -1,9 +1,9 @@
 # API Documentation
 
-> **Project:** Blue Falcon - Airport Operations Management System  
-> **API Version:** v1  
-> **Base URL:** `/api/v1/`  
-> **Last Updated:** March 15, 2026  
+> **Project:** Project Falcon - Airport Operations Management System
+> **API Version:** v1
+> **Base URL:** `/api/v1/`
+> **Last Updated:** March 24, 2026
 
 ---
 
@@ -24,7 +24,7 @@
 
 ## Overview
 
-The Blue Falcon API is a RESTful API built with Django REST Framework. It provides programmatic access to all airport operations data including flights, gates, passengers, staff, fiscal assessments, and more.
+The Project Falcon API is a RESTful API built with Django REST Framework. It provides programmatic access to all airport operations data including flights, gates, passengers, staff, fiscal assessments, and more.
 
 ### Base URL
 
@@ -1238,5 +1238,5 @@ curl -X GET http://localhost:8000/api/v1/dashboard-summary/ \
 
 ---
 
-*Last Updated: March 15, 2026*  
+*Last Updated: March 24, 2026*
 *Version: 1.0*

@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: blue-falcon
+    name: project-falcon
     runtime: python
     plan: starter
     # Explicitly use Daphne (ASGI server for Django Channels/WebSocket)
@@ -24,6 +24,6 @@ services:
       - key: DATABASE_NAME
         value: db.sqlite3
       - key: ALLOWED_HOSTS
-        value: "blue-falcon.onrender.com,*.onrender.com"
+        value: "project-falcon.onrender.com,*.onrender.com"
       - key: WEB_CONCURRENCY
         value: "0"

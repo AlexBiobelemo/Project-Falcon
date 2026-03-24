@@ -357,6 +357,19 @@ ALLOWED_HOSTS = [host.strip() for host in _raw_hosts if host.strip()]
 if '*' in ALLOWED_HOSTS:
     ALLOWED_HOSTS = ['*']
 
+# Allow Render.com subdomains in production
+if 'RENDER' in os.environ:
+    ALLOWED_HOSTS += ['.onrender.com']
+
+# Self-ping keep-alive configuration (for preventing platform sleep)
+# Auto-enabled on Render, configurable via environment variables
+SELF_PING_ENABLED = os.environ.get('SELF_PING_ENABLED', '1' if 'RENDER' in os.environ else '0').lower() in ('1', 'true', 'yes', 'on')
+SELF_PING_BASE_URL = os.environ.get('SELF_PING_URL', os.environ.get('RENDER_EXTERNAL_URL', ''))
+SELF_PING_PATH = os.environ.get('SELF_PING_PATH', '/core/health/')
+SELF_PING_INTERVAL_MINUTES = int(os.environ.get('SELF_PING_INTERVAL_MINUTES', '12'))
+SELF_PING_TIMEOUT_SECONDS = int(os.environ.get('SELF_PING_TIMEOUT_SECONDS', '6'))
+SELF_PING_FORCE_HTTPS = os.environ.get('SELF_PING_FORCE_HTTPS', '1').lower() in ('1', 'true', 'yes', 'on')
+
 # Logging configuration
 LOGGING = {
     'version': 1,

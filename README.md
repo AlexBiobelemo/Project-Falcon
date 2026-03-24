@@ -1,7 +1,7 @@
 # Airport Operations Management System - Technical Documentation
 
-> **Version:** 1.0  
-> **Last Updated:** March 2026  
+> **Version:** 1.0
+> **Last Updated:** March 24, 2026
 > **Project:** Blue Falcon - Airport Operations Management System
 
 ---
@@ -17,6 +17,7 @@
 7. [Setup & Installation](#7-setup--installation)
 8. [Security Features](#8-security-features)
 9. [Configuration Reference](#9-configuration-reference)
+10. [Deployment](#10-deployment)
 
 ---
 
@@ -24,36 +25,54 @@
 
 ### 1.1 Introduction
 
-The **Airport Operations Management System** (also known as Blue Falcon) is a comprehensive Django-based application designed to manage real-world airport operations. The system provides functionality for managing flights, gates, passengers, staff, aircraft, crew members, fiscal assessments, reports, and incident tracking.
+The **Airport Operations Management System** (also known as Blue Falcon) is a comprehensive Django-based application designed to manage airport operations. The system provides functionality for managing flights, gates, passengers, staff, aircraft, crew members, fiscal assessments, reports, and document management.
 
 ### 1.2 Core Features
 
 | Feature Category | Capabilities |
 |-----------------|-------------|
 | **Flight Management** | Schedule flights, track status, manage delays, assign gates |
-| **Gate Management** | Track gate availability, occupancy status, maintenance scheduling |
-| **Passenger Management** | Check-in tracking, boarding status, passenger records |
-| **Staff Management** | Staff assignments, role tracking, availability management |
+| **Gate Management** | Track gate availability, occupancy status, terminal organization |
+| **Passenger Management** | Check-in tracking, boarding status, passenger records, baggage tracking |
+| **Staff Management** | Staff registry, role tracking, availability management, shift assignments |
 | **Aircraft Management** | Aircraft registry, maintenance tracking, capacity management |
 | **Crew Management** | Crew assignments, license tracking, flight hours |
 | **Fiscal Assessments** | Financial reporting, revenue/expense tracking, period-based assessments |
 | **Document Management** | Document templates, generated reports, file storage |
 | **Incident Tracking** | Safety incidents, operational issues, resolution workflows |
 | **Maintenance Logs** | Equipment maintenance tracking, cost management |
+| **Weather Integration** | Open-Meteo API integration for airport weather data |
+| **Real-time Updates** | WebSocket support for dashboard and flight updates |
 
 ### 1.3 Technology Stack
 
 | Layer | Technology |
 |-------|------------|
-| **Framework** | Django 5.1 |
-| **Database** | PostgreSQL (default) / SQLite (development) |
-| **API** | Django REST Framework |
-| **WebSocket** | Django Channels |
-| **Background Tasks** | Django-Q2 (Redis/ORM backend) |
-| **Caching** | Django Cache Framework (Redis/LocMem) |
+| **Framework** | Django 5.1.7 |
+| **Database** | PostgreSQL (production) / SQLite (development) |
+| **API** | Django REST Framework 3.15.2 |
+| **WebSocket** | Django Channels 4.2.0 + Daphne 4.2.1 |
+| **Background Tasks** | Django-Q2 |
+| **Caching** | Django Cache Framework (LocMem/Redis) |
 | **Authentication** | Token + Session Authentication |
+| **Two-Factor Auth** | django-two-factor-auth |
 | **Frontend** | HTMX, Bootstrap, Chart.js |
 | **Python Version** | 3.12+ |
+
+### 1.4 Self-Ping Keep-Alive System
+
+The application includes a self-ping system to prevent hosting platforms (like Render) from putting the application to sleep:
+
+- **Health Endpoint:** `/core/health/` - Returns `{"status": "ok"}`
+- **Auto-enabled:** On Render when `RENDER` environment variable is set
+- **Ping Interval:** Every 12 minutes (configurable)
+- **Leader Election:** File-based locking prevents multiple workers from pinging simultaneously
+
+**Configuration Environment Variables:**
+- `SELF_PING_ENABLED` - Enable/disable (auto-enabled on Render)
+- `SELF_PING_URL` - Base URL (defaults to `RENDER_EXTERNAL_URL`)
+- `SELF_PING_INTERVAL_MINUTES` - Default: 12
+- `SELF_PING_TIMEOUT_SECONDS` - Default: 6
 
 ---
 

@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Blue Falcon - Startup Script for Render
+# Project Falcon - Startup Script for Render
 # This ensures Daphne (ASGI) is used instead of Gunicorn (WSGI)
 
-echo "Starting Blue Falcon with Daphne (ASGI server)..."
+echo "Starting Project Falcon with Daphne (ASGI server)..."
 
 # Run migrations
 echo "Running database migrations..."

@@ -200,4 +200,11 @@ urlpatterns = [
         views.DataImportWizardView.as_view(),
         name="data_import_wizard"
     ),
+
+    # Health check endpoint for monitoring/self-ping
+    path(
+        "health/",
+        views.health_check,
+        name="health_check"
+    ),
 ]
