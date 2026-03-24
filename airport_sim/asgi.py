@@ -12,24 +12,58 @@ import asyncio
 from pathlib import Path
 from django.core.asgi import get_asgi_application
 from django.conf import settings
+from django.http import FileResponse, Http404
+import mimetypes
 
 # Import channels and routing for WebSocket support
 from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.auth import AuthMiddlewareStack
 from channels.security.websocket import AllowedHostsOriginValidator
 
-# Import static files handler for ASGI
-from asgiref.compatibility import guarantee_single_callable
-from asgiref.staticfiles import StaticFilesWrapper
-
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'airport_sim.settings')
 
 # Initialize Django ASGI application early to ensure settings are loaded
 django_asgi_app = get_asgi_application()
 
-# Wrap with static files handler for production
-# This serves static files from STATIC_ROOT when DEBUG=False
-django_asgi_app = StaticFilesWrapper(django_asgi_app)
+
+class StaticFilesASGIMiddleware:
+    """
+    Simple ASGI middleware to serve static files in production.
+    Serves files from STATIC_ROOT when DEBUG=False.
+    """
+
+    def __init__(self, app):
+        self.app = app
+        self.static_root = Path(settings.STATIC_ROOT) if hasattr(settings, 'STATIC_ROOT') else None
+        self.static_url = settings.STATIC_URL if hasattr(settings, 'STATIC_URL') else '/static/'
+
+    async def __call__(self, scope, receive, send):
+        if scope['type'] == 'http' and scope['method'] == 'GET':
+            path = scope['path']
+            
+            # Check if request is for static files
+            if path.startswith(self.static_url):
+                # Get the relative file path
+                relative_path = path[len(self.static_url):]
+                
+                # Build full file path
+                file_path = self.static_root / relative_path if self.static_root else None
+                
+                if file_path and file_path.exists() and file_path.is_file():
+                    # Serve the static file
+                    content_type, _ = mimetypes.guess_type(str(file_path))
+                    content_type = content_type or 'application/octet-stream'
+                    
+                    response = FileResponse(open(file_path, 'rb'), content_type=content_type)
+                    await response(scope, receive, send)
+                    return
+        
+        # Pass through to the main application
+        await self.app(scope, receive, send)
+
+
+# Wrap with static files middleware
+django_asgi_app = StaticFilesASGIMiddleware(django_asgi_app)
 
 # Import WebSocket routing after Django is set up
 from airport_sim.websocket_routing import websocket_urlpatterns
