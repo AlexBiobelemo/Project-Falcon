@@ -337,6 +337,7 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 
 # Proxy header for platforms like Render that terminate HTTPS at the load balancer
+# This tells Django to trust the X-Forwarded-Proto header from the proxy
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Content Security Policy - Whitelist approach

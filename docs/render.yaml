@@ -14,7 +14,9 @@ services:
       - key: DEBUG
         value: "False"
       - key: SECURE_SSL_REDIRECT
-        value: "True"
+        value: "False"
+      - key: SECURE_PROXY_SSL_HEADER
+        value: "HTTP_X_FORWARDED_PROTO,https"
       - key: CSRF_COOKIE_SECURE
         value: "True"
       - key: SESSION_COOKIE_SECURE
@@ -24,6 +26,6 @@ services:
       - key: DATABASE_NAME
         value: db.sqlite3
       - key: ALLOWED_HOSTS
-        value: "project-falcon.onrender.com,*.onrender.com"
+        value: "project-falcon.onrender.com,*.onrender.com,blue-falcon.onrender.com"
       - key: WEB_CONCURRENCY
         value: "0"

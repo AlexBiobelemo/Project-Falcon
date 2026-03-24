@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# Blue Falcon - Startup Script for Render
+# Project Falcon - Startup Script for Render
 # This ensures Daphne (ASGI) is used instead of Gunicorn (WSGI)
 
 set -e  # Exit on any error
 
 echo "========================================="
-echo "Blue Falcon - Starting Deployment"
+echo "Project Falcon - Starting Deployment"
 echo "========================================="
 echo ""
 
@@ -28,10 +28,15 @@ python manage.py migrate --noinput
 echo "Migrations complete."
 echo ""
 
-# Collect static files
+# Collect static files with verbose output
 echo "Collecting static files..."
-python manage.py collectstatic --noinput
+python manage.py collectstatic --noinput --verbosity 2
 echo "Static files collected."
+echo ""
+
+# Verify static files directory
+echo "Static files directory contents:"
+ls -la staticfiles/ || echo "Warning: staticfiles directory not found"
 echo ""
 
 # Check Django configuration
