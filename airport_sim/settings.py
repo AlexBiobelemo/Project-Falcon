@@ -336,6 +336,9 @@ SECURE_HSTS_SECONDS = 31536000 if not DEBUG else 0  # 1 year
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 
+# Proxy header for platforms like Render that terminate HTTPS at the load balancer
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 # Content Security Policy - Whitelist approach
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_BROWSER_XSS_FILTER = True
