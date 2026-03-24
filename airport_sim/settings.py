@@ -104,15 +104,6 @@ REST_FRAMEWORK = {
     }
 }
 
-# Cache Configuration
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'unique-snowflake',
-        'TIMEOUT': 300,  # 5 minutes default
-    }
-}
-
 # Cache warming settings
 CACHE_WARMING_ENABLED = True
 CACHE_WARMING_INTERVAL = 1800  # 30 minutes
@@ -149,6 +140,9 @@ SPECTACULAR_SETTINGS = {
 MIDDLEWARE = [
     # Security middleware - must be at top
     'django.middleware.security.SecurityMiddleware',
+
+    # WhiteNoise for static file serving (works with ASGI/Daphne)
+    'whitenoise.middleware.WhiteNoiseMiddleware',
 
     # Debug toolbar (development only)
     'debug_toolbar.middleware.DebugToolbarMiddleware',
@@ -279,13 +273,8 @@ STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]
 
-# Static files storage - use default for ASGI compatibility
-# WhiteNoise doesn't support ASGI, so we use Django's default storage
-# Static files are served by Daphne directly from STATIC_ROOT
-
-# Media files (user uploads)
-MEDIA_URL = 'media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+# Static files storage - WhiteNoise for production (supports ASGI/Daphne)
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Media files (user uploads)
 MEDIA_URL = 'media/'
