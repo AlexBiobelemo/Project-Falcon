@@ -49,6 +49,15 @@
                 </ul>
                 <ul class="navbar-nav">
                     {% if user.is_authenticated %}
+                        <!-- Notifications Bell -->
+                        <li class="nav-item">
+                            <a class="nav-link position-relative" href="{% url 'core:activity_log_list' %}" title="Notifications">
+                                <i class="fas fa-bell"></i>
+                                <span class="position-absolute top-25 start-100 translate-middle badge rounded-pill bg-danger" id="notificationBadge" style="display: none;">
+                                    0
+                                </span>
+                            </a>
+                        </li>
                         <li class="nav-item">
                             <span class="user-avatar" aria-label="Current user: {{ user.get_full_name|default:user.username }}">
                                 {% if user.first_name and user.last_name %}
