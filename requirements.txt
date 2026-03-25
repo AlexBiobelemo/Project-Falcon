@@ -1,15 +1,15 @@
 # Django
-Django==5.1.14
+Django==5.2.0
 
 # Database
 # psycopg2-binary for development (SQLite in production on Render free tier)
 psycopg2-binary==2.9.10
 
 # REST Framework
-djangorestframework==3.15.2
+djangorestframework==3.16.0
 
 # Django Filters (required for API filtering)
-django-filter==24.3
+django-filter==25.1
 
 # CORS
 django-cors-headers==4.7.0
@@ -36,9 +36,9 @@ redis==5.2.1
 openpyxl==3.1.5
 
 # Two-Factor Authentication
-django-two-factor-auth==1.16.0
-django-otp==1.5.0
-qrcode==7.4.2
+django-two-factor-auth==1.17.0
+django-otp==1.5.2
+qrcode==8.1
 
 # API Documentation
 drf-spectacular==0.28.0
