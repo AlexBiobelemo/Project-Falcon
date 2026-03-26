@@ -1,5 +1,5 @@
 # Django
-Django==5.2.0
+Django==5.2.12
 
 # Database
 # psycopg2-binary for development (SQLite in production on Render free tier)
@@ -47,7 +47,7 @@ drf-spectacular==0.28.0
 django-debug-toolbar==4.3.0
 
 # HTTP requests (for self-ping keep-alive)
-requests==2.32.3
+requests==2.32.4
 
 # APScheduler (for self-ping scheduled tasks)
 APScheduler==3.11.0

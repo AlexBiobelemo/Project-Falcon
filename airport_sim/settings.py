@@ -150,9 +150,6 @@ MIDDLEWARE = [
     # Security middleware - must be at top
     'django.middleware.security.SecurityMiddleware',
 
-    # Debug toolbar (development only)
-    'debug_toolbar.middleware.DebugToolbarMiddleware',
-
     # WhiteNoise for static files (must be after SecurityMiddleware)
     'whitenoise.middleware.WhiteNoiseMiddleware',
     
@@ -342,7 +339,11 @@ CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SAMESITE = 'Lax'
 
 # Security settings for production
-SECURE_SSL_REDIRECT = os.environ.get('SECURE_SSL_REDIRECT', 'False').lower() in ('true', '1', 'yes')
+# Default to True when DEBUG is False (production); can be overridden by env.
+SECURE_SSL_REDIRECT = os.environ.get(
+    'SECURE_SSL_REDIRECT',
+    'True' if not DEBUG else 'False'
+).lower() in ('true', '1', 'yes')
 SECURE_HSTS_SECONDS = 31536000 if not DEBUG else 0  # 1 year
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
@@ -367,9 +368,38 @@ ADMIN_REQUIRE_SUPERUSER = True
 _raw_hosts = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 ALLOWED_HOSTS = [host.strip() for host in _raw_hosts if host.strip()]
 
+# Render health checks / app URLs are always on https://*.onrender.com
+CSRF_TRUSTED_ORIGINS = []
+
 # If wildcard is set, allow all hosts (for development/hosting platforms)
 if '*' in ALLOWED_HOSTS:
     ALLOWED_HOSTS = ['*']
+else:
+    # Render uses `<service>.onrender.com` hostnames; allow them automatically when detected.
+    if 'RENDER' in os.environ:
+        ALLOWED_HOSTS.append('.onrender.com')
+
+    # Also allow the exact external hostname if provided by the platform.
+    _render_external_url = os.environ.get('RENDER_EXTERNAL_URL', '').strip()
+    if _render_external_url:
+        try:
+            from urllib.parse import urlparse
+
+            _host = (urlparse(_render_external_url).hostname or '').strip()
+            if _host:
+                ALLOWED_HOSTS.append(_host)
+        except Exception:
+            pass
+
+# CSRF trusted origins (needed when SECURE_SSL_REDIRECT/CSRF_COOKIE_SECURE are enabled behind a proxy).
+# Keep this permissive-but-scoped to the known public URL when available.
+_csrf_origins_env = os.environ.get('CSRF_TRUSTED_ORIGINS', '').strip()
+if _csrf_origins_env:
+    CSRF_TRUSTED_ORIGINS = [o.strip() for o in _csrf_origins_env.split(',') if o.strip()]
+else:
+    _render_external_url = os.environ.get('RENDER_EXTERNAL_URL', '').strip()
+    if _render_external_url:
+        CSRF_TRUSTED_ORIGINS = [_render_external_url]
 
 # Self-ping keep-alive configuration (for preventing platform sleep).
 # Auto-enabled on Render; all values can be overridden with env vars.
@@ -613,6 +643,14 @@ LOGOUT_REDIRECT_URL = '/'
 # Django Debug Toolbar Configuration (Development)
 if DEBUG:
     INSTALLED_APPS.append('debug_toolbar')
+
+    # Insert the middleware right after SecurityMiddleware to avoid interfering
+    # with WhiteNoise and ensure it never runs in production.
+    try:
+        _sec_idx = MIDDLEWARE.index('django.middleware.security.SecurityMiddleware')
+        MIDDLEWARE.insert(_sec_idx + 1, 'debug_toolbar.middleware.DebugToolbarMiddleware')
+    except ValueError:
+        MIDDLEWARE.insert(0, 'debug_toolbar.middleware.DebugToolbarMiddleware')
     
     INTERNAL_IPS = [
         '127.0.0.1',

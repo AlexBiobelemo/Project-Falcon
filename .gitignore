@@ -74,11 +74,10 @@ npm-debug.log
 yarn-error.log
 
 # -----------------------------------------------------------------------------
-# Database - KEEP db.sqlite3 for development/demo
+# Database
 # -----------------------------------------------------------------------------
-# Note: db.sqlite3 is kept for development and demonstration
-# Production should use PostgreSQL with environment-based configuration
-# db.sqlite3-journal is temporary and should be ignored
+# Never commit local sqlite databases.
+db.sqlite3
 db.sqlite3-journal
 
 # -----------------------------------------------------------------------------
@@ -105,10 +104,10 @@ mediafiles/
 *.cer
 
 # -----------------------------------------------------------------------------
-# Logs - KEPT for demonstration and debugging
+# Logs
 # -----------------------------------------------------------------------------
-# Note: logs/ directory is kept for demonstration purposes
-# Individual .log files outside logs/ are ignored
+# Never commit logs.
+logs/
 *.log
 
 # -----------------------------------------------------------------------------
