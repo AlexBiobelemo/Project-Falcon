@@ -38,6 +38,7 @@ openpyxl==3.1.5
 # Two-Factor Authentication
 django-two-factor-auth==1.17.0
 django-otp==1.5.2
+phonenumbers==9.0.14
 qrcode==7.4.2
 
 # API Documentation
