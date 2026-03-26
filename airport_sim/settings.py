@@ -414,6 +414,14 @@ SELF_PING_TIMEOUT_SECONDS = int(os.environ.get('SELF_PING_TIMEOUT_SECONDS', '6')
 SELF_PING_FORCE_HTTPS = os.environ.get('SELF_PING_FORCE_HTTPS', '1').lower() in ('1', 'true', 'yes', 'on')
 
 # Logging configuration
+# Ensure log directory exists in environments where we write file logs (e.g. Render).
+# Without this, Django logging config can crash on startup.
+try:
+    (BASE_DIR / 'logs').mkdir(parents=True, exist_ok=True)
+except Exception:
+    # If the filesystem is read-only or otherwise unavailable, fall back to console-only.
+    pass
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
