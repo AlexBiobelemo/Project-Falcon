@@ -33,6 +33,9 @@ def ws_notifications_fallback(request):
     })
 
 urlpatterns = [
+    # Avoid noisy 500s/404s from browsers requesting /favicon.ico.
+    # If you add a real icon later, serve it from /static/favicon.ico.
+    path('favicon.ico', lambda request: JsonResponse({}, status=204), name='favicon'),
     path('', root_dashboard_view, name='home'),
     path('admin/', admin_site.urls),
     path('core/', include('core.urls', namespace='core')),

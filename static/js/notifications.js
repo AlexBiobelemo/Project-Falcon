@@ -39,9 +39,9 @@
          */
         init() {
             this.loadPreferences();
-            this.requestNotificationPermission();
             this.connect();
             this.initEventListeners();
+            this.maybeShowPermissionPrompt();
             console.log('[Notifications] Notification system initialized');
         }
 
@@ -88,10 +88,72 @@
                 try {
                     const permission = await Notification.requestPermission();
                     this.notificationsEnabled = permission === 'granted';
+                    // Persist preference so we don't keep prompting.
+                    this.notificationPreferences.desktop = this.notificationsEnabled;
+                    this.savePreferences();
                 } catch (e) {
                     console.error('[Notifications] Permission request failed:', e);
                 }
             }
+        }
+
+        /**
+         * Show a lightweight UI prompt that the user can click to enable notifications.
+         * Browsers require Notification.requestPermission() to be triggered by a user gesture.
+         */
+        maybeShowPermissionPrompt() {
+            if (!('Notification' in window)) return;
+            if (!this.notificationPreferences.desktop) return;
+            if (Notification.permission !== 'default') return;
+
+            // Avoid duplicate prompts.
+            if (document.getElementById('falcon-notification-permission')) return;
+
+            const wrap = document.createElement('div');
+            wrap.id = 'falcon-notification-permission';
+            wrap.style.cssText = [
+                'position:fixed',
+                'right:16px',
+                'bottom:16px',
+                'z-index:9999',
+                'max-width:360px',
+                'padding:12px 12px 10px',
+                'border-radius:12px',
+                'background:#0b1220',
+                'color:#e7eefc',
+                'box-shadow:0 12px 36px rgba(0,0,0,.35)',
+                'border:1px solid rgba(255,255,255,.08)',
+                'font:14px/1.35 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif',
+            ].join(';');
+
+            wrap.innerHTML = `
+                <div style="font-weight:650; margin-bottom:6px;">Enable desktop alerts?</div>
+                <div style="opacity:.85; margin-bottom:10px;">Get flight status and gate-change notifications while you work.</div>
+                <div style="display:flex; gap:8px; justify-content:flex-end;">
+                    <button type="button" data-action="dismiss" style="padding:8px 10px; border-radius:10px; border:1px solid rgba(255,255,255,.16); background:transparent; color:inherit; cursor:pointer;">Not now</button>
+                    <button type="button" data-action="enable" style="padding:8px 10px; border-radius:10px; border:1px solid rgba(255,255,255,.16); background:#1d4ed8; color:#fff; cursor:pointer;">Enable</button>
+                </div>
+            `;
+
+            wrap.addEventListener('click', async (e) => {
+                const btn = e.target && e.target.closest ? e.target.closest('button[data-action]') : null;
+                if (!btn) return;
+
+                const action = btn.getAttribute('data-action');
+                if (action === 'dismiss') {
+                    // Do not disable permanently; just hide the prompt for this session.
+                    wrap.remove();
+                    return;
+                }
+
+                if (action === 'enable') {
+                    // User gesture happens here -> safe to call requestPermission().
+                    await this.requestNotificationPermission();
+                    wrap.remove();
+                }
+            });
+
+            document.body.appendChild(wrap);
         }
 
         /**
