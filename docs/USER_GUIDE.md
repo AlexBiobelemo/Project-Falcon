@@ -1,8 +1,8 @@
 # User Guide & Features Documentation
 
-> **Project:** Project Falcon - Airport Operations Management System
-> **Version:** 1.0
-> **Last Updated:** March 24, 2026
+> **Project:** Blue Falcon - Airport Operations Management System  
+> **Version:** 1.0  
+> **Last Updated:** March 15, 2026  
 
 ---
 
@@ -750,5 +750,5 @@ The application meets WCAG 2.1 AA standards:
 
 ---
 
-*Last Updated: March 24, 2026*
+*Last Updated: March 15, 2026*  
 *Version: 1.0*

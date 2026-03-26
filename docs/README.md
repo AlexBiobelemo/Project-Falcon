@@ -1,9 +1,9 @@
-# Project Falcon - Airport Operations Management System
+# Blue Falcon - Airport Operations Management System
 
-> **Version:** 1.0
-> **Last Updated:** March 24, 2026
-> **Status:** Production Ready
-> **Category:** Aviation Management System
+> **Version:** 1.0  
+> **Last Updated:** March 15, 2026  
+> **Status:** Production Ready  
+> **Category:** Aviation Management System  
 
 ---
 
@@ -26,11 +26,12 @@
 
 ## Introduction
 
-**Project Falcon** is a comprehensive, enterprise-grade Airport Operations Management System built with Django 5.1.7. It provides a complete solution for managing real-world airport operations including flight scheduling, gate management, passenger tracking, staff assignments, fiscal assessments, and regulatory compliance.
+**Blue Falcon** is a comprehensive, enterprise-grade Airport Operations Management System built with Django 5.1. It provides a complete solution for managing real-world airport operations including flight scheduling, gate management, passenger tracking, staff assignments, fiscal assessments, and regulatory compliance.
 
 ### Purpose
 
 The system is designed to:
+
 - Centralize all airport operational data in a single platform
 - Provide real-time visibility into airport operations via dashboards and WebSocket updates
 - Enable data-driven decision making through comprehensive analytics and reporting
@@ -40,46 +41,52 @@ The system is designed to:
 
 ### Target Users
 
-| User Type | Access Level | Capabilities |
-|-----------|-------------|--------------|
-| **Administrators** | Full Access | System configuration, user management, all CRUD operations |
-| **Approvers** | Elevated Access | Review and approve fiscal assessments, generate reports |
-| **Editors** | Standard Access | Create and edit operational data (flights, gates, staff) |
-| **Viewers** | Read-Only | View dashboards, reports, and operational data |
-| **Public Users** | Limited Access | Flight status portal, baggage tracking (no authentication required) |
+| User Type          | Access Level    | Capabilities                                                        |
+| ------------------ | --------------- | ------------------------------------------------------------------- |
+| **Administrators** | Full Access     | System configuration, user management, all CRUD operations          |
+| **Approvers**      | Elevated Access | Review and approve fiscal assessments, generate reports             |
+| **Editors**        | Standard Access | Create and edit operational data (flights, gates, staff)            |
+| **Viewers**        | Read-Only       | View dashboards, reports, and operational data                      |
+| **Public Users**   | Limited Access  | Flight status portal, baggage tracking (no authentication required) |
 
 ---
 
 ## Key Features
 
 ### Flight Operations Management
+
 - **Flight Scheduling**: Create, update, and track flights with complete itinerary information
 - **Status Tracking**: Real-time flight status updates (scheduled, boarding, departed, arrived, delayed, cancelled)
 - **Gate Assignment**: Automatic and manual gate assignment with conflict detection
 - **Delay Management**: Track and report delay minutes with root cause analysis
 
 ### Gate Management
+
 - **Real-time Availability**: Live gate status tracking (available, occupied, maintenance, closed)
 - **Terminal Organization**: Gates organized by terminal with capacity classification
 - **Utilization Analytics**: Gate occupancy rates and turnover metrics
 
 ### Passenger Management
+
 - **Check-in Tracking**: Passenger check-in status and boarding progress
 - **Baggage Tracking**: Checked baggage count and tracking per passenger
 - **UUID-based Identification**: Unique passenger identifiers for privacy compliance
 
 ### Staff & Crew Management
+
 - **Staff Registry**: Complete staff database with roles, certifications, and contact information
 - **Assignment Tracking**: Staff-to-flight assignments with conflict detection
 - **Role-based Access**: Staff roles (pilot, co-pilot, cabin crew, ground crew, security, maintenance, cleaning)
 - **Availability Management**: Track staff availability and assignments
 
 ### Aircraft & Maintenance
+
 - **Aircraft Registry**: Complete aircraft database with tail numbers, models, and capacities
 - **Maintenance Logs**: Track maintenance activities with cost tracking
 - **Flight Hours Tracking**: Monitor total flight hours and maintenance schedules
 
 ### Fiscal Management
+
 - **Financial Assessments**: Period-based fiscal assessments (daily, weekly, monthly, quarterly, yearly)
 - **Revenue Tracking**: Multiple revenue streams (fuel, parking, retail, landing fees, cargo)
 - **Expense Management**: Comprehensive expense tracking (security, maintenance, operations, staff, utilities)
@@ -87,6 +94,7 @@ The system is designed to:
 - **Profit/Loss Analysis**: Automated calculation of net profit and operational metrics
 
 ### Reporting & Analytics
+
 - **Report Generation**: Automated report generation (fiscal, operational, passenger, financial, compliance)
 - **Multiple Formats**: Export to HTML, PDF, CSV, JSON
 - **Scheduled Reports**: Automated report scheduling (daily, weekly, monthly)
@@ -94,6 +102,7 @@ The system is designed to:
 - **Analytics Dashboard**: Interactive charts and metrics with Chart.js visualization
 
 ### Real-time Features
+
 - **WebSocket Updates**: Live dashboard updates without page refresh
 - **Flight Status Streaming**: Real-time flight status changes broadcast to connected clients
 - **Gate Status Updates**: Live gate availability updates
@@ -101,10 +110,12 @@ The system is designed to:
 - **Browser Notifications**: Push notifications for important events
 
 ### Public Portals
+
 - **Flight Status Portal**: Public-facing flight status lookup (no authentication required)
 - **Baggage Tracking**: Public baggage status tracking
 
 ### Integration Features
+
 - **RESTful API**: Complete API v1 with versioning support
 - **API Documentation**: Interactive Swagger UI and ReDoc documentation
 - **Webhook Support**: Event-driven integrations via WebSocket
@@ -115,47 +126,51 @@ The system is designed to:
 ## Technology Stack
 
 ### Backend
-| Component | Technology | Version |
-|-----------|-----------|---------|
-| **Framework** | Django | 5.1.7 |
-| **API Framework** | Django REST Framework | 3.15.2 |
-| **WebSocket** | Django Channels | 4.2.0 |
-| **Background Tasks** | Django-Q2 | 1.9.0 |
-| **Caching** | Django Cache Framework | Built-in |
-| **Authentication** | Django Auth + Token Auth | Built-in |
-| **Two-Factor Auth** | django-two-factor-auth | 1.16.0 |
-| **Self-Ping Scheduler** | APScheduler | 3.10.4 |
+
+| Component            | Technology               | Version  |
+| -------------------- | ------------------------ | -------- |
+| **Framework**        | Django                   | 5.1.7    |
+| **API Framework**    | Django REST Framework    | 3.15.2   |
+| **WebSocket**        | Django Channels          | 4.2.0    |
+| **Background Tasks** | Django-Q2                | 1.9.0    |
+| **Caching**          | Django Cache Framework   | Built-in |
+| **Authentication**   | Django Auth + Token Auth | Built-in |
+| **Two-Factor Auth**  | django-two-factor-auth   | 1.16.0   |
 
 ### Database
-| Component | Technology | Version |
-|-----------|-----------|---------|
-| **Production** | PostgreSQL | 12+ (via psycopg2-binary) |
-| **Development** | SQLite | 3.x (built-in) |
+
+| Component       | Technology | Version                   |
+| --------------- | ---------- | ------------------------- |
+| **Production**  | PostgreSQL | 12+ (via psycopg2-binary) |
+| **Development** | SQLite     | 3.x (built-in)            |
 
 ### Frontend
-| Component | Technology | Version |
-|-----------|-----------|---------|
-| **CSS Framework** | Bootstrap | 5.x |
-| **Dynamic Loading** | HTMX | Latest |
-| **Charts** | Chart.js | Latest |
-| **Icons** | Font Awesome | Latest |
+
+| Component           | Technology   | Version |
+| ------------------- | ------------ | ------- |
+| **CSS Framework**   | Bootstrap    | 5.x     |
+| **Dynamic Loading** | HTMX         | Latest  |
+| **Charts**          | Chart.js     | Latest  |
+| **Icons**           | Font Awesome | Latest  |
 
 ### Infrastructure
-| Component | Technology | Purpose |
-|-----------|-----------|---------|
-| **WSGI/ASGI Server** | Daphne | WebSocket + HTTP |
-| **Production Server** | Gunicorn | WSGI HTTP server |
-| **Static Files** | WhiteNoise | Static file serving |
-| **Deployment** | Render.com | Cloud hosting |
-| **Message Broker** | Redis | Django-Q2 backend, caching |
+
+| Component             | Technology | Purpose                    |
+| --------------------- | ---------- | -------------------------- |
+| **WSGI/ASGI Server**  | Daphne     | WebSocket + HTTP           |
+| **Production Server** | Gunicorn   | WSGI HTTP server           |
+| **Static Files**      | WhiteNoise | Static file serving        |
+| **Deployment**        | Render.com | Cloud hosting              |
+| **Message Broker**    | Redis      | Django-Q2 backend, caching |
 
 ### Development Tools
-| Tool | Purpose |
-|------|---------|
-| **django-debug-toolbar** | Development debugging |
-| **drf-spectacular** | API documentation (OpenAPI/Swagger) |
-| **django-cors-headers** | CORS management |
-| **python-dotenv** | Environment variable management |
+
+| Tool                     | Purpose                             |
+| ------------------------ | ----------------------------------- |
+| **django-debug-toolbar** | Development debugging               |
+| **drf-spectacular**      | API documentation (OpenAPI/Swagger) |
+| **django-cors-headers**  | CORS management                     |
+| **python-dotenv**        | Environment variable management     |
 
 ---
 
@@ -174,7 +189,7 @@ The system is designed to:
 
 ```bash
 git clone <repository-url>
-cd Project-Falcon
+cd "Blue Falcon"
 ```
 
 #### 2. Create Virtual Environment
@@ -205,6 +220,7 @@ ALLOWED_HOSTS=localhost,127.0.0.1
 ```
 
 **Production Environment:**
+
 ```env
 SECRET_KEY=<secure-random-key>
 DEBUG=False
@@ -309,7 +325,7 @@ python manage.py qcluster
 ### Project Structure
 
 ```
-Project-Falcon/
+Blue Falcon/
 ├── airport_sim/                 # Django Project Configuration
 │   ├── settings.py              # Application settings
 │   ├── urls.py                  # Root URL configuration
@@ -318,11 +334,11 @@ Project-Falcon/
 │   └── websocket_routing.py     # WebSocket URL routing
 │
 ├── core/                        # Main Application Module
-│   ├── models.py                # Database models (25 models)
-│   ├── views.py                 # Django views
+│   ├── models.py                # Database models (2117 lines)
+│   ├── views.py                 # Django views (2299 lines)
 │   ├── forms.py                 # Form validation
 │   ├── serializers.py           # DRF serializers
-│   ├── api.py                   # API ViewSets
+│   ├── api.py                   # API ViewSets (983 lines)
 │   ├── api_urls.py              # API URL routing
 │   ├── urls.py                  # App URL patterns
 │   ├── admin.py                 # Django admin configuration
@@ -330,11 +346,10 @@ Project-Falcon/
 │   ├── permissions.py           # Role-based permissions
 │   ├── middleware.py            # Custom middleware
 │   ├── signals.py               # Django signals
-│   ├── tasks.py                 # Background tasks (Django-Q2)
+│   ├── tasks.py                 # Background tasks
 │   ├── honeypot.py              # Bot protection
 │   ├── weather_service.py       # Weather API integration
 │   ├── map_service.py           # Map visualization
-│   ├── self_ping.py             # Self-ping keep-alive system
 │   │
 │   ├── management/commands/     # Custom Django commands
 │   │   ├── populate_demo_data.py
@@ -511,17 +526,20 @@ Channel Layer (Group Messaging)
 ### 1. Flight Management Module
 
 **Models:**
+
 - `Flight` - Flight operations with scheduling and tracking
 - `Passenger` - Passenger records with booking information
 - `StaffAssignment` - Staff-to-flight assignments
 
 **Key Features:**
+
 - Flight status lifecycle management
 - Gate assignment with conflict detection
 - Passenger check-in and boarding tracking
 - Delay tracking and reporting
 
 **API Endpoints:**
+
 ```
 GET    /api/v1/flights/              # List all flights
 POST   /api/v1/flights/              # Create new flight
@@ -534,16 +552,19 @@ GET    /api/v1/flights/?status=delayed  # Filter by status
 ### 2. Gate Management Module
 
 **Models:**
+
 - `Gate` - Airport gate entities
 - `MaintenanceLog` - Gate maintenance tracking
 
 **Key Features:**
+
 - Real-time gate status tracking
 - Terminal-based organization
 - Capacity classification (narrow-body/wide-body)
 - Maintenance scheduling
 
 **API Endpoints:**
+
 ```
 GET    /api/v1/gates/                # List all gates
 POST   /api/v1/gates/                # Create new gate
@@ -554,11 +575,13 @@ GET    /api/v1/gates/?status=available  # Filter by status
 ### 3. Fiscal Management Module
 
 **Models:**
+
 - `FiscalAssessment` - Financial assessments
 - `Report` - Generated reports
 - `Document` - Document templates and files
 
 **Key Features:**
+
 - Period-based financial assessments
 - Revenue and expense tracking
 - Approval workflows
@@ -566,6 +589,7 @@ GET    /api/v1/gates/?status=available  # Filter by status
 - Multi-format export (HTML, PDF, CSV, JSON)
 
 **Views:**
+
 ```
 /core/assessments/                  # List assessments
 /core/assessments/create/           # Create assessment
@@ -578,11 +602,13 @@ GET    /api/v1/gates/?status=available  # Filter by status
 ### 4. Staff & Crew Management Module
 
 **Models:**
+
 - `Staff` - Airport/airline staff
 - `CrewMember` - Flight crew members
 - `StaffAssignment` - Assignment tracking
 
 **Key Features:**
+
 - Staff registry with certifications
 - Role-based access control
 - Assignment conflict detection
@@ -591,11 +617,13 @@ GET    /api/v1/gates/?status=available  # Filter by status
 ### 5. Aircraft & Maintenance Module
 
 **Models:**
+
 - `Aircraft` - Aircraft registry
 - `MaintenanceLog` - Maintenance activities
 - `IncidentReport` - Incident tracking
 
 **Key Features:**
+
 - Aircraft registration and tracking
 - Maintenance schedule management
 - Cost tracking for maintenance
@@ -604,11 +632,13 @@ GET    /api/v1/gates/?status=available  # Filter by status
 ### 6. Analytics & Reporting Module
 
 **Views:**
+
 - `AnalyticsDashboardView` - Interactive analytics
 - `AirportComparisonView` - Multi-airport comparison
 - `ReportScheduleListView` - Scheduled reports
 
 **Features:**
+
 - Chart.js visualizations
 - Historical trend analysis
 - Comparative analytics
@@ -618,6 +648,7 @@ GET    /api/v1/gates/?status=available  # Filter by status
 ### 7. Real-time Updates Module
 
 **Consumers:**
+
 - `DashboardConsumer` - Dashboard metrics
 - `FlightUpdatesConsumer` - Flight status
 - `GateStatusConsumer` - Gate availability
@@ -625,6 +656,7 @@ GET    /api/v1/gates/?status=available  # Filter by status
 - `NotificationConsumer` - Browser notifications
 
 **WebSocket Channels:**
+
 ```
 /ws/dashboard/      # Dashboard updates
 /ws/flights/        # Flight updates
@@ -642,26 +674,29 @@ GET    /api/v1/gates/?status=available  # Filter by status
 The API supports two authentication methods:
 
 1. **Token Authentication** (CSRF exempt)
+   
    ```bash
    curl -H "Authorization: Bearer YOUR_TOKEN" https://api.example.com/api/v1/flights/
    ```
 
 2. **Session Authentication** (CSRF required)
+   
    ```bash
    curl --cookie "sessionid=YOUR_SESSION" -H "X-CSRFToken: YOUR_CSRF_TOKEN" ...
    ```
 
 ### Rate Limiting
 
-| User Type | Rate Limit |
-|-----------|-----------|
-| Anonymous | 100 requests/hour |
+| User Type     | Rate Limit         |
+| ------------- | ------------------ |
+| Anonymous     | 100 requests/hour  |
 | Authenticated | 1000 requests/hour |
-| Burst | 60 requests/minute |
+| Burst         | 60 requests/minute |
 
 ### Endpoints
 
 #### Airports
+
 ```
 GET    /api/v1/airports/              # List airports
 POST   /api/v1/airports/              # Create airport
@@ -671,6 +706,7 @@ DELETE /api/v1/airports/{id}/         # Delete airport
 ```
 
 #### Flights
+
 ```
 GET    /api/v1/flights/
 POST   /api/v1/flights/
@@ -683,6 +719,7 @@ GET /api/v1/flights/?status=delayed&airline=BA&date_from=2026-03-01
 ```
 
 #### Fiscal Assessments
+
 ```
 GET    /api/v1/assessments/
 POST   /api/v1/assessments/
@@ -695,10 +732,13 @@ POST   /api/v1/assessments/{id}/approve/  # Approve/reject
 #### Custom Endpoints
 
 **Dashboard Summary:**
+
 ```
 GET /api/v1/dashboard-summary/
 ```
+
 Response:
+
 ```json
 {
   "total_airports": 5,
@@ -713,16 +753,19 @@ Response:
 ```
 
 **Trend Data:**
+
 ```
 GET /api/v1/trend-data/?period=6months
 ```
 
 **Analytics:**
+
 ```
 GET /api/v1/analytics/?airport=LOS&metric=revenue
 ```
 
 **Weather:**
+
 ```
 GET /api/v1/weather/search/?airport=LOS
 ```
@@ -730,6 +773,7 @@ GET /api/v1/weather/search/?airport=LOS
 ### Response Format
 
 **Success Response:**
+
 ```json
 {
   "count": 100,
@@ -740,6 +784,7 @@ GET /api/v1/weather/search/?airport=LOS
 ```
 
 **Error Response:**
+
 ```json
 {
   "error": "Invalid input",
@@ -752,6 +797,7 @@ GET /api/v1/weather/search/?airport=LOS
 ### API Documentation
 
 Interactive API documentation is available at:
+
 - **Swagger UI**: `/api/schema/swagger-ui/`
 - **ReDoc**: `/api/schema/redoc/`
 - **OpenAPI Schema**: `/api/schema/`
@@ -764,12 +810,12 @@ Interactive API documentation is available at:
 
 #### Role-Based Access Control (RBAC)
 
-| Role | Permissions |
-|------|-------------|
-| **Viewer** | Read-only access to all data |
-| **Editor** | Create and edit operational data |
-| **Approver** | Approve fiscal assessments |
-| **Admin** | Full system access (superuser only) |
+| Role         | Permissions                         |
+| ------------ | ----------------------------------- |
+| **Viewer**   | Read-only access to all data        |
+| **Editor**   | Create and edit operational data    |
+| **Approver** | Approve fiscal assessments          |
+| **Admin**    | Full system access (superuser only) |
 
 #### Permission Classes
 
@@ -783,39 +829,46 @@ class FiscalAssessmentCreateView(PermissionMixin, CreateView):
 ### Security Features
 
 #### 1. Honeypot Protection
+
 - Hidden form fields to trap bots
 - Time-based token validation
 - Decoy API endpoints
 - Automatic blocking of suspicious patterns
 
 #### 2. CSRF Protection
+
 - Enabled on all session-authenticated endpoints
 - Token authentication is CSRF-exempt
 - Secure cookie settings
 
 #### 3. Input Validation
+
 - Django Forms for all POST data
 - Explicit field allowlists
 - Type validation (Decimal, Integer, Date)
 - JSON schema validation
 
 #### 4. Audit Logging
+
 - Automatic logging via Django signals
 - EventLog tracks all CRUD operations
 - User, IP address, and timestamp recorded
 - Severity levels (info, warning, error)
 
 #### 5. Rate Limiting
+
 - API throttling (100/hour anon, 1000/hour user)
 - WebSocket rate limiting (100 msg/s)
 - Connection limits (10 per user)
 
 #### 6. Password Security
+
 - PBKDF2, Argon2, BCrypt support
 - No weak hashers (MD5 removed)
 - Two-factor authentication support
 
 #### 7. Security Headers
+
 ```python
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
@@ -878,18 +931,7 @@ DATABASE_USER=postgres
 DATABASE_PASSWORD=<secure-password>
 ALLOWED_HOSTS=blue-falcon.onrender.com,your-domain.com
 REDIS_URL=<redis-connection-string>
-
-# Self-Ping (auto-enabled on Render)
-RENDER_EXTERNAL_URL=https://your-app.onrender.com
-SELF_PING_ENABLED=1
-SELF_PING_INTERVAL_MINUTES=12
 ```
-
-**Self-Ping Configuration:**
-- `RENDER_EXTERNAL_URL`: Your Render app URL (auto-detected on Render)
-- `SELF_PING_ENABLED`: Enable/disable self-ping (1=enabled, 0=disabled)
-- `SELF_PING_INTERVAL_MINUTES`: Ping interval in minutes (default: 12)
-- `SELF_PING_PATH`: Health endpoint path (default: `/core/health/`)
 
 #### 3. Database Setup
 
@@ -1061,27 +1103,27 @@ from django.db import models
 
 class Airport(models.Model):
     """Represents an airport facility.
-    
+
     Attributes:
         code: IATA airport code (e.g., "LOS")
         name: Full airport name
         city: City location
     """
-    
+
     code = models.CharField(max_length=3, unique=True)
     name = models.CharField(max_length=200)
     city = models.CharField(max_length=100)
-    
+
     def __str__(self) -> str:
         """Return string representation of airport."""
         return f"{self.code} - {self.name}"
-    
+
     def get_flights_by_status(self, status: str) -> models.QuerySet:
         """Return flights filtered by status.
-        
+
         Args:
             status: Flight status to filter by
-            
+
         Returns:
             QuerySet of flights with specified status
         """
@@ -1170,6 +1212,7 @@ LOGGING = {
 **Symptoms:** WebSocket connections return 404 or fail to connect
 
 **Solutions:**
+
 - Ensure ASGI server is running (Daphne, not Gunicorn)
 - Check WebSocket URL routing in `websocket_routing.py`
 - Verify `ALLOWED_HOSTS` includes your domain
@@ -1180,6 +1223,7 @@ LOGGING = {
 **Symptoms:** Reports stuck in "pending" state
 
 **Solutions:**
+
 ```bash
 # Check if Q cluster is running
 python manage.py qcluster
@@ -1195,6 +1239,7 @@ redis-cli ping
 **Symptoms:** 404 errors for CSS/JS files
 
 **Solutions:**
+
 ```bash
 # Collect static files
 python manage.py collectstatic --noinput
@@ -1208,6 +1253,7 @@ python manage.py collectstatic --noinput
 **Symptoms:** Migration conflicts or errors
 
 **Solutions:**
+
 ```bash
 # Show migration status
 python manage.py showmigrations
@@ -1226,6 +1272,7 @@ python manage.py migrate
 **Symptoms:** Users can't access certain pages
 
 **Solutions:**
+
 - Run `python manage.py setup_permissions`
 - Check user is in correct group (editors, approvers)
 - Verify `required_role` in view classes
@@ -1236,6 +1283,7 @@ python manage.py migrate
 **Symptoms:** Forms submit but return 403 errors
 
 **Solutions:**
+
 - Ensure honeypot fields are hidden (not visible to users)
 - Check honeypot token validation timing
 - Review honeypot middleware logs
@@ -1269,6 +1317,7 @@ tail -f /var/log/nginx/error.log
 ### Contact
 
 For support and questions:
+
 - **GitHub Issues**: [Create an issue](https://github.com/yourusername/Blue-Falcon/issues)
 - **Email**: support@example.com
 
@@ -1284,9 +1333,9 @@ Contributions are welcome! Please follow these guidelines:
 
 ### License
 
-Copyright © 2026 Project Falcon. All rights reserved.
+Copyright © 2026 Blue Falcon Project. All rights reserved.
 
 ---
 
-*Last Updated: March 24, 2026*
+*Last Updated: March 15, 2026*  
 *Version: 1.0*

@@ -1,8 +1,8 @@
 # Architecture Documentation
 
-> **Project:** Project Falcon - Airport Operations Management System
-> **Version:** 1.0
-> **Last Updated:** March 24, 2026
+> **Project:** Blue Falcon - Airport Operations Management System  
+> **Version:** 1.0  
+> **Last Updated:** March 15, 2026  
 
 ---
 
@@ -36,7 +36,7 @@
         │ HTTPS       │ SMTP        │ HTTPS/WSS       │ HTTPS
         ▼             ▼             ▼                 ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│                    Project Falcon System                               │
+│                    Blue Falcon System                               │
 │  ┌──────────────────────────────────────────────────────────────┐  │
 │  │                 Application Layer                             │  │
 │  │  Django + DRF + Channels + Django-Q2                         │  │
@@ -203,7 +203,7 @@ WebSocket consumers implement pub/sub for real-time updates:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                         Project Falcon System                          │
+│                         Blue Falcon System                          │
 │                                                                     │
 │  ┌───────────────────────────────────────────────────────────────┐ │
 │  │                    Web Layer                                  │ │
@@ -687,7 +687,7 @@ def invalidate_cache(model_instance):
 
 ```
 ┌─────────────────┐       HTTPS        ┌─────────────────┐
-│  Project Falcon   │───────────────────>│  Open-Meteo API │
+│  Blue Falcon    │───────────────────>│  Open-Meteo API │
 │  WeatherService │<───────────────────│  (Free Tier)    │
 └─────────────────┘    JSON Response   └─────────────────┘
 
@@ -713,7 +713,7 @@ def fetch_weather_for_airport(airport: Airport) -> dict:
 
 ```
 ┌─────────────────┐       SMTP         ┌─────────────────┐
-│  Project Falcon   │───────────────────>│  Email Server   │
+│  Blue Falcon    │───────────────────>│  Email Server   │
 │  (Django Email) │                    │  (SendGrid/SES) │
 └─────────────────┘                    └─────────────────┘
 
@@ -1052,5 +1052,5 @@ LOGGING = {
 
 ---
 
-*Last Updated: March 24, 2026*
+*Last Updated: March 15, 2026*  
 *Version: 1.0*

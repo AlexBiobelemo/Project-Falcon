@@ -1,6 +1,6 @@
 # WCAG 2.1 Compliance Checklist
 
-This document outlines the Web Content Accessibility Guidelines (WCAG) 2.1 compliance status for the Project Falcon Airport Management System.
+This document outlines the Web Content Accessibility Guidelines (WCAG) 2.1 compliance status for the Blue Falcon Airport Management System.
 
 ## Compliance Level Target: AA
 

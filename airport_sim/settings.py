@@ -104,6 +104,15 @@ REST_FRAMEWORK = {
     }
 }
 
+# Cache Configuration
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+        'TIMEOUT': 300,  # 5 minutes default
+    }
+}
+
 # Cache warming settings
 CACHE_WARMING_ENABLED = True
 CACHE_WARMING_INTERVAL = 1800  # 30 minutes
@@ -141,34 +150,34 @@ MIDDLEWARE = [
     # Security middleware - must be at top
     'django.middleware.security.SecurityMiddleware',
 
-    # WhiteNoise for static file serving (works with ASGI/Daphne)
-    'whitenoise.middleware.WhiteNoiseMiddleware',
-
     # Debug toolbar (development only)
     'debug_toolbar.middleware.DebugToolbarMiddleware',
 
+    # WhiteNoise for static files (must be after SecurityMiddleware)
+    'whitenoise.middleware.WhiteNoiseMiddleware',
+    
     # CORS support (for API versioning)
     'corsheaders.middleware.CorsMiddleware',
-
+    
     # Common middleware
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-
+    
     # CSRF protection
     'django.middleware.csrf.CsrfViewMiddleware',
-
+    
     # Authentication
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-
+    
     # Messages
     'django.contrib.messages.middleware.MessageMiddleware',
-
+    
     # Clickjacking protection
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-
+    
     # Custom middleware for request tracking in signals
     'core.middleware.RequestMiddleware',
-
+    
     # Honeypot protection middleware
     'core.middleware.HoneypotMiddleware',
     'core.middleware.HoneypotTokenMiddleware',
@@ -265,19 +274,34 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = 'static/'
+# NOTE: WhiteNoise matches requests by URL prefix. In production we expect
+# requests like `/static/...`, so keep a leading slash here (Render logs show
+# `/static/...` 404s when this prefix doesn't match).
+STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Django 5.2+ uses STORAGES for staticfiles; keep this explicit so WhiteNoise
+# actually serves the collected/compressed artifacts in production.
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
+
+# Avoid hard failures if a referenced static asset is missing from the manifest.
+# (This can happen if templates reference files that aren't collected in some envs.)
+WHITENOISE_MANIFEST_STRICT = False
 
 # Additional static files locations
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]
 
-# WhiteNoise configuration for static file serving
-WHITENOISE_MANIFEST_STRICT = False
-
 # Media files (user uploads)
-MEDIA_URL = 'media/'
+MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 # Caching configuration for scalability
@@ -324,7 +348,6 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 
 # Proxy header for platforms like Render that terminate HTTPS at the load balancer
-# This tells Django to trust the X-Forwarded-Proto header from the proxy
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Content Security Policy - Whitelist approach
@@ -348,13 +371,12 @@ ALLOWED_HOSTS = [host.strip() for host in _raw_hosts if host.strip()]
 if '*' in ALLOWED_HOSTS:
     ALLOWED_HOSTS = ['*']
 
-# Allow Render.com subdomains in production
-if 'RENDER' in os.environ:
-    ALLOWED_HOSTS += ['.onrender.com']
-
-# Self-ping keep-alive configuration (for preventing platform sleep)
-# Auto-enabled on Render, configurable via environment variables
-SELF_PING_ENABLED = os.environ.get('SELF_PING_ENABLED', '1' if 'RENDER' in os.environ else '0').lower() in ('1', 'true', 'yes', 'on')
+# Self-ping keep-alive configuration (for preventing platform sleep).
+# Auto-enabled on Render; all values can be overridden with env vars.
+SELF_PING_ENABLED = os.environ.get(
+    'SELF_PING_ENABLED',
+    '1' if ('RENDER' in os.environ or os.environ.get('RENDER_EXTERNAL_URL')) else '0'
+).lower() in ('1', 'true', 'yes', 'on')
 SELF_PING_BASE_URL = os.environ.get('SELF_PING_URL', os.environ.get('RENDER_EXTERNAL_URL', ''))
 SELF_PING_PATH = os.environ.get('SELF_PING_PATH', '/core/health/')
 SELF_PING_INTERVAL_MINUTES = int(os.environ.get('SELF_PING_INTERVAL_MINUTES', '12'))

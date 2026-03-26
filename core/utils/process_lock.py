@@ -1,101 +1,118 @@
 """Cross-platform file locking for leader election.
 
-This module provides file-based locking to ensure only one worker
-executes periodic tasks (like self-ping) in multi-worker deployments.
-
-Supports both Unix/Linux (fcntl) and Windows (msvcrt).
+Used to ensure only one worker process executes periodic background tasks
+(e.g. self-ping keep-alive) in multi-worker deployments.
 """
 
+from __future__ import annotations
+
 import os
-import fcntl
 from typing import Optional
 
 
 class FileLock:
-    """Cross-platform file lock using fcntl (Unix) or msvcrt (Windows)."""
+    """Cross-platform non-blocking file lock.
+
+    - POSIX: uses `fcntl.flock`
+    - Windows: uses `msvcrt.locking`
+    """
 
     def __init__(self, lock_path: str) -> None:
-        """Initialize the file lock.
-        
-        Args:
-            lock_path: Path to the lock file.
-        """
         self.lock_path = lock_path
-        self.lock_file: Optional[int] = None
+        self._fh: Optional[object] = None
         self._locked = False
 
     def acquire(self) -> bool:
-        """Acquire the lock.
-        
-        Returns:
-            True if lock was acquired, False otherwise.
-        """
+        """Attempt to acquire the lock (non-blocking)."""
+        if self._locked:
+            return True
+
         try:
-            # Ensure directory exists
             lock_dir = os.path.dirname(self.lock_path)
             if lock_dir and not os.path.exists(lock_dir):
                 os.makedirs(lock_dir, exist_ok=True)
 
-            # Open or create lock file
-            self.lock_file = os.open(
-                self.lock_path,
-                os.O_CREAT | os.O_RDWR | os.O_TRUNC,
-                0o644
-            )
+            # Use a file handle so Windows locking works properly.
+            self._fh = open(self.lock_path, "a+b")
 
-            # Try to acquire exclusive lock (non-blocking)
-            fcntl.flock(self.lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            if os.name == "nt":
+                import msvcrt
+
+                # Lock 1 byte at the start of file.
+                try:
+                    msvcrt.locking(self._fh.fileno(), msvcrt.LK_NBLCK, 1)
+                except OSError:
+                    self._fh.close()
+                    self._fh = None
+                    return False
+            else:
+                import fcntl
+
+                try:
+                    fcntl.flock(self._fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                except OSError:
+                    self._fh.close()
+                    self._fh = None
+                    return False
+
             self._locked = True
             return True
-
-        except (IOError, OSError):
-            # Lock is held by another process
-            if self.lock_file is not None:
-                os.close(self.lock_file)
-                self.lock_file = None
+        except OSError:
+            if self._fh is not None:
+                try:
+                    self._fh.close()
+                except OSError:
+                    pass
+                self._fh = None
             return False
 
     def release(self) -> None:
-        """Release the lock."""
-        if self.lock_file is not None:
-            try:
-                fcntl.flock(self.lock_file, fcntl.LOCK_UN)
-                os.close(self.lock_file)
-                # Optionally remove lock file
-                if os.path.exists(self.lock_path):
-                    os.remove(self.lock_path)
-            except (IOError, OSError):
-                pass
-            finally:
-                self.lock_file = None
-                self._locked = False
+        """Release the lock (best-effort)."""
+        if self._fh is None:
+            self._locked = False
+            return
 
-    def __enter__(self) -> 'FileLock':
-        """Context manager entry."""
+        try:
+            if os.name == "nt":
+                import msvcrt
+
+                try:
+                    self._fh.seek(0)
+                    msvcrt.locking(self._fh.fileno(), msvcrt.LK_UNLCK, 1)
+                except OSError:
+                    pass
+            else:
+                import fcntl
+
+                try:
+                    fcntl.flock(self._fh.fileno(), fcntl.LOCK_UN)
+                except OSError:
+                    pass
+        finally:
+            try:
+                self._fh.close()
+            except OSError:
+                pass
+            self._fh = None
+            self._locked = False
+
+    def __enter__(self) -> "FileLock":
         self.acquire()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
-        """Context manager exit."""
         self.release()
 
     @property
     def is_locked(self) -> bool:
-        """Check if this instance holds the lock."""
         return self._locked
 
 
 def is_leader(lock_path: str) -> bool:
-    """Check if current process is the leader (holds the lock).
-    
-    Args:
-        lock_path: Path to the lock file.
-        
-    Returns:
-        True if this process is the leader, False otherwise.
-    """
+    """Return True if this process can acquire the lock."""
     lock = FileLock(lock_path)
     acquired = lock.acquire()
     if acquired:
         lock.release()
     return acquired
+

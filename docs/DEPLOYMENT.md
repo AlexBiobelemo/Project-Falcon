@@ -1,8 +1,8 @@
 # Deployment Guide
 
-> **Project:** Project Falcon - Airport Operations Management System
-> **Version:** 1.0
-> **Last Updated:** March 24, 2026
+> **Project:** Blue Falcon - Airport Operations Management System  
+> **Version:** 1.0  
+> **Last Updated:** March 15, 2026  
 
 ---
 
@@ -17,17 +17,16 @@
 7. [Environment Variables](#environment-variables)
 8. [Static Files](#static-files)
 9. [Background Tasks](#background-tasks)
-10. [Self-Ping System](#self-ping-system)
-11. [SSL/HTTPS Configuration](#sslhttps-configuration)
-12. [Monitoring & Logging](#monitoring--logging)
-13. [Backup & Recovery](#backup--recovery)
-14. [Troubleshooting](#troubleshooting)
+10. [SSL/HTTPS Configuration](#sslhttps-configuration)
+11. [Monitoring & Logging](#monitoring--logging)
+12. [Backup & Recovery](#backup--recovery)
+13. [Troubleshooting](#troubleshooting)
 
 ---
 
 ## Overview
 
-This guide covers production deployment of the Project Falcon Airport Operations Management System. The application supports multiple deployment scenarios from managed cloud platforms to traditional VPS setups.
+This guide covers production deployment of the Blue Falcon Airport Operations Management System. The application supports multiple deployment scenarios from managed cloud platforms to traditional VPS setups.
 
 ### Deployment Requirements
 
@@ -718,7 +717,7 @@ aws s3 sync staticfiles/ s3://your-bucket/static/
 ```python
 # settings.py
 Q_CLUSTER = {
-    'name': 'ProjectFalcon',
+    'name': 'BlueFalcon',
     'workers': 4,
     'recycle': 500,
     'timeout': 60,
@@ -760,117 +759,6 @@ docker-compose up -d qcluster
 ### Monitor Tasks
 
 Access Django-Q2 admin at `/admin/django_q/`
-
----
-
-## Self-Ping System
-
-### Overview
-
-Project Falcon includes a self-ping keep-alive system that prevents hosting platforms (like Render) from putting the application to sleep due to inactivity. The system periodically sends HTTP requests to the application's own health endpoint to maintain platform wakefulness.
-
-### How It Works
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                    Self-Ping Architecture                           │
-│                                                                     │
-│  ┌─────────────────┐     Every 12 minutes      ┌─────────────────┐ │
-│  │  APScheduler    │──────────────────────────>│  Health Endpoint│ │
-│  │  (Background)   │   HTTP GET Request        │  /core/health/  │ │
-│  └─────────────────┘                           └─────────────────┘ │
-│         │                                                           │
-│         │ Leader Election (File Lock)                               │
-│         ▼                                                           │
-│  ┌─────────────────┐                                               │
-│  │  Only one worker│                                               │
-│  │  sends ping     │                                               │
-│  └─────────────────┘                                               │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-### Features
-
-- **Automatic Activation**: Auto-enabled on Render when `RENDER_EXTERNAL_URL` is set
-- **Leader Election**: File locking prevents multiple workers from pinging simultaneously
-- **Configurable Interval**: Default 12 minutes (adjustable via environment)
-- **HTTPS Enforcement**: Optional force HTTPS for ping URLs
-- **Graceful Degradation**: Silently skips if dependencies unavailable
-
-### Configuration
-
-#### Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `SELF_PING_ENABLED` | Enable/disable self-ping (1=enabled, 0=disabled) | `1` (on Render) |
-| `SELF_PING_URL` | Base URL for pinging (optional, auto-detected) | `RENDER_EXTERNAL_URL` |
-| `SELF_PING_PATH` | Health endpoint path | `/core/health/` |
-| `SELF_PING_INTERVAL_MINUTES` | Ping interval in minutes | `12` |
-| `SELF_PING_TIMEOUT_SECONDS` | Request timeout in seconds | `6` |
-| `SELF_PING_FORCE_HTTPS` | Force HTTPS for ping URLs | `1` |
-| `SELF_PING_LOCK_PATH` | File path for leader election lock | `/tmp/falcon-self-ping.lock` |
-
-#### Render.com Configuration
-
-```env
-# Auto-enabled on Render
-RENDER_EXTERNAL_URL=https://your-app.onrender.com
-SELF_PING_ENABLED=1
-SELF_PING_INTERVAL_MINUTES=12
-```
-
-#### Traditional VPS Configuration
-
-```env
-# Manual configuration required
-SELF_PING_ENABLED=1
-SELF_PING_URL=https://your-domain.com
-SELF_PING_INTERVAL_MINUTES=12
-SELF_PING_LOCK_PATH=/var/run/falcon-self-ping.lock
-```
-
-### Health Endpoint
-
-The self-ping system targets the `/core/health/` endpoint which returns:
-
-```json
-{
-  "status": "healthy",
-  "timestamp": "2026-03-24T10:00:00Z"
-}
-```
-
-### Monitoring
-
-Check self-ping status in application logs:
-
-```bash
-# View self-ping logs
-grep "Self-ping" logs/application.log
-
-# Expected log messages
-# - "Self-ping configured: URL=..., interval=12m, timeout=6s"
-# - "Self-ping scheduler started (interval: 12 minutes)"
-# - "Sending self-ping to https://..."
-# - "Self-ping successful: 200"
-```
-
-### Troubleshooting
-
-**Self-ping not starting:**
-- Check `SELF_PING_ENABLED=1` in environment
-- Verify `RENDER_EXTERNAL_URL` or `SELF_PING_URL` is set
-- Ensure `requests` and `APScheduler` are installed
-
-**Multiple pings being sent:**
-- Verify file lock path is accessible to all workers
-- Check file permissions on lock file
-
-**Ping failures:**
-- Check health endpoint is accessible
-- Verify SSL certificate is valid
-- Increase `SELF_PING_TIMEOUT_SECONDS` if needed
 
 ---
 
@@ -1153,5 +1041,5 @@ ps aux --sort=-%cpu | head
 
 ---
 
-*Last Updated: March 24, 2026*
+*Last Updated: March 15, 2026*  
 *Version: 1.0*
