@@ -605,6 +605,11 @@ class AnalyticsDashboardView(APIView):
         if end_dt:
             flight_filters &= Q(scheduled_departure__lte=end_dt)
 
+        # When filtering flights via Gate -> flights relation, qualify field names.
+        gate_flight_filters = Q(flights__scheduled_departure__gte=date_cutoff)
+        if end_dt:
+            gate_flight_filters &= Q(flights__scheduled_departure__lte=end_dt)
+
         flight_trend = Flight.objects.filter(flight_filters).annotate(
             period=trunc_func('scheduled_departure')
         ).values('period').annotate(
@@ -642,7 +647,7 @@ class AnalyticsDashboardView(APIView):
 
         # Gate utilization
         gate_utilization = Gate.objects.all().annotate(
-            flight_count=Count('flights', filter=flight_filters)
+            flight_count=Count('flights', filter=gate_flight_filters)
         ).values('gate_id', 'terminal', 'flight_count').order_by('-flight_count')
 
         # Status distribution
