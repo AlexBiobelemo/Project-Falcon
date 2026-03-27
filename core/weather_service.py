@@ -3,13 +3,39 @@
 This module provides integration with Open-Meteo API for weather data.
 """
 
-import requests
 import logging
+import json
+import urllib.error
+import urllib.parse
+import urllib.request
 from typing import Dict, Optional
 from django.core.cache import cache
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
+
+
+def _http_get_json(url: str, params: Dict[str, object], timeout: int = 5) -> Dict[str, object]:
+    """Small HTTP JSON helper to avoid depending on `requests`.
+
+    Using stdlib keeps the dependency surface smaller (and avoids Dependabot
+    alerts tied to `requests`).
+    """
+    qs = urllib.parse.urlencode({k: str(v) for k, v in params.items()})
+    full_url = f"{url}?{qs}"
+    req = urllib.request.Request(
+        full_url,
+        headers={"User-Agent": "blue-falcon/1.0 (+weather)"},
+        method="GET",
+    )
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        if getattr(resp, "status", 200) != 200:
+            raise urllib.error.HTTPError(full_url, resp.status, "HTTP error", resp.headers, None)
+        raw = resp.read().decode("utf-8", errors="replace")
+    data = json.loads(raw)
+    if not isinstance(data, dict):
+        raise ValueError("Expected JSON object response")
+    return data
 
 
 class WeatherService:
@@ -86,9 +112,7 @@ class WeatherService:
                 'daily': 'sunrise,sunset',
                 'timezone': 'auto',
             }
-            response = requests.get(self.BASE_URL, params=params, timeout=5)
-            response.raise_for_status()
-            data = response.json()
+            data = _http_get_json(self.BASE_URL, params=params, timeout=5)
             
             daily = data.get('daily', {})
             sunrise_str = daily.get('sunrise', [None])[0]
@@ -141,9 +165,7 @@ class WeatherService:
                 'timezone': 'auto',
             }
             
-            response = requests.get(self.BASE_URL, params=params, timeout=5)
-            response.raise_for_status()
-            data = response.json()
+            data = _http_get_json(self.BASE_URL, params=params, timeout=5)
             
             current = data.get('current', {})
             weather_code = current.get('weather_code', 0)
@@ -178,7 +200,7 @@ class WeatherService:
             
             return weather_data
             
-        except requests.RequestException as e:
+        except (urllib.error.URLError, urllib.error.HTTPError, ValueError) as e:
             logger.warning(f"Failed to fetch weather for {airport_code}: {e}")
             # Return minimal fallback with real coordinates still used
             return {
@@ -216,9 +238,7 @@ class WeatherService:
                 'format': 'json',
             }
             
-            response = requests.get(geocoding_url, params=params, timeout=5)
-            response.raise_for_status()
-            data = response.json()
+            data = _http_get_json(geocoding_url, params=params, timeout=5)
             
             results = data.get('results', [])
             locations = []
@@ -235,7 +255,7 @@ class WeatherService:
             
             return locations
             
-        except requests.RequestException as e:
+        except (urllib.error.URLError, urllib.error.HTTPError, ValueError) as e:
             logger.warning(f"Failed to search locations: {e}")
             return []
     

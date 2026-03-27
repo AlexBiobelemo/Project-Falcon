@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import logging
 import os
+import urllib.request
+import urllib.error
 
 from django.conf import settings
 
@@ -15,13 +17,12 @@ logger = logging.getLogger(__name__)
 
 # Optional dependencies - keep app booting even if these aren't installed.
 try:
-    import requests
     from apscheduler.schedulers.background import BackgroundScheduler
 
     APSCHEDULER_AVAILABLE = True
 except Exception:  # pragma: no cover
     APSCHEDULER_AVAILABLE = False
-    logger.debug("APScheduler or requests not available, self-ping disabled")
+    logger.debug("APScheduler not available, self-ping disabled")
 
 
 def _env_truthy(name: str, default: str = "0") -> bool:
@@ -91,16 +92,18 @@ def start_self_ping() -> None:
 
         try:
             logger.debug(f"Sending self-ping to {ping_url}")
-            resp = requests.get(
+            req = urllib.request.Request(
                 ping_url,
-                timeout=timeout_seconds,
                 headers={"User-Agent": "falcon-self-ping/1.0"},
+                method="GET",
             )
-            if resp.status_code == 200:
-                logger.debug(f"Self-ping successful: {resp.status_code}")
+            with urllib.request.urlopen(req, timeout=timeout_seconds) as resp:
+                status = getattr(resp, "status", 200)
+            if status == 200:
+                logger.debug(f"Self-ping successful: {status}")
             else:
-                logger.warning(f"Self-ping returned non-200 status: {resp.status_code}")
-        except requests.exceptions.RequestException as e:
+                logger.warning(f"Self-ping returned non-200 status: {status}")
+        except (urllib.error.URLError, urllib.error.HTTPError, ValueError) as e:
             logger.warning(f"Self-ping failed: {e}")
         except Exception as e:  # pragma: no cover
             logger.error(f"Self-ping unexpected error: {e}")
@@ -121,4 +124,3 @@ def start_self_ping() -> None:
         logger.info(f"Self-ping scheduler started (interval: {interval_minutes} minutes)")
     except Exception as e:  # pragma: no cover
         logger.error(f"Failed to start self-ping scheduler: {e}")
-
