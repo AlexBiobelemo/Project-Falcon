@@ -69,6 +69,9 @@ def start_self_ping() -> None:
         return
 
     path = (os.environ.get("SELF_PING_PATH") or "/core/health/").strip()
+    full_health = _env_truthy("SELF_PING_FULL", "1" if on_render else "0")
+    if full_health and path.startswith("/core/health/") and "full=" not in path:
+        path = path + ("&" if "?" in path else "?") + "full=1"
 
     if _env_truthy("SELF_PING_FORCE_HTTPS", "1") and base_url.startswith("http://"):
         base_url = "https://" + base_url[7:]
@@ -99,10 +102,10 @@ def start_self_ping() -> None:
             )
             with urllib.request.urlopen(req, timeout=timeout_seconds) as resp:
                 status = getattr(resp, "status", 200)
-            if status == 200:
+            if 200 <= status < 400:
                 logger.debug(f"Self-ping successful: {status}")
             else:
-                logger.warning(f"Self-ping returned non-200 status: {status}")
+                logger.warning(f"Self-ping returned non-success status: {status}")
         except (urllib.error.URLError, urllib.error.HTTPError, ValueError) as e:
             logger.warning(f"Self-ping failed: {e}")
         except Exception as e:  # pragma: no cover

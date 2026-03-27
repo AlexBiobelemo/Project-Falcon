@@ -2346,5 +2346,41 @@ class DataImportWizardView(LoginRequiredMixin, View):
 
 
 def health_check(request):
-    """Lightweight health check endpoint for monitoring/self-ping."""
-    return JsonResponse({"status": "ok"})
+    """Lightweight health check endpoint for monitoring/self-ping.
+
+    Use `?full=1` to run slightly deeper checks (still fast):
+    - Database connectivity (`SELECT 1`)
+    - URL resolving for key routes
+    """
+    full = request.GET.get("full", "").strip().lower() in ("1", "true", "yes", "on")
+    payload = {"status": "ok"}
+
+    if not full:
+        return JsonResponse(payload)
+
+    # Best-effort deeper checks (never raise).
+    checks = {"db": "unknown", "routes": "unknown"}
+
+    try:
+        from django.db import connection
+
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+            cursor.fetchone()
+        checks["db"] = "ok"
+    except Exception as e:
+        checks["db"] = f"error: {e.__class__.__name__}"
+        payload["status"] = "degraded"
+
+    try:
+        from django.urls import resolve
+
+        for path in ("/", "/baggage/public/", "/core/health/"):
+            resolve(path)
+        checks["routes"] = "ok"
+    except Exception as e:
+        checks["routes"] = f"error: {e.__class__.__name__}"
+        payload["status"] = "degraded"
+
+    payload["checks"] = checks
+    return JsonResponse(payload)
