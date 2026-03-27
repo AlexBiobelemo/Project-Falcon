@@ -153,7 +153,7 @@
             </form>
             {% if demo_flight_hint or demo_baggage_hint %}
             <div class="mt-3 small text-white-50">
-                Demo hints:
+                Demo hints (random each refresh):
                 {% if demo_flight_hint %}
                     <a class="link-light" href="?q={{ demo_flight_hint|urlencode }}">{{ demo_flight_hint }}</a>
                 {% endif %}

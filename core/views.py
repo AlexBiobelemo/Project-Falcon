@@ -2163,20 +2163,19 @@ class FlightStatusPortalView(View):
         # Demo hints (random examples to help first-time users)
         demo_flight_hint = None
         demo_baggage_hint = None
-        if not search_query:
-            import random
+        import random
 
-            demo_flights_qs = Flight.objects.filter(
-                Q(scheduled_departure__date=today) | Q(scheduled_arrival__date=today)
-            ).values_list('flight_number', flat=True)
-            flight_count = demo_flights_qs.count()
-            if flight_count:
-                demo_flight_hint = demo_flights_qs[random.randrange(flight_count)]
+        demo_flights_qs = Flight.objects.filter(
+            Q(scheduled_departure__date=today) | Q(scheduled_arrival__date=today)
+        ).values_list('flight_number', flat=True)
+        flight_count = demo_flights_qs.count()
+        if flight_count:
+            demo_flight_hint = demo_flights_qs[random.randrange(flight_count)]
 
-            demo_baggage_qs = Baggage.objects.values_list('tag_number', flat=True)
-            baggage_count = demo_baggage_qs.count()
-            if baggage_count:
-                demo_baggage_hint = demo_baggage_qs[random.randrange(baggage_count)]
+        demo_baggage_qs = Baggage.objects.values_list('tag_number', flat=True)
+        baggage_count = demo_baggage_qs.count()
+        if baggage_count:
+            demo_baggage_hint = demo_baggage_qs[random.randrange(baggage_count)]
 
         context = {
             "page_title": "Flight Status",
@@ -2218,21 +2217,20 @@ class BaggageTrackingView(View):
         # Demo hints (random examples to help first-time users)
         demo_baggage_hint = None
         demo_flight_hint = None
-        if not tag_number:
-            import random
+        import random
 
-            demo_baggage_qs = Baggage.objects.values_list('tag_number', flat=True)
-            baggage_count = demo_baggage_qs.count()
-            if baggage_count:
-                demo_baggage_hint = demo_baggage_qs[random.randrange(baggage_count)]
+        demo_baggage_qs = Baggage.objects.values_list('tag_number', flat=True)
+        baggage_count = demo_baggage_qs.count()
+        if baggage_count:
+            demo_baggage_hint = demo_baggage_qs[random.randrange(baggage_count)]
 
-            today = timezone.now().date()
-            demo_flights_qs = Flight.objects.filter(
-                Q(scheduled_departure__date=today) | Q(scheduled_arrival__date=today)
-            ).values_list('flight_number', flat=True)
-            flight_count = demo_flights_qs.count()
-            if flight_count:
-                demo_flight_hint = demo_flights_qs[random.randrange(flight_count)]
+        today = timezone.now().date()
+        demo_flights_qs = Flight.objects.filter(
+            Q(scheduled_departure__date=today) | Q(scheduled_arrival__date=today)
+        ).values_list('flight_number', flat=True)
+        flight_count = demo_flights_qs.count()
+        if flight_count:
+            demo_flight_hint = demo_flights_qs[random.randrange(flight_count)]
 
         context = {
             "page_title": "Baggage Tracking",

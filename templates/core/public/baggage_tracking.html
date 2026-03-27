@@ -15,7 +15,8 @@
         }
         body { background: #0d1117; min-height: 100vh; }
         .portal-header {
-            background: linear-gradient(135deg, var(--bs-primary), var(--bs-primary-dark));
+            background: #161b22;
+            border-bottom: 1px solid #30363d;
             color: white;
             padding: 2rem 0;
             margin-bottom: 2rem;
@@ -171,7 +172,7 @@
             </form>
             {% if demo_baggage_hint or demo_flight_hint %}
             <div class="small text-white-50 text-center mb-2">
-                Demo hints:
+                Demo hints (random each refresh):
                 {% if demo_baggage_hint %}
                     <a class="link-light" href="?tag={{ demo_baggage_hint|urlencode }}">{{ demo_baggage_hint }}</a>
                 {% endif %}
