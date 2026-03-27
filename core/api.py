@@ -541,24 +541,56 @@ class AnalyticsDashboardView(APIView):
         """Get analytics dashboard data."""
         from django.db.models import Avg, Sum, Count, Max, Min
         from django.db.models.functions import TruncMonth, TruncWeek
+        from datetime import date
 
-        # Time range parameter
-        range_param = request.query_params.get('range', '6months')
+        # Optional explicit date range (like Airport Comparison)
+        start_date_str = request.query_params.get('start_date', '') or ''
+        end_date_str = request.query_params.get('end_date', '') or ''
 
-        if range_param == '30days':
-            date_cutoff = timezone.now() - timedelta(days=30)
-            trunc_func = TruncWeek
-        elif range_param == '1year':
-            date_cutoff = timezone.now() - timedelta(days=365)
-            trunc_func = TruncMonth
-        else:  # 6months default
-            date_cutoff = timezone.now() - timedelta(days=180)
-            trunc_func = TruncMonth
+        now = timezone.now()
+        end_dt = None
+        if start_date_str:
+            try:
+                start_dt = timezone.make_aware(date.fromisoformat(start_date_str))
+            except ValueError:
+                start_dt = now - timedelta(days=180)
+            if end_date_str:
+                try:
+                    end_dt = timezone.make_aware(date.fromisoformat(end_date_str))
+                except ValueError:
+                    end_dt = now
+            else:
+                end_dt = now
+
+            date_cutoff = start_dt
+            # Choose aggregation resolution based on range length
+            days = max(1, (end_dt.date() - date_cutoff.date()).days)
+            trunc_func = TruncWeek if days <= 60 else TruncMonth
+            range_param = 'custom'
+        else:
+            # Time range parameter
+            range_param = request.query_params.get('range', '6months')
+
+            if range_param == '30days':
+                date_cutoff = now - timedelta(days=30)
+                trunc_func = TruncWeek
+            elif range_param == '1year':
+                date_cutoff = now - timedelta(days=365)
+                trunc_func = TruncMonth
+            else:  # 6months default
+                date_cutoff = now - timedelta(days=180)
+                trunc_func = TruncMonth
 
         # Revenue trend by period
-        revenue_trend = FiscalAssessment.objects.filter(
+        revenue_filters = Q(
             start_date__gte=date_cutoff,
             status=AssessmentStatus.APPROVED.value
+        )
+        if end_dt:
+            revenue_filters &= Q(start_date__lte=end_dt)
+
+        revenue_trend = FiscalAssessment.objects.filter(
+            revenue_filters
         ).annotate(
             period=trunc_func('start_date')
         ).values('period').annotate(
@@ -569,9 +601,11 @@ class AnalyticsDashboardView(APIView):
         ).order_by('period')
 
         # Flight trend
-        flight_trend = Flight.objects.filter(
-            scheduled_departure__gte=date_cutoff
-        ).annotate(
+        flight_filters = Q(scheduled_departure__gte=date_cutoff)
+        if end_dt:
+            flight_filters &= Q(scheduled_departure__lte=end_dt)
+
+        flight_trend = Flight.objects.filter(flight_filters).annotate(
             period=trunc_func('scheduled_departure')
         ).values('period').annotate(
             total_flights=Count('id'),
@@ -581,9 +615,11 @@ class AnalyticsDashboardView(APIView):
         ).order_by('period')
 
         # Passenger trend
-        passenger_trend = Passenger.objects.filter(
-            created_at__gte=date_cutoff
-        ).annotate(
+        passenger_filters = Q(created_at__gte=date_cutoff)
+        if end_dt:
+            passenger_filters &= Q(created_at__lte=end_dt)
+
+        passenger_trend = Passenger.objects.filter(passenger_filters).annotate(
             period=trunc_func('created_at')
         ).values('period').annotate(
             total_passengers=Count('id'),
@@ -593,16 +629,20 @@ class AnalyticsDashboardView(APIView):
         ).order_by('period')
 
         # Airport comparison
+        assessment_date_filter = Q(fiscal_assessments__status=AssessmentStatus.APPROVED.value) & Q(fiscal_assessments__start_date__gte=date_cutoff)
+        if end_dt:
+            assessment_date_filter &= Q(fiscal_assessments__start_date__lte=end_dt)
+
         airport_comparison = Airport.objects.filter(is_active=True).annotate(
-            total_assessments=Count('fiscal_assessments', filter=Q(fiscal_assessments__status=AssessmentStatus.APPROVED.value)),
-            total_revenue=Sum('fiscal_assessments__total_revenue', filter=Q(fiscal_assessments__status=AssessmentStatus.APPROVED.value)),
-            total_flights=Sum('fiscal_assessments__flight_count', filter=Q(fiscal_assessments__status=AssessmentStatus.APPROVED.value)),
-            avg_profit=Avg('fiscal_assessments__net_profit', filter=Q(fiscal_assessments__status=AssessmentStatus.APPROVED.value))
+            total_assessments=Count('fiscal_assessments', filter=assessment_date_filter),
+            total_revenue=Sum('fiscal_assessments__total_revenue', filter=assessment_date_filter),
+            total_flights=Sum('fiscal_assessments__flight_count', filter=assessment_date_filter),
+            avg_profit=Avg('fiscal_assessments__net_profit', filter=assessment_date_filter)
         ).order_by('-total_revenue').values('code', 'total_assessments', 'total_revenue', 'total_flights', 'avg_profit')
 
         # Gate utilization
         gate_utilization = Gate.objects.all().annotate(
-            flight_count=Count('flights', filter=Q(flights__scheduled_departure__gte=date_cutoff))
+            flight_count=Count('flights', filter=flight_filters)
         ).values('gate_id', 'terminal', 'flight_count').order_by('-flight_count')
 
         # Status distribution
@@ -613,6 +653,8 @@ class AnalyticsDashboardView(APIView):
         # Build response
         return Response({
             'range': range_param,
+            'start_date': start_date_str or None,
+            'end_date': end_date_str or None,
             'revenue_trend': {
                 'labels': [item['period'].strftime('%b %Y') for item in revenue_trend],
                 'revenue': [float(item['total_revenue'] or 0) for item in revenue_trend],

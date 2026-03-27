@@ -17,6 +17,14 @@
     .time-range-selector {
         min-width: 150px;
     }
+    .date-range-inputs {
+        display: none;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+    }
+    .date-range-inputs.active {
+        display: flex;
+    }
 </style>
 {% endblock %}
 
@@ -26,11 +34,18 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1><i class="fas fa-chart-line"></i> Analytics Dashboard</h1>
         <div class="d-flex gap-2">
-            <select id="timeRangeSelector" class="form-select time-range-selector" aria-label="Select time range">
-                <option value="30days">Last 30 Days</option>
-                <option value="6months" selected>Last 6 Months</option>
-                <option value="1year">Last Year</option>
-            </select>
+            <div>
+                <select id="timeRangeSelector" class="form-select time-range-selector" aria-label="Select time range" onchange="toggleCustomDateRange()">
+                    <option value="30days">Last 30 Days</option>
+                    <option value="6months" selected>Last 6 Months</option>
+                    <option value="1year">Last Year</option>
+                    <option value="custom">Custom Range</option>
+                </select>
+                <div id="customDateRange" class="date-range-inputs">
+                    <input type="date" id="startDate" class="form-control form-control-sm" title="Start Date">
+                    <input type="date" id="endDate" class="form-control form-control-sm" title="End Date">
+                </div>
+            </div>
             <button class="btn btn-outline-primary" onclick="refreshAnalytics()">
                 <i class="fas fa-sync-alt" aria-hidden="true"></i> Refresh
             </button>
@@ -182,9 +197,14 @@
     /**
      * Load analytics data from API
      */
-    async function loadAnalytics(timeRange = '6months') {
+    async function loadAnalytics(params = { range: '6months' }) {
         try {
-            const response = await fetch(`/api/v1/analytics/?range=${timeRange}`, {
+            const query = new URLSearchParams();
+            if (params.start_date) query.set('start_date', params.start_date);
+            if (params.end_date) query.set('end_date', params.end_date);
+            if (!params.start_date) query.set('range', params.range || '6months');
+
+            const response = await fetch(`/api/v1/analytics/?${query.toString()}`, {
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest'
                 }
@@ -568,9 +588,27 @@
      */
     window.refreshAnalytics = function() {
         const timeRange = document.getElementById('timeRangeSelector').value;
-        loadAnalytics(timeRange);
+        const params = { range: timeRange };
+        if (timeRange === 'custom') {
+            const startDate = document.getElementById('startDate')?.value || '';
+            const endDate = document.getElementById('endDate')?.value || '';
+            if (startDate) params.start_date = startDate;
+            if (endDate) params.end_date = endDate;
+        }
+        loadAnalytics(params);
         if (window.BlueFalcon?.notify) {
             window.BlueFalcon.notify('Analytics refreshed', 'success');
+        }
+    };
+
+    window.toggleCustomDateRange = function() {
+        const selector = document.getElementById('timeRangeSelector');
+        const custom = document.getElementById('customDateRange');
+        if (!selector || !custom) return;
+        if (selector.value === 'custom') {
+            custom.classList.add('active');
+        } else {
+            custom.classList.remove('active');
         }
     };
 
@@ -578,14 +616,25 @@
      * Initialize analytics dashboard
      */
     function initAnalyticsDashboard() {
+        window.toggleCustomDateRange();
+
         // Load initial data
         const timeRange = document.getElementById('timeRangeSelector').value || '6months';
-        loadAnalytics(timeRange);
+        loadAnalytics({ range: timeRange });
 
         // Listen for time range changes
         document.getElementById('timeRangeSelector').addEventListener('change', function(e) {
-            loadAnalytics(e.target.value);
+            window.toggleCustomDateRange();
+            if (e.target.value !== 'custom') {
+                loadAnalytics({ range: e.target.value });
+            }
         });
+
+        // Refresh when custom dates change (if in custom mode)
+        const startDate = document.getElementById('startDate');
+        const endDate = document.getElementById('endDate');
+        if (startDate) startDate.addEventListener('change', () => { if (document.getElementById('timeRangeSelector').value === 'custom') window.refreshAnalytics(); });
+        if (endDate) endDate.addEventListener('change', () => { if (document.getElementById('timeRangeSelector').value === 'custom') window.refreshAnalytics(); });
 
         // Listen for theme changes to update chart colors
         document.addEventListener('themeChanged', function() {
