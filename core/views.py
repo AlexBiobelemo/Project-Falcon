@@ -2124,7 +2124,7 @@ class FlightStatusPortalView(View):
 
     def get(self, request: HttpRequest) -> HttpResponse:
         """Render flight status portal."""
-        from .models import Flight, FlightStatus, Airport, Baggage
+        from .models import Flight, FlightStatus, Airport
         from django.db.models import Q
 
         search_query = request.GET.get('q', '')
@@ -2162,7 +2162,6 @@ class FlightStatusPortalView(View):
 
         # Demo hints (random examples to help first-time users)
         demo_flight_hint = None
-        demo_baggage_hint = None
         import random
 
         demo_flights_qs = Flight.objects.filter(
@@ -2171,11 +2170,11 @@ class FlightStatusPortalView(View):
         flight_count = demo_flights_qs.count()
         if flight_count:
             demo_flight_hint = demo_flights_qs[random.randrange(flight_count)]
-
-        demo_baggage_qs = Baggage.objects.values_list('tag_number', flat=True)
-        baggage_count = demo_baggage_qs.count()
-        if baggage_count:
-            demo_baggage_hint = demo_baggage_qs[random.randrange(baggage_count)]
+        else:
+            any_flights_qs = Flight.objects.values_list('flight_number', flat=True)
+            any_count = any_flights_qs.count()
+            if any_count:
+                demo_flight_hint = any_flights_qs[random.randrange(any_count)]
 
         context = {
             "page_title": "Flight Status",
@@ -2186,7 +2185,6 @@ class FlightStatusPortalView(View):
             "selected_airport": airport_filter,
             "search_query": search_query,
             "demo_flight_hint": demo_flight_hint,
-            "demo_baggage_hint": demo_baggage_hint,
             "is_public": True,
         }
         return render(request, self.template_name, context)

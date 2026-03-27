@@ -18,7 +18,8 @@
             min-height: 100vh;
         }
         .portal-header {
-            background: linear-gradient(135deg, var(--bs-primary), var(--bs-primary-dark));
+            background: #161b22;
+            border-bottom: 1px solid #30363d;
             color: white;
             padding: 2rem 0;
             margin-bottom: 2rem;
@@ -151,16 +152,10 @@
                     </button>
                 </div>
             </form>
-            {% if demo_flight_hint or demo_baggage_hint %}
+            {% if demo_flight_hint %}
             <div class="mt-3 small text-white-50">
                 Demo hints (random each refresh):
-                {% if demo_flight_hint %}
-                    <a class="link-light" href="?q={{ demo_flight_hint|urlencode }}">{{ demo_flight_hint }}</a>
-                {% endif %}
-                {% if demo_flight_hint and demo_baggage_hint %} • {% endif %}
-                {% if demo_baggage_hint %}
-                    baggage <a class="link-light" href="{% url 'public-baggage-tracking' %}?tag={{ demo_baggage_hint|urlencode }}">{{ demo_baggage_hint }}</a>
-                {% endif %}
+                <a class="link-light" href="?q={{ demo_flight_hint|urlencode }}">{{ demo_flight_hint }}</a>
             </div>
             {% endif %}
         </div>
