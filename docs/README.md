@@ -1,9 +1,10 @@
 # Blue Falcon - Airport Operations Management System
 
-> **Version:** 1.0  
-> **Last Updated:** March 15, 2026  
-> **Status:** Production Ready  
-> **Category:** Aviation Management System  
+> **Version:** 1.0
+> **Last Updated:** March 26, 2026
+> **Status:** Production Ready
+> **Category:** Aviation Management System
+> **Django Version:** 5.2.12
 
 ---
 
@@ -129,13 +130,15 @@ The system is designed to:
 
 | Component            | Technology               | Version  |
 | -------------------- | ------------------------ | -------- |
-| **Framework**        | Django                   | 5.1.7    |
-| **API Framework**    | Django REST Framework    | 3.15.2   |
+| **Framework**        | Django                   | 5.2.12   |
+| **API Framework**    | Django REST Framework    | 3.16.0   |
 | **WebSocket**        | Django Channels          | 4.2.0    |
+| **ASGI Server**      | Daphne                   | 4.2.1    |
 | **Background Tasks** | Django-Q2                | 1.9.0    |
 | **Caching**          | Django Cache Framework   | Built-in |
 | **Authentication**   | Django Auth + Token Auth | Built-in |
-| **Two-Factor Auth**  | django-two-factor-auth   | 1.16.0   |
+| **Two-Factor Auth**  | django-two-factor-auth   | 1.17.0   |
+| **Message Broker**   | Redis                    | 5.2.1    |
 
 ### Database
 
@@ -157,8 +160,8 @@ The system is designed to:
 
 | Component             | Technology | Purpose                    |
 | --------------------- | ---------- | -------------------------- |
-| **WSGI/ASGI Server**  | Daphne     | WebSocket + HTTP           |
-| **Production Server** | Gunicorn   | WSGI HTTP server           |
+| **ASGI Server**       | Daphne     | WebSocket + HTTP (primary) |
+| **WSGI Server**       | Gunicorn   | HTTP only (alternative)    |
 | **Static Files**      | WhiteNoise | Static file serving        |
 | **Deployment**        | Render.com | Cloud hosting              |
 | **Message Broker**    | Redis      | Django-Q2 backend, caching |
@@ -331,14 +334,15 @@ Blue Falcon/
 │   ├── urls.py                  # Root URL configuration
 │   ├── asgi.py                  # ASGI configuration (WebSocket)
 │   ├── wsgi.py                  # WSGI configuration
-│   └── websocket_routing.py     # WebSocket URL routing
+│   ├── websocket_routing.py     # WebSocket URL routing
+│   └── test_settings.py         # Test-specific settings
 │
 ├── core/                        # Main Application Module
-│   ├── models.py                # Database models (2117 lines)
-│   ├── views.py                 # Django views (2299 lines)
+│   ├── models.py                # Database models
+│   ├── views.py                 # Django views
 │   ├── forms.py                 # Form validation
 │   ├── serializers.py           # DRF serializers
-│   ├── api.py                   # API ViewSets (983 lines)
+│   ├── api.py                   # API ViewSets
 │   ├── api_urls.py              # API URL routing
 │   ├── urls.py                  # App URL patterns
 │   ├── admin.py                 # Django admin configuration
@@ -356,7 +360,9 @@ Blue Falcon/
 │   │   ├── populate_test_data.py
 │   │   ├── setup_permissions.py
 │   │   ├── backup_db.py
-│   │   └── add_staff_assignments.py
+│   │   ├── add_staff_assignments.py
+│   │   ├── complete_analytics_data.py
+│   │   └── populate_analytics_data.py
 │   │
 │   ├── templatetags/            # Custom template filters
 │   │   └── core_filters.py
@@ -400,7 +406,8 @@ Blue Falcon/
 ├── render.yaml                  # Render.com deployment config
 ├── create_superuser.py          # Superuser creation script
 ├── check_admin.py               # Admin permission checker
-└── reset_sessions.py            # Session cleanup script
+├── reset_sessions.py            # Session cleanup script
+└── db.sqlite3                   # SQLite database
 ```
 
 ### Request Flow

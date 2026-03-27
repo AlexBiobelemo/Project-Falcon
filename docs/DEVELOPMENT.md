@@ -1,8 +1,9 @@
 # Development Guide
 
-> **Project:** Blue Falcon - Airport Operations Management System  
-> **Version:** 1.0  
-> **Last Updated:** March 15, 2026  
+> **Project:** Blue Falcon - Airport Operations Management System
+> **Version:** 1.0
+> **Last Updated:** March 26, 2026
+> **Django Version:** 5.2.12
 
 ---
 
@@ -32,12 +33,14 @@
 
 | Software | Version | Purpose |
 |----------|---------|---------|
-| Python | 3.12+ | Runtime |
+| Python | 3.12+ | Runtime environment |
 | pip | Latest | Package manager |
 | Git | Latest | Version control |
 | PostgreSQL | 12+ (optional) | Production database |
 | Redis | Latest (optional) | Cache and background tasks |
 | Node.js | 18+ (optional) | Frontend tooling |
+
+**Note:** SQLite is used for development by default. PostgreSQL is recommended for production.
 
 ### Step 1: Clone Repository
 
@@ -127,7 +130,7 @@ brew services start redis
 ### Development Tools (Recommended)
 
 ```bash
-# Code formatting
+# Code formatting and linting
 pip install black ruff
 
 # Type checking
@@ -138,7 +141,12 @@ pip install pytest pytest-django coverage
 
 # Debugging
 pip install django-debug-toolbar ipdb
+
+# API testing
+pip install httpie  # Optional: HTTP client for API testing
 ```
+
+**Note:** Install development tools in a separate requirements file or use pipenv/poetry for dependency management.
 
 ---
 
@@ -151,7 +159,8 @@ Blue Falcon/
 │   ├── urls.py                  # Root URL configuration
 │   ├── asgi.py                  # ASGI configuration
 │   ├── wsgi.py                  # WSGI configuration
-│   └── websocket_routing.py     # WebSocket routing
+│   ├── websocket_routing.py     # WebSocket routing
+│   └── test_settings.py         # Test settings
 │
 ├── core/                        # Main Application Module
 │   ├── models.py                # Database models
@@ -161,7 +170,7 @@ Blue Falcon/
 │   ├── api.py                   # API ViewSets
 │   ├── api_urls.py              # API URL routing
 │   ├── urls.py                  # App URL patterns
-│   ├── admin.py                 # Django admin config
+│   ├── admin.py                 # Django admin
 │   ├── consumers.py             # WebSocket consumers
 │   ├── permissions.py           # Role-based permissions
 │   ├── middleware.py            # Custom middleware
@@ -176,7 +185,9 @@ Blue Falcon/
 │   │   ├── populate_test_data.py
 │   │   ├── setup_permissions.py
 │   │   ├── backup_db.py
-│   │   └── add_staff_assignments.py
+│   │   ├── add_staff_assignments.py
+│   │   ├── complete_analytics_data.py
+│   │   └── populate_analytics_data.py
 │   │
 │   ├── templatetags/            # Custom template filters
 │   │   └── core_filters.py
@@ -208,7 +219,10 @@ Blue Falcon/
 ├── manage.py                    # Django management script
 ├── requirements.txt             # Python dependencies
 ├── render.yaml                  # Render.com deployment config
-└── .env                         # Environment variables (gitignored)
+├── create_superuser.py          # Superuser creation script
+├── check_admin.py               # Admin permission checker
+├── reset_sessions.py            # Session cleanup script
+└── db.sqlite3                   # SQLite database
 ```
 
 ---

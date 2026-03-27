@@ -1,971 +1,1054 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Blue Falcon - Enterprise Airport Operations Management System. Real-time flight tracking, gate management, passenger operations, and comprehensive analytics.">
-    <meta name="keywords" content="airport management, flight operations, airport software, aviation technology, gate management, flight tracking">
-    
-    <title>Blue Falcon | Airport Operations Management System</title>
-    
-    <!-- Favicon -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦅</text></svg>">
-    
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    
-    <!-- Main Stylesheet -->
-    <link rel="stylesheet" href="css/styles.css">
-</head>
-<body>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#070a12" />
+    <title>Blue Falcon • Airport Operations Platform</title>
+    <meta
+      name="description"
+      content="Blue Falcon is a modern airport operations dashboard with real-time notifications, analytics, and secure access — built with Django, DRF, and Channels."
+    />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+
     <!-- Navigation -->
-    <nav class="navbar" id="navbar">
-        <div class="nav-container">
-            <a href="#" class="nav-logo">
-                <span class="logo-icon">
-                    <i class="fas fa-falcon"></i>
+    <header class="navbar" data-elevate>
+      <div class="nav-container">
+        <a href="#" class="nav-brand">
+          <div class="brand-mark" aria-hidden="true">
+            <span class="mark-ring"></span>
+            <span class="mark-core"></span>
+          </div>
+          <span class="brand-name">Blue Falcon</span>
+        </a>
+
+        <nav class="nav-menu" aria-label="Main">
+          <a href="#about">About</a>
+          <a href="#stats">Stats</a>
+          <a href="#features">Features</a>
+          <a href="app.html#stack">Tech Stack</a>
+          <a href="#libraries">Libraries</a>
+          <a href="#modules">Modules</a>
+        </nav>
+
+        <div class="nav-actions">
+          <a class="btn btn-ghost" href="app.html">Tour</a>
+          <div class="nav-cta-wrapper">
+            <a class="btn btn-primary" href="https://blue-falcon.onrender.com" rel="nofollow">Live Demo</a>
+            <div class="demo-tooltip nav-tooltip">
+              <div class="tooltip-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="M12 16v-4"/>
+                  <path d="M12 8h.01"/>
+                </svg>
+              </div>
+              <div class="tooltip-content">
+                <div class="tooltip-title">Demo Access</div>
+                <div class="tooltip-credentials">
+                  <div class="credential-row">
+                    <span class="cred-label">Username:</span>
+                    <code>alex</code>
+                  </div>
+                  <div class="credential-row">
+                    <span class="cred-label">Password:</span>
+                    <code>12345</code>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button class="nav-toggle" aria-label="Toggle menu" aria-expanded="false">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      </div>
+    </header>
+
+    <main id="main">
+      <!-- Hero Section -->
+      <section class="hero" id="hero" aria-label="Hero">
+        <div class="hero-bg" aria-hidden="true">
+          <div class="hero-glow"></div>
+          <div class="hero-grid"></div>
+          <div class="hero-particles" id="particles"></div>
+        </div>
+
+        <div class="hero-content">
+          <div class="hero-badge">
+            <span class="badge-dot"></span>
+            <span>Airport Operations Platform</span>
+          </div>
+
+          <h1 class="hero-title">
+            <span class="title-line">Control Your Airport</span>
+            <span class="title-line title-accent">Operations in Real-Time</span>
+          </h1>
+
+          <p class="hero-description">
+            Blue Falcon is a comprehensive airport operations cockpit featuring flights, gates, 
+            staffing, documents, audits, analytics, and real-time alerts — all in one unified interface.
+          </p>
+
+          <div class="hero-cta">
+            <div class="cta-wrapper">
+              <a class="btn btn-primary btn-lg" href="https://blue-falcon.onrender.com" rel="nofollow">
+                <span>Live Demo</span>
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M5 12h14M12 5l7 7-7 7"/>
+                </svg>
+              </a>
+              <div class="demo-tooltip">
+                <div class="tooltip-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M12 16v-4"/>
+                    <path d="M12 8h.01"/>
+                  </svg>
+                </div>
+                <div class="tooltip-content">
+                  <div class="tooltip-title">Demo Access</div>
+                  <div class="tooltip-credentials">
+                    <div class="credential-row">
+                      <span class="cred-label">Username:</span>
+                      <code>alex</code>
+                    </div>
+                    <div class="credential-row">
+                      <span class="cred-label">Password:</span>
+                      <code>12345</code>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <a class="btn btn-outline btn-lg" href="https://github.com/AlexBiobelemo/Project-Falcon" rel="nofollow">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+              </svg>
+              <span>View on GitHub</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="hero-visual">
+          <div class="radar-visual tilt-card">
+            <div class="radar-container">
+              <!-- Radar rings -->
+              <div class="radar-rings">
+                <div class="radar-ring"></div>
+                <div class="radar-ring"></div>
+                <div class="radar-ring"></div>
+                <div class="radar-ring"></div>
+              </div>
+              
+              <!-- Radar cross with data lines -->
+              <div class="radar-cross">
+                <div class="radar-data-line line-1">
+                  <span class="data-label">HDG</span>
+                  <span class="data-value">270°</span>
+                </div>
+                <div class="radar-data-line line-2">
+                  <span class="data-label">ALT</span>
+                  <span class="data-value">FL350</span>
+                </div>
+                <div class="radar-data-line line-3">
+                  <span class="data-label">SPD</span>
+                  <span class="data-value">M0.78</span>
+                </div>
+                <div class="radar-data-line line-4">
+                  <span class="data-label">RNG</span>
+                  <span class="data-value">50NM</span>
+                </div>
+              </div>
+              
+              <!-- Radar sweep -->
+              <div class="radar-sweep"></div>
+              
+              <!-- Moving aircraft blips -->
+              <div class="radar-blip blip-moving" data-label="BF-204">
+                <span class="blip-trail"></span>
+                <span class="blip-data">
+                  <span class="blip-alt">350</span>
+                  <span class="blip-spd">450</span>
                 </span>
-                <span class="logo-text">Blue Falcon</span>
-            </a>
-            
-            <ul class="nav-menu" id="navMenu">
-                <li><a href="#features" class="nav-link">Features</a></li>
-                <li><a href="#capabilities" class="nav-link">Capabilities</a></li>
-                <li><a href="#analytics" class="nav-link">Analytics</a></li>
-                <li><a href="#security" class="nav-link">Security</a></li>
-                <li><a href="#testimonials" class="nav-link">Testimonials</a></li>
-            </ul>
-            
-            <div class="nav-actions">
-                <a href="#" class="btn btn-outline">Demo</a>
-                <a href="#" class="btn btn-primary">Get Started</a>
-                <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Toggle menu">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </button>
+              </div>
+              <div class="radar-blip blip-2" data-label="BF-118">
+                <span class="blip-trail"></span>
+                <span class="blip-data">
+                  <span class="blip-alt">280</span>
+                  <span class="blip-spd">420</span>
+                </span>
+              </div>
+              <div class="radar-blip blip-3" data-label="BF-356">
+                <span class="blip-trail"></span>
+                <span class="blip-data">
+                  <span class="blip-alt">310</span>
+                  <span class="blip-spd">480</span>
+                </span>
+              </div>
+              <div class="radar-blip blip-4" data-label="BF-089">
+                <span class="blip-trail"></span>
+                <span class="blip-data">
+                  <span class="blip-alt">390</span>
+                  <span class="blip-spd">510</span>
+                </span>
+              </div>
+              
+              <!-- Radar info overlay -->
+              <div class="radar-overlay">
+                <div class="radar-overlay-top">
+                  <span class="radar-mode">
+                    <span class="mode-dot"></span>
+                    LIVE TRACKING
+                  </span>
+                  <span class="radar-range">RANGE: 50NM</span>
+                </div>
+                <div class="radar-overlay-bottom">
+                  <div class="radar-stat">
+                    <span class="radar-stat-label">AIRCRAFT</span>
+                    <span class="radar-stat-value">4</span>
+                  </div>
+                  <div class="radar-stat">
+                    <span class="radar-stat-label">GATES</span>
+                    <span class="radar-stat-value">12</span>
+                  </div>
+                  <div class="radar-stat">
+                    <span class="radar-stat-label">STATUS</span>
+                    <span class="radar-stat-value operational">
+                      <span class="status-dot"></span>
+                      ACTIVE
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Corner decorations -->
+              <div class="radar-corner corner-tl"></div>
+              <div class="radar-corner corner-tr"></div>
+              <div class="radar-corner corner-bl"></div>
+              <div class="radar-corner corner-br"></div>
             </div>
+          </div>
         </div>
-    </nav>
 
-    <!-- Hero Section -->
-    <section class="hero" id="hero">
-        <div class="hero-bg-animation">
-            <div class="plane-trail" id="planeTrail"></div>
+        <div class="scroll-indicator">
+          <span>Scroll to explore</span>
+          <div class="scroll-arrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 5v14M5 12l7 7 7-7"/>
+            </svg>
+          </div>
         </div>
-        
-        <div class="hero-container">
-            <div class="hero-content">
-                <div class="hero-badge">
-                    <i class="fas fa-code"></i>
-                    <span>Full-Stack Django Project</span>
-                </div>
-                
-                <h1 class="hero-title">
-                    Blue Falcon
-                    <span class="gradient-text">Airport Ops System</span>
-                </h1>
-                
-                <p class="hero-subtitle">
-                    A comprehensive, enterprise-grade airport management platform demonstrating advanced Django development, 
-                    real-time WebSocket integration, RESTful API design, and modern frontend architecture.
-                </p>
-                
-                <div class="hero-cta">
-                    <a href="https://github.com/yourusername/project-falcon" target="_blank" class="btn btn-primary btn-lg">
-                        <i class="fab fa-github"></i>
-                        View on GitHub
-                    </a>
-                    <a href="#features" class="btn btn-outline btn-lg">
-                        <i class="fas fa-eye"></i>
-                        Explore Features
-                    </a>
-                </div>
-                
-                <div class="hero-tech-stack">
-                    <span class="tech-pill">Django 5.1</span>
-                    <span class="tech-pill">Django REST Framework</span>
-                    <span class="tech-pill">WebSockets</span>
-                    <span class="tech-pill">Bootstrap 5</span>
-                    <span class="tech-pill">HTMX</span>
-                    <span class="tech-pill">Chart.js</span>
-                </div>
-                
-                <div class="hero-stats">
-                    <div class="hero-stat">
-                        <span class="stat-number" data-count="25">0</span>+
-                        <span class="stat-label">Django Models</span>
-                    </div>
-                    <div class="hero-stat">
-                        <span class="stat-number" data-count="500">0</span>+
-                        <span class="stat-label">Lines of Code</span>
-                    </div>
-                    <div class="hero-stat">
-                        <span class="stat-number" data-count="14">0</span>
-                        <span class="stat-label">API Endpoints</span>
-                    </div>
-                    <div class="hero-stat">
-                        <span class="stat-number" data-count="100">0</span>%
-                        <span class="stat-label">WCAG Compliant</span>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="hero-visual">
-                <div class="dashboard-preview">
-                    <div class="dashboard-header">
-                        <div class="dashboard-dots">
-                            <span class="dot red"></span>
-                            <span class="dot yellow"></span>
-                            <span class="dot green"></span>
-                        </div>
-                        <span class="dashboard-title">Blue Falcon Dashboard</span>
-                    </div>
-                    <div class="dashboard-content">
-                        <div class="preview-grid">
-                            <div class="preview-card kpi-card">
-                                <div class="kpi-icon on-time">
-                                    <i class="fas fa-clock"></i>
-                                </div>
-                                <div class="kpi-content">
-                                    <span class="kpi-value">94.2%</span>
-                                    <span class="kpi-label">On-Time Performance</span>
-                                </div>
-                            </div>
-                            <div class="preview-card kpi-card">
-                                <div class="kpi-icon utilization">
-                                    <i class="fas fa-chart-pie"></i>
-                                </div>
-                                <div class="kpi-content">
-                                    <span class="kpi-value">87.5%</span>
-                                    <span class="kpi-label">Gate Utilization</span>
-                                </div>
-                            </div>
-                            <div class="preview-card kpi-card">
-                                <div class="kpi-icon passengers">
-                                    <i class="fas fa-users"></i>
-                                </div>
-                                <div class="kpi-content">
-                                    <span class="kpi-value">45.2K</span>
-                                    <span class="kpi-label">Daily Passengers</span>
-                                </div>
-                            </div>
-                            <div class="preview-card kpi-card">
-                                <div class="kpi-icon flights">
-                                    <i class="fas fa-plane"></i>
-                                </div>
-                                <div class="kpi-content">
-                                    <span class="kpi-value">328</span>
-                                    <span class="kpi-label">Daily Flights</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="preview-chart">
-                            <div class="chart-header">
-                                <span>Flight Operations Trend</span>
-                                <span class="chart-badge live">
-                                    <i class="fas fa-circle"></i> Live
-                                </span>
-                            </div>
-                            <div class="chart-bars">
-                                <div class="bar" style="height: 60%;"></div>
-                                <div class="bar" style="height: 75%;"></div>
-                                <div class="bar" style="height: 45%;"></div>
-                                <div class="bar" style="height: 90%;"></div>
-                                <div class="bar" style="height: 70%;"></div>
-                                <div class="bar" style="height: 85%;"></div>
-                                <div class="bar" style="height: 95%;"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Floating Elements -->
-                <div class="floating-card flight-status">
-                    <i class="fas fa-plane-departure"></i>
-                    <div>
-                        <span class="flight-number">BF247</span>
-                        <span class="flight-route">LHR → JFK</span>
-                    </div>
-                    <span class="status-badge on-time">On Time</span>
-                </div>
-                
-                <div class="floating-card gate-status">
-                    <i class="fas fa-door-open"></i>
-                    <div>
-                        <span class="gate-name">Gate A12</span>
-                        <span class="gate-terminal">Terminal 1</span>
-                    </div>
-                    <span class="status-badge occupied">Occupied</span>
-                </div>
-                
-                <div class="floating-card weather-widget">
-                    <i class="fas fa-cloud-sun"></i>
-                    <div>
-                        <span class="weather-temp">22°C</span>
-                        <span class="weather-condition">Partly Cloudy</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="hero-scroll-indicator">
-            <a href="#features">
-                <span>Scroll to explore</span>
-                <i class="fas fa-chevron-down"></i>
-            </a>
-        </div>
-    </section>
+      </section>
 
-    <!-- Built With Tech Section -->
-    <section class="built-with">
+      <!-- About Section -->
+      <section class="section" id="about" aria-label="About">
         <div class="container">
-            <p class="built-with-label">Built With Modern Technologies</p>
-            <div class="tech-logo-grid">
-                <div class="tech-logo-item">
-                    <i class="fab fa-python"></i>
-                    <span>Django 5.1</span>
-                </div>
-                <div class="tech-logo-item">
-                    <i class="fas fa-database"></i>
-                    <span>PostgreSQL</span>
-                </div>
-                <div class="tech-logo-item">
-                    <i class="fas fa-bolt"></i>
-                    <span>Django Channels</span>
-                </div>
-                <div class="tech-logo-item">
-                    <i class="fas fa-code"></i>
-                    <span>Django REST Framework</span>
-                </div>
-                <div class="tech-logo-item">
-                    <i class="fab fa-js"></i>
-                    <span>HTMX</span>
-                </div>
-                <div class="tech-logo-item">
-                    <i class="fab fa-bootstrap"></i>
-                    <span>Bootstrap 5</span>
-                </div>
-                <div class="tech-logo-item">
-                    <i class="fas fa-chart-bar"></i>
-                    <span>Chart.js</span>
-                </div>
-                <div class="tech-logo-item">
-                    <i class="fas fa-map-marked-alt"></i>
-                    <span>Leaflet Maps</span>
-                </div>
-            </div>
-        </div>
-    </section>
+          <div class="section-header">
+            <span class="section-tag">About the Project</span>
+            <h2 class="section-title">
+              Built for <span class="text-gradient">Airport Professionals</span>
+            </h2>
+            <p class="section-description">
+              Blue Falcon transforms complex airport operations into an intuitive, real-time dashboard. 
+              Designed for speed, reliability, and clarity under pressure.
+            </p>
+          </div>
 
-    <!-- Features Section -->
-    <section class="features" id="features">
-        <div class="container">
-            <div class="section-header">
-                <span class="section-badge">Features</span>
-                <h2 class="section-title">Everything You Need to <span class="gradient-text">Run Your Airport</span></h2>
-                <p class="section-subtitle">
-                    A complete suite of tools designed specifically for modern airport operations. 
-                    From real-time flight tracking to comprehensive analytics, Blue Falcon has you covered.
-                </p>
+          <div class="about-grid">
+            <div class="about-card">
+              <div class="card-icon icon-plane">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                </svg>
+              </div>
+              <h3>Real-Time Operations</h3>
+              <p>Monitor flights, gates, and staff assignments with instant updates via WebSocket connections.</p>
             </div>
-            
-            <div class="features-grid">
-                <!-- Feature 1: Flight Operations -->
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-plane"></i>
-                    </div>
-                    <h3>Flight Operations</h3>
-                    <p>Complete flight lifecycle management with real-time status updates, gate assignments, and delay tracking.</p>
-                    <ul class="feature-list">
-                        <li><i class="fas fa-check"></i> Schedule Management</li>
-                        <li><i class="fas fa-check"></i> Real-time Status Updates</li>
-                        <li><i class="fas fa-check"></i> Gate Assignment Automation</li>
-                        <li><i class="fas fa-check"></i> Delay Prediction & Alerts</li>
-                    </ul>
-                </div>
-                
-                <!-- Feature 2: Gate Management -->
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-door-open"></i>
-                    </div>
-                    <h3>Gate Management</h3>
-                    <p>Optimize gate utilization with intelligent scheduling, real-time availability tracking, and terminal organization.</p>
-                    <ul class="feature-list">
-                        <li><i class="fas fa-check"></i> Real-time Availability</li>
-                        <li><i class="fas fa-check"></i> Terminal Organization</li>
-                        <li><i class="fas fa-check"></i> Utilization Analytics</li>
-                        <li><i class="fas fa-check"></i> Conflict Detection</li>
-                    </ul>
-                </div>
-                
-                <!-- Feature 3: Passenger Management -->
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-users"></i>
-                    </div>
-                    <h3>Passenger Operations</h3>
-                    <p>Track passenger flow from check-in to boarding with comprehensive baggage tracking and status management.</p>
-                    <ul class="feature-list">
-                        <li><i class="fas fa-check"></i> Check-in Tracking</li>
-                        <li><i class="fas fa-check"></i> Boarding Status</li>
-                        <li><i class="fas fa-check"></i> Baggage Tracking</li>
-                        <li><i class="fas fa-check"></i> Passenger Analytics</li>
-                    </ul>
-                </div>
-                
-                <!-- Feature 4: Staff Management -->
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-id-badge"></i>
-                    </div>
-                    <h3>Staff & Crew</h3>
-                    <p>Manage airport personnel with role-based assignments, certification tracking, and availability scheduling.</p>
-                    <ul class="feature-list">
-                        <li><i class="fas fa-check"></i> Role-Based Access</li>
-                        <li><i class="fas fa-check"></i> Certification Tracking</li>
-                        <li><i class="fas fa-check"></i> Shift Scheduling</li>
-                        <li><i class="fas fa-check"></i> Performance Metrics</li>
-                    </ul>
-                </div>
-                
-                <!-- Feature 5: Aircraft & Maintenance -->
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-wrench"></i>
-                    </div>
-                    <h3>Aircraft & Maintenance</h3>
-                    <p>Comprehensive aircraft registry with maintenance logs, flight hours tracking, and service scheduling.</p>
-                    <ul class="feature-list">
-                        <li><i class="fas fa-check"></i> Aircraft Registry</li>
-                        <li><i class="fas fa-check"></i> Maintenance Logs</li>
-                        <li><i class="fas fa-check"></i> Flight Hours Tracking</li>
-                        <li><i class="fas fa-check"></i> Service Alerts</li>
-                    </ul>
-                </div>
-                
-                <!-- Feature 6: Fiscal Management -->
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-chart-line"></i>
-                    </div>
-                    <h3>Fiscal Operations</h3>
-                    <p>Financial assessments with revenue/expense tracking, multi-stage approval workflows, and audit trails.</p>
-                    <ul class="feature-list">
-                        <li><i class="fas fa-check"></i> Revenue Tracking</li>
-                        <li><i class="fas fa-check"></i> Expense Management</li>
-                        <li><i class="fas fa-check"></i> Approval Workflows</li>
-                        <li><i class="fas fa-check"></i> Financial Reports</li>
-                    </ul>
-                </div>
-                
-                <!-- Feature 7: Reporting & Analytics -->
-                <div class="feature-card featured">
-                    <div class="feature-badge">Most Popular</div>
-                    <div class="feature-icon">
-                        <i class="fas fa-chart-bar"></i>
-                    </div>
-                    <h3>Reporting & Analytics</h3>
-                    <p>Generate automated reports, schedule deliveries, and access interactive dashboards with real-time data.</p>
-                    <ul class="feature-list">
-                        <li><i class="fas fa-check"></i> Automated Reports</li>
-                        <li><i class="fas fa-check"></i> Scheduled Deliveries</li>
-                        <li><i class="fas fa-check"></i> Interactive Dashboards</li>
-                        <li><i class="fas fa-check"></i> Custom Metrics</li>
-                    </ul>
-                </div>
-                
-                <!-- Feature 8: Public Portals -->
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-globe"></i>
-                    </div>
-                    <h3>Public Portals</h3>
-                    <p>Provide public access to flight status and baggage tracking without requiring authentication.</p>
-                    <ul class="feature-list">
-                        <li><i class="fas fa-check"></i> Flight Status Lookup</li>
-                        <li><i class="fas fa-check"></i> Baggage Tracking</li>
-                        <li><i class="fas fa-check"></i> No Authentication Required</li>
-                        <li><i class="fas fa-check"></i> Mobile-Friendly</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </section>
 
-    <!-- Capabilities Section -->
-    <section class="capabilities" id="capabilities">
-        <div class="container">
-            <div class="section-header">
-                <span class="section-badge">Capabilities</span>
-                <h2 class="section-title">Built for <span class="gradient-text">Complexity</span></h2>
-                <p class="section-subtitle">
-                    Blue Falcon handles the intricate details of airport operations so you can focus on what matters most.
-                </p>
+            <div class="about-card">
+              <div class="card-icon icon-shield">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+              </div>
+              <h3>Enterprise Security</h3>
+              <p>Secure cookies, CSRF protection, rate limiting, and 2FA-ready authentication flows.</p>
             </div>
-            
-            <div class="capabilities-grid">
-                <div class="capability-card">
-                    <div class="capability-number">01</div>
-                    <div class="capability-content">
-                        <h3>Real-Time WebSocket Updates</h3>
-                        <p>Live dashboard updates, instant flight status changes, and real-time gate availability tracking powered by Django Channels.</p>
-                        <div class="capability-tech">
-                            <span class="tech-badge">Django Channels</span>
-                            <span class="tech-badge">WebSocket</span>
-                            <span class="tech-badge">Real-time</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="capability-card">
-                    <div class="capability-number">02</div>
-                    <div class="capability-content">
-                        <h3>RESTful API v1</h3>
-                        <p>Complete API with Django REST Framework, featuring 500+ endpoints, Swagger/ReDoc documentation, and rate limiting.</p>
-                        <div class="capability-tech">
-                            <span class="tech-badge">DRF</span>
-                            <span class="tech-badge">Swagger</span>
-                            <span class="tech-badge">Rate Limiting</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="capability-card">
-                    <div class="capability-number">03</div>
-                    <div class="capability-content">
-                        <h3>Role-Based Access Control</h3>
-                        <p>Four-tier permission hierarchy (Viewer, Editor, Approver, Admin) with granular access control and audit logging.</p>
-                        <div class="capability-tech">
-                            <span class="tech-badge">RBAC</span>
-                            <span class="tech-badge">Permissions</span>
-                            <span class="tech-badge">Audit Trail</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="capability-card">
-                    <div class="capability-number">04</div>
-                    <div class="capability-content">
-                        <h3>Background Task Processing</h3>
-                        <p>Scheduled reports, automated cache warming, weather data fetching, and background jobs powered by Django-Q2.</p>
-                        <div class="capability-tech">
-                            <span class="tech-badge">Django-Q2</span>
-                            <span class="tech-badge">Cron Jobs</span>
-                            <span class="tech-badge">Task Queue</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="capability-card">
-                    <div class="capability-number">05</div>
-                    <div class="capability-content">
-                        <h3>Weather Integration</h3>
-                        <p>Real-time airport weather data from Open-Meteo API with automated alerts for adverse conditions.</p>
-                        <div class="capability-tech">
-                            <span class="tech-badge">Open-Meteo</span>
-                            <span class="tech-badge">Weather API</span>
-                            <span class="tech-badge">Alerts</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="capability-card">
-                    <div class="capability-number">06</div>
-                    <div class="capability-content">
-                        <h3>Interactive Map Visualization</h3>
-                        <p>Flight and gate mapping with Leaflet, featuring real-time position updates and interactive markers.</p>
-                        <div class="capability-tech">
-                            <span class="tech-badge">Leaflet</span>
-                            <span class="tech-badge">GIS</span>
-                            <span class="tech-badge">Real-time</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
 
-    <!-- Analytics Section -->
-    <section class="analytics" id="analytics">
-        <div class="container">
-            <div class="analytics-grid">
-                <div class="analytics-content">
-                    <span class="section-badge">Analytics</span>
-                    <h2 class="section-title">Data-Driven <span class="gradient-text">Decision Making</span></h2>
-                    <p class="section-subtitle">
-                        Transform raw airport data into actionable insights with our comprehensive analytics platform.
-                    </p>
-                    
-                    <div class="analytics-features">
-                        <div class="analytics-feature">
-                            <div class="analytics-feature-icon">
-                                <i class="fas fa-chart-pie"></i>
-                            </div>
-                            <div>
-                                <h4>KPI Dashboards</h4>
-                                <p>Track on-time performance, gate utilization, passenger throughput, and delay metrics in real-time.</p>
-                            </div>
-                        </div>
-                        
-                        <div class="analytics-feature">
-                            <div class="analytics-feature-icon">
-                                <i class="fas fa-chart-line"></i>
-                            </div>
-                            <div>
-                                <h4>Trend Analysis</h4>
-                                <p>7-day flight trends, hourly traffic distribution, and seasonal pattern recognition.</p>
-                            </div>
-                        </div>
-                        
-                        <div class="analytics-feature">
-                            <div class="analytics-feature-icon">
-                                <i class="fas fa-file-export"></i>
-                            </div>
-                            <div>
-                                <h4>Multi-Format Export</h4>
-                                <p>Export reports in HTML, PDF, CSV, or JSON formats with scheduled automated delivery.</p>
-                            </div>
-                        </div>
-                        
-                        <div class="analytics-feature">
-                            <div class="analytics-feature-icon">
-                                <i class="fas fa-bell"></i>
-                            </div>
-                            <div>
-                                <h4>Smart Alerts</h4>
-                                <p>Automated notifications for delays, cancellations, gate conflicts, and pending approvals.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="analytics-visual">
-                    <div class="analytics-dashboard">
-                        <div class="dashboard-metrics">
-                            <div class="metric-card primary">
-                                <div class="metric-header">
-                                    <i class="fas fa-clock"></i>
-                                    <span>On-Time Performance</span>
-                                </div>
-                                <div class="metric-value">94.2%</div>
-                                <div class="metric-trend positive">
-                                    <i class="fas fa-arrow-up"></i>
-                                    <span>+2.4% vs last week</span>
-                                </div>
-                            </div>
-                            
-                            <div class="metric-card secondary">
-                                <div class="metric-header">
-                                    <i class="fas fa-chart-pie"></i>
-                                    <span>Gate Utilization</span>
-                                </div>
-                                <div class="metric-value">87.5%</div>
-                                <div class="metric-trend positive">
-                                    <i class="fas fa-arrow-up"></i>
-                                    <span>+5.1% vs last week</span>
-                                </div>
-                            </div>
-                            
-                            <div class="metric-card tertiary">
-                                <div class="metric-header">
-                                    <i class="fas fa-users"></i>
-                                    <span>Passenger Throughput</span>
-                                </div>
-                                <div class="metric-value">45.2K</div>
-                                <div class="metric-trend positive">
-                                    <i class="fas fa-arrow-up"></i>
-                                    <span>+12% vs last week</span>
-                                </div>
-                            </div>
-                            
-                            <div class="metric-card quaternary">
-                                <div class="metric-header">
-                                    <i class="fas fa-plane"></i>
-                                    <span>Daily Flights</span>
-                                </div>
-                                <div class="metric-value">328</div>
-                                <div class="metric-trend neutral">
-                                    <i class="fas fa-minus"></i>
-                                    <span>Stable vs last week</span>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="dashboard-chart-preview">
-                            <div class="chart-title">
-                                <span>Flight Operations Overview</span>
-                                <span class="live-indicator">
-                                    <i class="fas fa-circle"></i> Live
-                                </span>
-                            </div>
-                            <div class="chart-visualization">
-                                <div class="chart-line">
-                                    <svg viewBox="0 0 400 100" preserveAspectRatio="none">
-                                        <path d="M0,80 L50,60 L100,70 L150,40 L200,50 L250,30 L300,45 L350,20 L400,10" 
-                                              fill="none" stroke="url(#gradient)" stroke-width="3"/>
-                                        <defs>
-                                            <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                                                <stop offset="0%" style="stop-color:#58a6ff"/>
-                                                <stop offset="100%" style="stop-color:#79c0ff"/>
-                                            </linearGradient>
-                                        </defs>
-                                    </svg>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <div class="about-card">
+              <div class="card-icon icon-chart">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M18 20V10M12 20V4M6 20v-6"/>
+                </svg>
+              </div>
+              <h3>Analytics & Reports</h3>
+              <p>Generate insights with scheduled reports, exports, and customizable KPI dashboards.</p>
             </div>
-        </div>
-    </section>
 
-    <!-- Security Section -->
-    <section class="security" id="security">
-        <div class="container">
-            <div class="section-header">
-                <span class="section-badge">Security</span>
-                <h2 class="section-title">Enterprise-Grade <span class="gradient-text">Security</span></h2>
-                <p class="section-subtitle">
-                    Built with security at its core. Blue Falcon implements industry-leading protection for your critical airport data.
-                </p>
+            <div class="about-card">
+              <div class="card-icon icon-api">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <circle cx="12" cy="12" r="3"/>
+                  <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1m15.5-6.5l-4.25 4.25m-4.5 4.5L7.5 16.5m9-9l-4.25 4.25M7.5 7.5L3.25 11.75"/>
+                </svg>
+              </div>
+              <h3>REST API</h3>
+              <p>Versioned API with OpenAPI documentation for seamless integrations and automation.</p>
             </div>
-            
-            <div class="security-grid">
-                <div class="security-card">
-                    <div class="security-icon">
-                        <i class="fas fa-shield-alt"></i>
-                    </div>
-                    <h3>Honeypot Protection</h3>
-                    <p>Advanced bot detection with 15+ trap paths and form security to prevent automated attacks.</p>
-                </div>
-                
-                <div class="security-card">
-                    <div class="security-icon">
-                        <i class="fas fa-key"></i>
-                    </div>
-                    <h3>Two-Factor Authentication</h3>
-                    <p>TOTP-based 2FA support for enhanced account security and access control.</p>
-                </div>
-                
-                <div class="security-card">
-                    <div class="security-icon">
-                        <i class="fas fa-file-contract"></i>
-                    </div>
-                    <h3>Security Headers</h3>
-                    <p>HSTS, CSP, XSS protection, and comprehensive HTTP security headers implementation.</p>
-                </div>
-                
-                <div class="security-card">
-                    <div class="security-icon">
-                        <i class="fas fa-tachometer-alt"></i>
-                    </div>
-                    <h3>Rate Limiting</h3>
-                    <p>Per-user and burst rate limits (100/hour anon, 1000/hour authenticated) to prevent abuse.</p>
-                </div>
-                
-                <div class="security-card">
-                    <div class="security-icon">
-                        <i class="fas fa-file-upload"></i>
-                    </div>
-                    <h3>File Upload Security</h3>
-                    <p>Extension whitelisting, MIME type validation, and 10MB file size limits.</p>
-                </div>
-                
-                <div class="security-card">
-                    <div class="security-icon">
-                        <i class="fas fa-history"></i>
-                    </div>
-                    <h3>Audit Logging</h3>
-                    <p>Signal-based logging for all model changes with comprehensive audit trails.</p>
-                </div>
-            </div>
-            
-            <div class="compliance-badge">
-                <div class="compliance-icon">
-                    <i class="fas fa-check-double"></i>
-                </div>
-                <div>
-                    <h4>WCAG 2.1 AA Compliant</h4>
-                    <p>Fully accessible with screen reader support, keyboard navigation, high contrast mode, and reduced motion support.</p>
-                </div>
-            </div>
+          </div>
         </div>
-    </section>
+      </section>
 
-    <!-- Technical Specs Section -->
-    <section class="tech-specs">
+      <!-- Stats Section -->
+      <section class="section stats-section" id="stats" aria-label="Statistics">
         <div class="container">
-            <div class="section-header">
-                <span class="section-badge">Technology</span>
-                <h2 class="section-title">Built with <span class="gradient-text">Modern Stack</span></h2>
-                <p class="section-subtitle">
-                    Leveraging cutting-edge technologies for performance, scalability, and reliability.
-                </p>
-            </div>
-            
-            <div class="tech-grid">
-                <div class="tech-category">
-                    <h3><i class="fab fa-python"></i> Backend</h3>
-                    <div class="tech-list">
-                        <span class="tech-item">Django 5.1.7</span>
-                        <span class="tech-item">Python 3.12+</span>
-                        <span class="tech-item">PostgreSQL</span>
-                        <span class="tech-item">Redis</span>
-                    </div>
-                </div>
-                
-                <div class="tech-category">
-                    <h3><i class="fas fa-code"></i> API</h3>
-                    <div class="tech-list">
-                        <span class="tech-item">Django REST Framework</span>
-                        <span class="tech-item">Swagger/OpenAPI</span>
-                        <span class="tech-item">ReDoc</span>
-                        <span class="tech-item">Rate Limiting</span>
-                    </div>
-                </div>
-                
-                <div class="tech-category">
-                    <h3><i class="fas fa-bolt"></i> Real-Time</h3>
-                    <div class="tech-list">
-                        <span class="tech-item">Django Channels</span>
-                        <span class="tech-item">WebSocket</span>
-                        <span class="tech-item">Daphne ASGI</span>
-                        <span class="tech-item">Event Streaming</span>
-                    </div>
-                </div>
-                
-                <div class="tech-category">
-                    <h3><i class="fas fa-paint-brush"></i> Frontend</h3>
-                    <div class="tech-list">
-                        <span class="tech-item">Bootstrap 5</span>
-                        <span class="tech-item">HTMX</span>
-                        <span class="tech-item">Chart.js</span>
-                        <span class="tech-item">Leaflet Maps</span>
-                    </div>
-                </div>
-                
-                <div class="tech-category">
-                    <h3><i class="fas fa-cog"></i> Infrastructure</h3>
-                    <div class="tech-list">
-                        <span class="tech-item">Django-Q2</span>
-                        <span class="tech-item">WhiteNoise</span>
-                        <span class="tech-item">Gunicorn</span>
-                        <span class="tech-item">Render.com</span>
-                    </div>
-                </div>
-                
-                <div class="tech-category">
-                    <h3><i class="fas fa-lock"></i> Security</h3>
-                    <div class="tech-list">
-                        <span class="tech-item">django-two-factor-auth</span>
-                        <span class="tech-item">HSTS/CSP</span>
-                        <span class="tech-item">Honeypot</span>
-                        <span class="tech-item">Audit Logging</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
+          <div class="stats-header">
+            <span class="section-tag">By The Numbers</span>
+            <h2 class="stats-title">
+              Performance That <span class="text-gradient">Speaks for Itself</span>
+            </h2>
+            <p class="stats-description">
+              Built for scale and reliability, Blue Falcon delivers consistent performance 
+              across all operations with industry-leading uptime and response times.
+            </p>
+          </div>
 
-    <!-- Project Highlights Section -->
-    <section class="highlights" id="testimonials">
-        <div class="container">
-            <div class="section-header">
-                <span class="section-badge">Project Highlights</span>
-                <h2 class="section-title">Technical <span class="gradient-text">Achievements</span></h2>
-                <p class="section-subtitle">
-                    Key features and implementations that showcase advanced full-stack development skills.
-                </p>
+          <div class="stats-grid">
+            <!-- Uptime Stat -->
+            <div class="stat-card tilt-card">
+              <div class="stat-card-header">
+                <div class="stat-card-icon uptime">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                  </svg>
+                </div>
+                <div class="stat-card-trend positive">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                  </svg>
+                  <span>Target</span>
+                </div>
+              </div>
+              <div class="stat-card-body">
+                <div class="stat-value-wrapper">
+                  <span class="stat-card-value" data-count="99.9">0</span>
+                  <span class="stat-card-suffix">%</span>
+                </div>
+                <span class="stat-card-label">Uptime Target</span>
+                <div class="stat-progress">
+                  <div class="stat-progress-bar uptime" style="width: 99.9%"></div>
+                </div>
+              </div>
             </div>
-            
-            <div class="highlights-grid">
-                <div class="highlight-card">
-                    <div class="highlight-icon">
-                        <i class="fas fa-server"></i>
-                    </div>
-                    <h3>Complex Data Modeling</h3>
-                    <p>25+ interconnected Django models with advanced relationships, custom managers, and query optimization.</p>
-                    <div class="highlight-tags">
-                        <span class="tag">Models</span>
-                        <span class="tag">ORM</span>
-                        <span class="tag">PostgreSQL</span>
-                    </div>
-                </div>
-                
-                <div class="highlight-card">
-                    <div class="highlight-icon">
-                        <i class="fas fa-sync-alt"></i>
-                    </div>
-                    <h3>Real-Time Features</h3>
-                    <p>WebSocket integration using Django Channels for live dashboard updates, flight status changes, and notifications.</p>
-                    <div class="highlight-tags">
-                        <span class="tag">WebSockets</span>
-                        <span class="tag">Channels</span>
-                        <span class="tag">Async</span>
-                    </div>
-                </div>
-                
-                <div class="highlight-card">
-                    <div class="highlight-icon">
-                        <i class="fas fa-plug"></i>
-                    </div>
-                    <h3>RESTful API</h3>
-                    <p>Complete API with Django REST Framework, featuring ViewSets, serializers, authentication, and Swagger documentation.</p>
-                    <div class="highlight-tags">
-                        <span class="tag">DRF</span>
-                        <span class="tag">REST API</span>
-                        <span class="tag">Swagger</span>
-                    </div>
-                </div>
-                
-                <div class="highlight-card">
-                    <div class="highlight-icon">
-                        <i class="fas fa-lock"></i>
-                    </div>
-                    <h3>Security Implementation</h3>
-                    <p>RBAC, 2FA, honeypot protection, rate limiting, audit logging, and comprehensive security headers.</p>
-                    <div class="highlight-tags">
-                        <span class="tag">Security</span>
-                        <span class="tag">RBAC</span>
-                        <span class="tag">2FA</span>
-                    </div>
-                </div>
-                
-                <div class="highlight-card">
-                    <div class="highlight-icon">
-                        <i class="fas fa-universal-access"></i>
-                    </div>
-                    <h3>Accessibility First</h3>
-                    <p>WCAG 2.1 AA compliant with keyboard navigation, screen reader support, focus indicators, and ARIA labels.</p>
-                    <div class="highlight-tags">
-                        <span class="tag">WCAG</span>
-                        <span class="tag">A11y</span>
-                        <span class="tag">ARIA</span>
-                    </div>
-                </div>
-                
-                <div class="highlight-card">
-                    <div class="highlight-icon">
-                        <i class="fas fa-paint-brush"></i>
-                    </div>
-                    <h3>Modern Frontend</h3>
-                    <p>Bootstrap 5, HTMX for dynamic interactions, Chart.js visualizations, and responsive design throughout.</p>
-                    <div class="highlight-tags">
-                        <span class="tag">Bootstrap</span>
-                        <span class="tag">HTMX</span>
-                        <span class="tag">Chart.js</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
 
-    <!-- CTA Section -->
-    <section class="cta">
-        <div class="container">
-            <div class="cta-content">
-                <h2>Interested in the Code?</h2>
-                <p>Explore the full source code, documentation, and deployment guides on GitHub.</p>
-                <div class="cta-actions">
-                    <a href="https://github.com/yourusername/project-falcon" target="_blank" class="btn btn-primary btn-lg">
-                        <i class="fab fa-github"></i>
-                        View Source Code
-                    </a>
-                    <a href="#features" class="btn btn-outline-light btn-lg">
-                        <i class="fas fa-book"></i>
-                        Read Documentation
-                    </a>
+            <!-- Endpoints Stat -->
+            <div class="stat-card tilt-card">
+              <div class="stat-card-header">
+                <div class="stat-card-icon endpoints">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/>
+                  </svg>
                 </div>
-                <div class="cta-features">
-                    <span><i class="fas fa-check"></i> Well-documented code</span>
-                    <span><i class="fas fa-check"></i> Docker support</span>
-                    <span><i class="fas fa-check"></i> Deploy-ready</span>
-                    <span><i class="fas fa-check"></i> Comprehensive tests</span>
+                <div class="stat-card-trend positive">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                  </svg>
+                  <span>Available</span>
                 </div>
+              </div>
+              <div class="stat-card-body">
+                <div class="stat-value-wrapper">
+                  <span class="stat-card-value" data-count="30">0</span>
+                  <span class="stat-card-suffix">+</span>
+                </div>
+                <span class="stat-card-label">API Endpoints</span>
+                <div class="stat-progress">
+                  <div class="stat-progress-bar endpoints" style="width: 75%"></div>
+                </div>
+              </div>
             </div>
+
+            <!-- Response Time Stat -->
+            <div class="stat-card tilt-card">
+              <div class="stat-card-header">
+                <div class="stat-card-icon response">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M12 6v6l4 2"/>
+                  </svg>
+                </div>
+                <div class="stat-card-trend positive">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                  </svg>
+                  <span>Average</span>
+                </div>
+              </div>
+              <div class="stat-card-body">
+                <div class="stat-value-wrapper">
+                  <span class="stat-card-value" data-count="200">0</span>
+                  <span class="stat-card-suffix">ms</span>
+                </div>
+                <span class="stat-card-label">Avg Response Time</span>
+                <div class="stat-progress">
+                  <div class="stat-progress-bar response" style="width: 85%"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Monitoring Stat -->
+            <div class="stat-card tilt-card">
+              <div class="stat-card-header">
+                <div class="stat-card-icon monitoring">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
+                  </svg>
+                </div>
+                <div class="stat-card-trend positive">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                  </svg>
+                  <span>Enabled</span>
+                </div>
+              </div>
+              <div class="stat-card-body">
+                <div class="stat-value-wrapper">
+                  <span class="stat-card-value" data-count="24">0</span>
+                  <span class="stat-card-suffix">/7</span>
+                </div>
+                <span class="stat-card-label">System Monitoring</span>
+                <div class="stat-progress">
+                  <div class="stat-progress-bar monitoring" style="width: 100%"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Code Quality Stat -->
+            <div class="stat-card tilt-card">
+              <div class="stat-card-header">
+                <div class="stat-card-icon requests">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                  </svg>
+                </div>
+                <div class="stat-card-trend positive">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                  </svg>
+                  <span>Protected</span>
+                </div>
+              </div>
+              <div class="stat-card-body">
+                <div class="stat-value-wrapper">
+                  <span class="stat-card-value" data-count="100">0</span>
+                  <span class="stat-card-suffix">%</span>
+                </div>
+                <span class="stat-card-label">Test Coverage Goal</span>
+                <div class="stat-progress">
+                  <div class="stat-progress-bar requests" style="width: 80%"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Documentation Stat -->
+            <div class="stat-card tilt-card">
+              <div class="stat-card-header">
+                <div class="stat-card-icon data">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                  </svg>
+                </div>
+                <div class="stat-card-trend positive">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                  </svg>
+                  <span>Complete</span>
+                </div>
+              </div>
+              <div class="stat-card-body">
+                <div class="stat-value-wrapper">
+                  <span class="stat-card-value" data-count="100">0</span>
+                  <span class="stat-card-suffix">%</span>
+                </div>
+                <span class="stat-card-label">API Documentation</span>
+                <div class="stat-progress">
+                  <div class="stat-progress-bar data" style="width: 100%"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Security Score Stat -->
+            <div class="stat-card tilt-card">
+              <div class="stat-card-header">
+                <div class="stat-card-icon users">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/>
+                    <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
+                  </svg>
+                </div>
+                <div class="stat-card-trend positive">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                  </svg>
+                  <span>Secured</span>
+                </div>
+              </div>
+              <div class="stat-card-body">
+                <div class="stat-value-wrapper">
+                  <span class="stat-card-value" data-count="5">0</span>
+                  <span class="stat-card-suffix">+</span>
+                </div>
+                <span class="stat-card-label">Security Layers</span>
+                <div class="stat-progress">
+                  <div class="stat-progress-bar users" style="width: 90%"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Modules Stat -->
+            <div class="stat-card tilt-card">
+              <div class="stat-card-header">
+                <div class="stat-card-icon airports">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <rect x="3" y="3" width="7" height="7"/>
+                    <rect x="14" y="3" width="7" height="7"/>
+                    <rect x="14" y="14" width="7" height="7"/>
+                    <rect x="3" y="14" width="7" height="7"/>
+                  </svg>
+                </div>
+                <div class="stat-card-trend positive">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                  </svg>
+                  <span>Active</span>
+                </div>
+              </div>
+              <div class="stat-card-body">
+                <div class="stat-value-wrapper">
+                  <span class="stat-card-value" data-count="6">0</span>
+                  <span class="stat-card-suffix">+</span>
+                </div>
+                <span class="stat-card-label">Core Modules</span>
+                <div class="stat-progress">
+                  <div class="stat-progress-bar airports" style="width: 85%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stats Bottom Info -->
+          <div class="stats-info">
+            <div class="info-card">
+              <div class="info-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                </svg>
+              </div>
+              <div class="info-content">
+                <strong>Production Ready</strong>
+                <p>Built with secure defaults, proper error handling, and health check endpoints.</p>
+              </div>
+            </div>
+            <div class="info-card">
+              <div class="info-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+              </div>
+              <div class="info-content">
+                <strong>Optimized Performance</strong>
+                <p>Efficient database queries and caching strategies for responsive operations.</p>
+              </div>
+            </div>
+            <div class="info-card">
+              <div class="info-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                </svg>
+              </div>
+              <div class="info-content">
+                <strong>Scalable Design</strong>
+                <p>Modular architecture designed to grow with your operational needs.</p>
+              </div>
+            </div>
+          </div>
         </div>
-    </section>
+      </section>
+
+      <!-- Features Section -->
+      <section class="section section-alt" id="features" aria-label="Features">
+        <div class="container">
+          <div class="section-header">
+            <span class="section-tag">Features</span>
+            <h2 class="section-title">
+              Everything You Need to <span class="text-gradient">Manage Operations</span>
+            </h2>
+            <p class="section-description">
+              A complete toolkit for airport operations teams, from real-time monitoring to compliance reporting.
+            </p>
+          </div>
+
+          <div class="features-grid">
+            <article class="feature-card tilt-card" data-tilt>
+              <div class="feature-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                </svg>
+              </div>
+              <h3>Real-Time Updates</h3>
+              <p>WebSocket-powered notifications for flight status changes, delays, cancellations, and gate reassignments.</p>
+              <div class="feature-tags">
+                <span>Channels</span>
+                <span>Daphne</span>
+                <span>WebSocket</span>
+              </div>
+            </article>
+
+            <article class="feature-card tilt-card" data-tilt>
+              <div class="feature-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <rect x="3" y="3" width="7" height="7"/>
+                  <rect x="14" y="3" width="7" height="7"/>
+                  <rect x="14" y="14" width="7" height="7"/>
+                  <rect x="3" y="14" width="7" height="7"/>
+                </svg>
+              </div>
+              <h3>Operations Dashboard</h3>
+              <p>Centralized view for airports, flights, gates, passengers, staff assignments, and complete event logs.</p>
+              <div class="feature-tags">
+                <span>CRUD</span>
+                <span>Audit Trail</span>
+                <span>Search</span>
+              </div>
+            </article>
+
+            <article class="feature-card tilt-card" data-tilt>
+              <div class="feature-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                </svg>
+              </div>
+              <h3>Reports & Exports</h3>
+              <p>Generate executive summaries, operational reports, and data exports in multiple formats including XLSX.</p>
+              <div class="feature-tags">
+                <span>Excel</span>
+                <span>Scheduling</span>
+                <span>KPIs</span>
+              </div>
+            </article>
+
+            <article class="feature-card tilt-card" data-tilt>
+              <div class="feature-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/>
+                </svg>
+              </div>
+              <h3>REST API</h3>
+              <p>Versioned RESTful API with comprehensive documentation for third-party integrations and automation.</p>
+              <div class="feature-tags">
+                <span>DRF</span>
+                <span>OpenAPI</span>
+                <span>Tokens</span>
+              </div>
+            </article>
+
+            <article class="feature-card tilt-card" data-tilt>
+              <div class="feature-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/>
+                  <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
+                </svg>
+              </div>
+              <h3>Admin Panel</h3>
+              <p>Full-featured Django admin interface for user management, configuration, and system administration.</p>
+              <div class="feature-tags">
+                <span>Django Admin</span>
+                <span>RBAC</span>
+                <span>Audit</span>
+              </div>
+            </article>
+
+            <article class="feature-card tilt-card" data-tilt>
+              <div class="feature-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                </svg>
+              </div>
+              <h3>Security First</h3>
+              <p>Built-in security features including CSRF protection, secure sessions, and rate-limited endpoints.</p>
+              <div class="feature-tags">
+                <span>2FA Ready</span>
+                <span>CSRF</span>
+                <span>Rate Limit</span>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- Libraries Section -->
+      <section class="section section-alt" id="libraries" aria-label="Libraries">
+        <div class="container">
+          <div class="section-header">
+            <span class="section-tag">Dependencies</span>
+            <h2 class="section-title">
+              Core <span class="text-gradient">Dependencies</span>
+            </h2>
+            <p class="section-description">
+              Essential packages that power Blue Falcon's functionality and performance.
+            </p>
+          </div>
+
+          <div class="libraries-grid">
+            <div class="library-card tilt-card">
+              <div class="lib-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/>
+                </svg>
+              </div>
+              <h4>Django REST Framework</h4>
+              <p>Powerful toolkit for building Web APIs with authentication and serialization.</p>
+              <code class="lib-version">^3.15</code>
+            </div>
+
+            <div class="library-card tilt-card">
+              <div class="lib-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                </svg>
+              </div>
+              <h4>Channels</h4>
+              <p>Async support for Django with WebSocket handling for real-time features.</p>
+              <code class="lib-version">^4.0</code>
+            </div>
+
+            <div class="library-card tilt-card">
+              <div class="lib-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+                </svg>
+              </div>
+              <h4>drf-spectacular</h4>
+              <p>OpenAPI 3.0 schema generation for API documentation with Swagger/Redoc.</p>
+              <code class="lib-version">^0.27</code>
+            </div>
+
+            <div class="library-card tilt-card">
+              <div class="lib-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                  <path d="M7 11V7a5 5 0 0110 0v4"/>
+                </svg>
+              </div>
+              <h4>WhiteNoise</h4>
+              <p>Static file serving for production with automatic compression and caching.</p>
+              <code class="lib-version">^6.7</code>
+            </div>
+
+            <div class="library-card tilt-card">
+              <div class="lib-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="M12 6v6l4 2"/>
+                </svg>
+              </div>
+              <h4>django-cors-headers</h4>
+              <p>CORS headers for Django to enable cross-origin requests from frontends.</p>
+              <code class="lib-version">^4.3</code>
+            </div>
+
+            <div class="library-card tilt-card">
+              <div class="lib-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5l5 5v11a2 2 0 01-2 2z"/>
+                </svg>
+              </div>
+              <h4>openpyxl</h4>
+              <p>Excel file reading/writing for data exports and report generation.</p>
+              <code class="lib-version">^3.1</code>
+            </div>
+          </div>
+
+          <div class="libraries-more">
+            <p>Common additions: <code>django-filter</code> for API filtering, <code>django-allauth</code> for authentication, <code>celery</code> for background tasks, <code>pytest</code> for testing...</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Modules Section -->
+      <section class="section" id="modules" aria-label="Modules">
+        <div class="container">
+          <div class="section-header">
+            <span class="section-tag">Architecture</span>
+            <h2 class="section-title">
+              System <span class="text-gradient">Modules</span>
+            </h2>
+            <p class="section-description">
+              Blue Falcon is organized into focused modules, each handling specific aspects of airport operations.
+            </p>
+          </div>
+
+          <div class="modules-showcase">
+            <div class="module-item tilt-card">
+              <div class="module-header">
+                <span class="module-badge">Core</span>
+                <h3>Airport Management</h3>
+              </div>
+              <p>Airport configuration, terminals, gates, and facility management.</p>
+              <ul class="module-features">
+                <li>Airport CRUD operations</li>
+                <li>Terminal & gate assignment</li>
+                <li>Facility tracking</li>
+              </ul>
+            </div>
+
+            <div class="module-item tilt-card">
+              <div class="module-header">
+                <span class="module-badge">Core</span>
+                <h3>Flight Operations</h3>
+              </div>
+              <p>Flight scheduling, status tracking, and event logging.</p>
+              <ul class="module-features">
+                <li>Flight schedule management</li>
+                <li>Status change tracking</li>
+                <li>Event audit logs</li>
+              </ul>
+            </div>
+
+            <div class="module-item tilt-card">
+              <div class="module-header">
+                <span class="module-badge">Core</span>
+                <h3>Gate Management</h3>
+              </div>
+              <p>Gate allocation and assignment tracking.</p>
+              <ul class="module-features">
+                <li>Gate assignment</li>
+                <li>Schedule coordination</li>
+                <li>Utilization tracking</li>
+              </ul>
+            </div>
+
+            <div class="module-item tilt-card">
+              <div class="module-header">
+                <span class="module-badge">Core</span>
+                <h3>User Management</h3>
+              </div>
+              <p>User accounts, roles, and permissions.</p>
+              <ul class="module-features">
+                <li>User authentication</li>
+                <li>Role-based access</li>
+                <li>Activity logging</li>
+              </ul>
+            </div>
+
+            <div class="module-item tilt-card">
+              <div class="module-header">
+                <span class="module-badge">Core</span>
+                <h3>Notifications</h3>
+              </div>
+              <p>Real-time alerts and status updates.</p>
+              <ul class="module-features">
+                <li>WebSocket notifications</li>
+                <li>Event triggers</li>
+                <li>Alert history</li>
+              </ul>
+            </div>
+
+            <div class="module-item tilt-card">
+              <div class="module-header">
+                <span class="module-badge">Core</span>
+                <h3>Reports</h3>
+              </div>
+              <p>Data exports and operational reports.</p>
+              <ul class="module-features">
+                <li>Data exports (XLSX/CSV)</li>
+                <li>Report generation</li>
+                <li>Historical data</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CTA Section -->
+      <section class="section section-cta" id="cta" aria-label="Call to Action">
+        <div class="container">
+          <div class="cta-content">
+            <div class="cta-badge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+              </svg>
+              <span>Ready to Start</span>
+            </div>
+
+            <h2 class="cta-title">
+              Experience Blue Falcon Today
+            </h2>
+            <p class="cta-description">
+              Dive into a modern airport operations platform built for performance, 
+              reliability, and ease of use.
+            </p>
+
+            <div class="cta-actions">
+              <a class="btn btn-primary btn-lg" href="https://blue-falcon.onrender.com" rel="nofollow">
+                <span>Live Demo</span>
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M5 12h14M12 5l7 7-7 7"/>
+                </svg>
+              </a>
+              <a class="btn btn-outline btn-lg" href="https://github.com/AlexBiobelemo/Project-Falcon" rel="nofollow">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+                </svg>
+                <span>GitHub Repo</span>
+              </a>
+            </div>
+
+            <div class="cta-info">
+              <div class="info-item">
+                <span class="info-icon">✓</span>
+                <span>Easy to deploy</span>
+              </div>
+              <div class="info-item">
+                <span class="info-icon">✓</span>
+                <span>Real-time capable</span>
+              </div>
+              <div class="info-item">
+                <span class="info-icon">✓</span>
+                <span>Secure defaults</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="cta-visual">
+            <div class="cta-card tilt-card">
+              <div class="card-header">
+                <div class="card-dots">
+                  <span></span><span></span><span></span>
+                </div>
+                <span>System Status</span>
+              </div>
+              <div class="card-body">
+                <div class="status-row">
+                  <span class="status-label">API</span>
+                  <span class="status-value operational">
+                    <span class="status-dot"></span>
+                    Operational
+                  </span>
+                </div>
+                <div class="status-row">
+                  <span class="status-label">WebSocket</span>
+                  <span class="status-value operational">
+                    <span class="status-dot"></span>
+                    Connected
+                  </span>
+                </div>
+                <div class="status-row">
+                  <span class="status-label">Database</span>
+                  <span class="status-value operational">
+                    <span class="status-dot"></span>
+                    Healthy
+                  </span>
+                </div>
+                <div class="status-row">
+                  <span class="status-label">Latency</span>
+                  <span class="status-value">
+                    <span class="latency-value" id="latencyDisplay">24</span>ms
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
 
     <!-- Footer -->
     <footer class="footer">
-        <div class="container">
-            <div class="footer-grid">
-                <div class="footer-brand">
-                    <a href="#" class="footer-logo">
-                        <span class="logo-icon">
-                            <i class="fas fa-falcon"></i>
-                        </span>
-                        <span class="logo-text">Blue Falcon</span>
-                    </a>
-                    <p>A comprehensive Django portfolio project demonstrating enterprise-grade full-stack development skills.</p>
-                    <div class="social-links">
-                        <a href="https://github.com/yourusername" target="_blank" aria-label="GitHub"><i class="fab fa-github"></i></a>
-                        <a href="https://linkedin.com/in/yourusername" target="_blank" aria-label="LinkedIn"><i class="fab fa-linkedin"></i></a>
-                        <a href="mailto:your.email@example.com" aria-label="Email"><i class="fas fa-envelope"></i></a>
-                        <a href="https://yourportfolio.com" target="_blank" aria-label="Portfolio"><i class="fas fa-globe"></i></a>
-                    </div>
-                </div>
-                
-                <div class="footer-links">
-                    <h4>Project</h4>
-                    <ul>
-                        <li><a href="#features">Features</a></li>
-                        <li><a href="#capabilities">Architecture</a></li>
-                        <li><a href="#analytics">Analytics</a></li>
-                        <li><a href="#security">Security</a></li>
-                        <li><a href="https://github.com/yourusername/project-falcon" target="_blank">Source Code</a></li>
-                    </ul>
-                </div>
-                
-                <div class="footer-links">
-                    <h4>Documentation</h4>
-                    <ul>
-                        <li><a href="#">Getting Started</a></li>
-                        <li><a href="#">API Reference</a></li>
-                        <li><a href="#">Deployment Guide</a></li>
-                        <li><a href="#">Architecture Docs</a></li>
-                        <li><a href="#">Changelog</a></li>
-                    </ul>
-                </div>
-                
-                <div class="footer-links">
-                    <h4>Tech Stack</h4>
-                    <ul>
-                        <li><a href="#">Django 5.1</a></li>
-                        <li><a href="#">Django REST Framework</a></li>
-                        <li><a href="#">Django Channels</a></li>
-                        <li><a href="#">PostgreSQL</a></li>
-                        <li><a href="#">Bootstrap 5</a></li>
-                    </ul>
-                </div>
-                
-                <div class="footer-links">
-                    <h4>Connect</h4>
-                    <ul>
-                        <li><a href="https://github.com/yourusername" target="_blank">GitHub</a></li>
-                        <li><a href="https://linkedin.com/in/yourusername" target="_blank">LinkedIn</a></li>
-                        <li><a href="mailto:your.email@example.com">Email</a></li>
-                        <li><a href="https://yourportfolio.com" target="_blank">Portfolio</a></li>
-                    </ul>
-                </div>
+      <div class="container">
+        <div class="footer-grid">
+          <div class="footer-brand">
+            <a href="https://alexbio.onrender.com/" class="footer-logo">
+              <div class="brand-mark brand-mark-sm" aria-hidden="true">
+                <span class="mark-ring"></span>
+                <span class="mark-core"></span>
+              </div>
+              <div class="footer-text">
+                <span class="footer-name">Blue Falcon</span>
+                <span class="footer-tagline">by Alex Alagoa Biobelemo</span>
+              </div>
+            </a>
+            <p class="footer-description">
+              A modern, real-time airport operations dashboard built for professionals who demand reliability and performance.
+            </p>
+          </div>
+
+          <div class="footer-links">
+            <div class="footer-col">
+              <h4>Links</h4>
+              <a href="https://blue-falcon.onrender.com" rel="nofollow">Live Demo</a>
+              <a href="https://github.com/AlexBiobelemo/Project-Falcon" rel="nofollow">GitHub Repo</a>
+              <a href="https://alexbio.onrender.com/" rel="nofollow">Other Projects</a>
+              <a href="app.html">Product Tour</a>
             </div>
-            
-            <div class="footer-bottom">
-                <p>&copy; 2026 Blue Falcon. Portfolio Project by <a href="https://yourportfolio.com" target="_blank">Your Name</a>.</p>
-                <p>Built with <i class="fas fa-heart"></i> using Django</p>
+            <div class="footer-col">
+              <h4>Resources</h4>
+              <a href="app.html#stack">Tech Stack</a>
+              <a href="#features">Features</a>
+              <a href="#modules">Modules</a>
+              <a href="#about">About</a>
             </div>
+          </div>
         </div>
+
+        <div class="footer-bottom">
+          <p>&copy; 2026 Alex Alagoa Biobelemo. Built with Django & modern web technologies.</p>
+          <div class="footer-social">
+            <a href="https://github.com/AlexBiobelemo/" aria-label="GitHub" rel="nofollow">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+              </svg>
+            </a>
+            <a href="mailto:alexbio0405@gmail.com" aria-label="Email">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                <polyline points="22,6 12,13 2,6"/>
+              </svg>
+            </a>
+            <a href="https://www.linkedin.com/in/alex-alagoa-biobelemo/" aria-label="LinkedIn" rel="nofollow">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+              </svg>
+            </a>
+            <a href="https://twitter.com/AlexarGreatest" aria-label="X (Twitter)" rel="nofollow">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+              </svg>
+            </a>
+          </div>
+        </div>
+      </div>
     </footer>
 
-    <!-- Scripts -->
     <script src="js/main.js"></script>
-</body>
+  </body>
 </html>

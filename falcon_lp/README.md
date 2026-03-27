@@ -1,297 +1,214 @@
-# Blue Falcon - Portfolio Landing Page
+# Blue Falcon - Airport Operations Platform
 
-A professional landing page showcasing the **Blue Falcon Airport Operations Management System** - a comprehensive Django portfolio project demonstrating enterprise-grade full-stack development skills.
+A modern, real-time airport operations dashboard built with Django, featuring flights management, gate assignments, staff coordination, and live notifications.
 
-## 🎯 Purpose
-
-This landing page is designed for **portfolio demonstration** to showcase:
-- Advanced Django development capabilities
-- Full-stack web development skills
-- Modern frontend architecture
-- Security best practices
-- Accessibility compliance (WCAG 2.1 AA)
-- Real-time WebSocket integration
-- RESTful API design
-
-## 📁 Structure
-
-```
-falcon_lp/
-├── index.html          # Original landing page (standard scroll)
-├── index-parallax.html # ✈️ NEW: Parallax flight scroll version
-├── css/
-│   ├── styles.css      # Main stylesheet (~1800 lines)
-│   └── parallax.css    # Parallax aviation effects (~700 lines)
-├── js/
-│   ├── main.js         # Standard interactions
-│   └── parallax.js     # Parallax flight controller
-└── images/             # Asset folder (ready for screenshots)
-```
-
-## ✨ Two Versions Available
-
-### 1. **Standard Version** (`index.html`)
-- Traditional vertical scrolling
-- Smooth scroll to sections
-- Classic landing page experience
-
-### 2. **Parallax Flight Version** (`index-parallax.html`) ⭐ **RECOMMENDED**
-- Fixed viewport with section transitions
-- Airplane-like smooth sliding effects
-- Aviation-themed animations:
-  - Animated clouds background
-  - Floating particles/stars
-  - Flight progress indicator
-  - Altitude display (Flight Level)
-  - Contrail effects on scroll
-  - Loading screen with plane animation
-- **10+ Transition Effects:**
-  - ✨ Flash pulse on every navigation
-  - 💨 Speed lines for fast scrolling
-  - 🌊 Wipe effect (downward only)
-  - ☁️ Cloud pass effect
-  - 🚀 Turbo boost for multi-section jumps
-  - 📤 Exit animations (blur + scale)
-  - 📥 Entry animations (blur + scale)
-  - 🎯 Altitude change indicator popup
-- Keyboard navigation (Arrow keys, Space, Home, End)
-- Touch swipe support for mobile
-- Mouse wheel navigation with smooth transitions
-
-## 🎨 Sections
-
-1. **Navigation**
-   - Fixed navbar with scroll effects
-   - Smooth scroll to sections
-   - Mobile-responsive hamburger menu
-
-2. **Hero Section**
-   - Project badge: "Full-Stack Django Project"
-   - Animated dashboard preview with floating cards
-   - Tech stack pills (Django, DRF, WebSockets, etc.)
-   - GitHub CTA button
-   - Animated statistics counters
-
-3. **Built With Tech**
-   - Technology logo grid showcasing 8 core technologies
-
-4. **Features (8 cards)**
-   - Flight Operations
-   - Gate Management
-   - Passenger Operations
-   - Staff & Crew Management
-   - Aircraft & Maintenance
-   - Fiscal Operations
-   - Reporting & Analytics (featured)
-   - Public Portals
-
-5. **Capabilities (6 cards)**
-   - Real-Time WebSocket Updates
-   - RESTful API v1
-   - Role-Based Access Control
-   - Background Task Processing
-   - Weather Integration
-   - Interactive Map Visualization
-
-6. **Analytics**
-   - Split layout with feature list
-   - Interactive metrics dashboard preview
-   - Live chart visualization
-
-7. **Security (6 cards)**
-   - Honeypot Protection
-   - Two-Factor Authentication
-   - Security Headers
-   - Rate Limiting
-   - File Upload Security
-   - Audit Logging
-   - WCAG 2.1 AA Compliance badge
-
-8. **Technical Specs**
-   - 6 technology categories
-   - Backend, API, Real-Time, Frontend, Infrastructure, Security
-
-9. **Project Highlights** ⭐
-   - Complex Data Modeling
-   - Real-Time Features
-   - RESTful API
-   - Security Implementation
-   - Accessibility First
-   - Modern Frontend
-
-10. **CTA Section**
-    - GitHub link
-    - Documentation link
-    - Project features checklist
-
-11. **Footer**
-    - 5-column layout
-    - Social media links (GitHub, LinkedIn, Email, Portfolio)
-    - Project navigation
-    - Tech stack links
+![Blue Falcon](https://img.shields.io/badge/Version-1.0.0-blue)
+![License](https://img.shields.io/badge/License-MIT-green)
+![Python](https://img.shields.io/badge/Python-3.10+-blue)
+![Django](https://img.shields.io/badge/Django-5.2-green)
 
 ## 🚀 Features
 
-### Responsive Design
-- Mobile-first approach
-- Breakpoints: 480px, 768px, 1024px
-- Adaptive layouts for all screen sizes
+### Core Modules
+- **Operations Dashboard** - Real-time overview of all airport activities
+- **Flights & Gates** - Complete flight schedule and gate assignment management
+- **Reports & Analytics** - Generate operational reports and export data
+- **User Management** - Role-based access control and team organization
 
-### Animations
-- Scroll-triggered fade-in animations
-- Counter animations for statistics
-- Floating card parallax effects
-- Chart bar animations
-- Smooth hover transitions
-- Pulse animations for live indicators
+### Technical Features
+- Real-time WebSocket notifications
+- REST API with OpenAPI documentation
+- Secure authentication (2FA-ready)
+- Responsive design for all devices
+- Production-ready deployment configuration
 
-### JavaScript Modules
-- `Navigation` - Navbar scroll effects
-- `MobileMenu` - Mobile navigation toggle
-- `SmoothScroll` - Anchor link handling
-- `AnimateOnScroll` - Scroll-triggered animations
-- `CounterAnimation` - Number counting animation
-- `ParallaxEffect` - Floating card parallax
-- `FormHandler` - Form submission handling
-- `ChartAnimation` - Chart bar animations
-- `LazyLoad` - Image lazy loading
-- `Tooltip` - Hover tooltips
+## 🛠 Tech Stack
 
-### Accessibility
-- Semantic HTML5 structure
-- ARIA labels and roles
-- Keyboard navigation support
-- Focus indicators (#58a6ff)
-- Reduced motion support ready
-- High contrast compatible
+### Backend
+- **Django 5.2** - Core framework with ORM, admin, auth
+- **Django REST Framework** - API development
+- **Channels** - WebSocket support for real-time features
+- **Daphne** - ASGI server for WebSockets
 
-## 🎯 Key Metrics Showcased
+### Frontend
+- **HTML5** - Semantic markup
+- **CSS3** - Custom styles with CSS variables
+- **Vanilla JavaScript** - No frameworks, pure JS
 
-- **25+** Django Models
-- **500+** Lines of Code
-- **14** API Endpoints
-- **100%** WCAG Compliant
+### Infrastructure
+- **WhiteNoise** - Static file serving
+- **Gunicorn** - WSGI HTTP server
+- **PostgreSQL** - Relational database
 
-## 🛠️ Technologies Used
+## 📦 Installation
 
-- **HTML5** - Semantic structure
-- **CSS3** - Custom properties, Grid, Flexbox, Animations
-- **Vanilla JavaScript** - No framework dependencies
-- **Font Awesome 6.5** - Icon library
-- **Google Fonts** - Inter & JetBrains Mono
+### Prerequisites
+- Python 3.10+
+- PostgreSQL 12+
+- Node.js 18+ (optional, for development)
 
-## 📊 Color Palette (Matching Application)
+### Setup
 
-```css
-/* Background Colors */
---bg-primary: #1a1a2e;      /* Deep Navy */
---bg-secondary: #16213e;    /* Navy */
---bg-tertiary: #0f3460;     /* Blue-Gray */
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/AlexBiobelemo/Project-Falcon.git
+   cd Project-Falcon
+   ```
 
-/* Text Colors */
---text-primary: #eaeaea;
---text-secondary: #b0b0b0;
---text-tertiary: #888888;
+2. **Create virtual environment**
+   ```bash
+   python -m venv venv
+   venv\Scripts\activate  # Windows
+   source venv/bin/activate  # Linux/Mac
+   ```
 
-/* Accent Colors */
---color-accent: #58a6ff;    /* GitHub Blue */
---color-accent-light: #79c0ff;
+3. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-/* Status Colors */
---status-success: #198754;  /* Green */
---status-warning: #ffc107;  /* Yellow */
---status-danger: #dc3545;   /* Red */
---status-info: #0dcaf0;     /* Cyan */
+4. **Configure database**
+   ```bash
+   # Create PostgreSQL database
+   createdb blue_falcon
+   
+   # Update settings.py with your database credentials
+   ```
+
+5. **Run migrations**
+   ```bash
+   python manage.py migrate
+   ```
+
+6. **Create superuser**
+   ```bash
+   python manage.py createsuperuser
+   ```
+
+7. **Start development server**
+   ```bash
+   python manage.py runserver
+   ```
+
+8. **Access the application**
+   - Landing Page: `http://localhost:8000`
+   - Admin Panel: `http://localhost:8000/admin`
+   - API Docs: `http://localhost:8000/api/docs/`
+
+## 🎨 Landing Pages
+
+| Page | Description | URL |
+|------|-------------|-----|
+| **Home** | Main portfolio-style landing page | `/` |
+| **Product Tour** | Interactive module walkthrough | `/app.html` |
+| **Tech Stack** | Technology details | N/A (merged) |
+
+## 📱 Responsive Design
+
+The landing pages are fully responsive with breakpoints at:
+- **Desktop**: >1200px
+- **Tablet**: 900px - 1200px (2-column layouts, hamburger menu)
+- **Mobile**: <900px (1-column, hamburger menu)
+
+## 🔐 Demo Access
+
+The live demo includes sample data for testing:
+
+**Credentials:**
+- Username: `alex`
+- Password: `12345`
+
+## 📁 Project Structure
+
+```
+falcon_lp/
+├── index.html          # Main landing page
+├── app.html            # Product tour page
+├── css/
+│   └── styles.css      # All styles (2,266 lines)
+├── js/
+│   └── main.js         # Interactions (417 lines)
+├── assets/
+│   ├── cloud-wisp-1.svg
+│   └── cloud-wisp-2.svg
+└── README.md           # This file
 ```
 
-## ✨ Customization for Your Portfolio
+## 🎯 Key Interactions
 
-### Update These Links:
+### Radar Visual (Hero Section)
+- Circular radar display with live aircraft tracking
+- 4 aircraft blips with flight labels
+- Animated sweep effect (4s cycle)
+- Moving blip with flight path animation
+- Real-time stats overlay
 
-1. **GitHub Repository**
-   ```html
-   <!-- In index.html, replace: -->
-   href="https://github.com/yourusername/project-falcon"
-   ```
+### Module Timeline
+- Horizontal flow layout (desktop)
+- 2-column grid (tablet)
+- Vertical stack (mobile)
+- Hover effects on icons and cards
 
-2. **Social Media Links** (Footer)
-   ```html
-   <!-- Update these: -->
-   href="https://github.com/yourusername"
-   href="https://linkedin.com/in/yourusername"
-   href="mailto:your.email@example.com"
-   href="https://yourportfolio.com"
-   ```
+### Mobile Navigation
+- Hamburger menu (<900px)
+- Slide-in from right
+- Close on link click or outside click
+- Smooth animations
 
-3. **Your Name** (Footer)
-   ```html
-   Portfolio Project by <a href="...">Your Name</a>
-   ```
+## 🚀 Deployment
 
-### Optional Enhancements:
+### Production Checklist
+- [ ] Set `DEBUG = False`
+- [ ] Configure `ALLOWED_HOSTS`
+- [ ] Set up HTTPS/SSL
+- [ ] Configure static files (WhiteNoise)
+- [ ] Set up database backups
+- [ ] Configure logging
+- [ ] Set up monitoring (health checks)
 
-1. **Add Screenshots**
-   - Place actual dashboard screenshots in `images/`
-   - Update hero visual with real preview
-   - Add screenshot gallery section
-
-2. **Add Live Demo Link**
-   - If deployed, add "Live Demo" button in hero
-   - Link to your deployed instance
-
-3. **Add Your Photo**
-   - Consider adding a developer photo
-   - Link to your about page
-
-4. **Enhance Metrics**
-   - Update "Lines of Code" to actual count
-   - Add test coverage percentage
-   - Add number of commits/contributors
-
-## 🌐 Usage
-
-### Standard Version
-Open `index.html` in a browser to view the standard landing page.
-
-### Parallax Flight Version ⭐ **RECOMMENDED**
-Open `index-parallax.html` for the full aviation experience!
-
+### Environment Variables
 ```bash
-# Simple HTTP server (Python)
-python -m http.server 8000
-
-# Then visit:
-# Standard: http://localhost:8000/falcon_lp/index.html
-# Parallax: http://localhost:8000/falcon_lp/index-parallax.html
+SECRET_KEY=your-secret-key
+DEBUG=False
+ALLOWED_HOSTS=your-domain.com
+DATABASE_URL=postgresql://user:pass@host:5432/dbname
 ```
 
-### Navigation Controls (Parallax Version)
-- **Mouse Wheel**: Scroll up/down to change sections
-- **Arrow Keys**: ↑↓ to navigate
-- **Space/Page Down**: Next section
-- **Home/End**: First/Last section
-- **Touch**: Swipe up/down on mobile
-- **Progress Dots**: Click to jump to any section
+## 📊 Performance
 
-## 📝 Next Steps
+- **No external frameworks** - Pure vanilla JS
+- **Optimized animations** - GPU-accelerated transforms
+- **Lazy initialization** - Intersection Observer for animations
+- **Passive event listeners** - Better scroll performance
+- **Minimal dependencies** - Only Google Fonts
 
-1. **Replace placeholder links** with your actual URLs
-2. **Add real screenshots** of the application
-3. **Deploy** to GitHub Pages, Netlify, or Vercel
-4. **Link from your main portfolio** website
-5. **Add analytics** (optional) to track visitors
+## 🤝 Contributing
 
-## 🎓 Perfect For
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-- Job applications
-- Technical interviews
-- Freelance proposals
-- Developer portfolios
-- Code reviews
-- Showcasing Django skills
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 👨‍💻 Author
+
+**Alex Alagoa Biobelemo**
+
+- GitHub: [@AlexBiobelemo](https://github.com/AlexBiobelemo)
+- LinkedIn: [Alex Alagoa Biobelemo](https://www.linkedin.com/in/alex-alagoa-biobelemo/)
+- Portfolio: [alexbio.onrender.com](https://alexbio.onrender.com)
+- Email: alexbio0405@gmail.com
+
+## 🔗 Links
+
+- **Live Demo**: [blue-falcon.onrender.com](https://blue-falcon.onrender.com)
+- **Source Code**: [github.com/AlexBiobelemo/Project-Falcon](https://github.com/AlexBiobelemo/Project-Falcon)
+- **Documentation**: API docs available at `/api/docs/`
 
 ---
 
-**Built with ❤️ as a portfolio demonstration project**
-
-*Showcasing advanced full-stack Django development capabilities*
+Built with ❤️ using Django & modern web technologies

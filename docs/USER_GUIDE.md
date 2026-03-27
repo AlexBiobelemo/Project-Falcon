@@ -1,8 +1,9 @@
 # User Guide & Features Documentation
 
-> **Project:** Blue Falcon - Airport Operations Management System  
-> **Version:** 1.0  
-> **Last Updated:** March 15, 2026  
+> **Project:** Blue Falcon - Airport Operations Management System
+> **Version:** 1.0
+> **Last Updated:** March 26, 2026
+> **Django Version:** 5.2.12
 
 ---
 

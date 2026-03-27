@@ -1,9 +1,10 @@
 # Security Documentation
 
-> **Project:** Blue Falcon - Airport Operations Management System  
-> **Version:** 1.0  
-> **Last Updated:** March 15, 2026  
-> **Classification:** Internal Use  
+> **Project:** Blue Falcon - Airport Operations Management System
+> **Version:** 1.0
+> **Last Updated:** March 26, 2026
+> **Django Version:** 5.2.12
+> **Classification:** Internal Use
 
 ---
 
@@ -626,19 +627,25 @@ def honeypot_decoy_view(request):
 ### API Rate Limiting
 
 ```python
-# settings.py
+# settings.py (REST_FRAMEWORK configuration)
 REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_CLASSES': [
         'rest_framework.throttling.AnonRateThrottle',
         'rest_framework.throttling.UserRateThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon': '100/hour',
-        'user': '1000/hour',
-        'burst': '60/min',
+        'anon': '100/hour',       # Anonymous users
+        'user': '1000/hour',      # Authenticated users
+        'burst': '60/min',        # Burst protection for all
     },
 }
 ```
+
+| User Type     | Rate Limit         |
+| ------------- | ------------------ |
+| Anonymous     | 100 requests/hour  |
+| Authenticated | 1000 requests/hour |
+| Burst (all)   | 60 requests/minute |
 
 ### Custom Throttling
 
@@ -797,11 +804,14 @@ def cleanup_old_logs():
 ```python
 # settings.py
 PASSWORD_HASHERS = [
-    'django.contrib.auth.hashers.Argon2PasswordHasher',  # Primary
+    'django.contrib.auth.hashers.Argon2PasswordHasher',  # Primary (most secure)
     'django.contrib.auth.hashers.PBKDF2PasswordHasher',  # Fallback
     'django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher',
     'django.contrib.auth.hashers.BCryptSHA256PasswordHasher',
 ]
+
+# Note: MD5PasswordHasher is explicitly NOT used, even in DEBUG mode
+# The system fails fast if SECRET_KEY is not set (no insecure fallbacks)
 ```
 
 ### Sensitive Data Handling

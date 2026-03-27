@@ -1,8 +1,9 @@
 # Deployment Guide
 
-> **Project:** Blue Falcon - Airport Operations Management System  
-> **Version:** 1.0  
-> **Last Updated:** March 15, 2026  
+> **Project:** Blue Falcon - Airport Operations Management System
+> **Version:** 1.0
+> **Last Updated:** March 26, 2026
+> **Django Version:** 5.2.12
 
 ---
 
@@ -36,8 +37,9 @@ This guide covers production deployment of the Blue Falcon Airport Operations Ma
 | **RAM** | 512 MB | 2+ GB |
 | **Storage** | 1 GB | 10+ GB |
 | **Python** | 3.12 | 3.12+ |
-| **Database** | SQLite | PostgreSQL 12+ |
-| **Cache** | LocMem | Redis |
+| **Database** | SQLite 3.x | PostgreSQL 12+ |
+| **Cache** | LocMem (dev) | Redis 5.x (prod) |
+| **ASGI Server** | Daphne 4.2+ | Daphne 4.2+ |
 
 ---
 
@@ -45,45 +47,51 @@ This guide covers production deployment of the Blue Falcon Airport Operations Ma
 
 ### Option 1: Render.com (Recommended)
 
-**Best for:** Quick deployment, managed infrastructure, automatic SSL
+**Best for:** Quick deployment, managed infrastructure, automatic SSL, free tier
 
 **Pros:**
-- One-click deployment
-- Managed PostgreSQL and Redis
-- Automatic SSL certificates
+- One-click deployment from GitHub
+- Managed PostgreSQL and Redis included
+- Automatic SSL certificates (Let's Encrypt)
 - Automatic deployments on git push
-- Free tier available
+- Free tier available (with limitations)
+- Built-in health checks and monitoring
 
 **Cons:**
-- Less control over infrastructure
+- Less control over infrastructure configuration
 - Vendor lock-in
+- Limited customization compared to VPS
 
 ### Option 2: Traditional VPS
 
-**Best for:** Full control, cost optimization at scale
+**Best for:** Full control, cost optimization at scale, custom configurations
 
 **Pros:**
 - Complete control over server configuration
-- Cost-effective at scale
-- No vendor lock-in
+- Cost-effective at scale (no platform markup)
+- No vendor lock-in (portable setup)
+- Can use any hosting provider (DigitalOcean, Linode, AWS EC2, etc.)
 
 **Cons:**
-- Requires server administration
-- Manual SSL management
-- More setup time
+- Requires server administration knowledge
+- Manual SSL certificate management
+- More initial setup time
+- Responsible for security updates and monitoring
 
 ### Option 3: Docker
 
-**Best for:** Containerized deployments, Kubernetes
+**Best for:** Containerized deployments, Kubernetes, consistent environments across teams
 
 **Pros:**
-- Consistent environments
-- Easy scaling
-- Portable
+- Consistent environments (dev, staging, production)
+- Easy scaling with orchestration (Kubernetes, Docker Swarm)
+- Portable across cloud providers
+- Isolated dependencies
 
 **Cons:**
-- Docker expertise required
-- Additional complexity
+- Docker and orchestration expertise required
+- Additional complexity for simple deployments
+- Overhead for small-scale applications
 
 ---
 

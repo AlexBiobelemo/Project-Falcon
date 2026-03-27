@@ -1,8 +1,9 @@
 # Architecture Documentation
 
-> **Project:** Blue Falcon - Airport Operations Management System  
-> **Version:** 1.0  
-> **Last Updated:** March 15, 2026  
+> **Project:** Blue Falcon - Airport Operations Management System
+> **Version:** 1.0
+> **Last Updated:** March 26, 2026
+> **Django Version:** 5.2.12
 
 ---
 
@@ -216,10 +217,11 @@ WebSocket consumers implement pub/sub for real-time updates:
 │  ┌─────────▼────────────────▼─────────────────────▼─────────────┐ │
 │  │                   Business Logic Layer                        │ │
 │  │  ┌─────────────────────────────────────────────────────────┐ │ │
-│  │  │  Models (core/models.py - 2117 lines)                   │ │ │
+│  │  │  Models (core/models.py)                                │ │ │
 │  │  │  - Airport, Gate, Flight, Passenger, Staff              │ │ │
 │  │  │  - FiscalAssessment, Report, Document                   │ │ │
 │  │  │  - Aircraft, CrewMember, MaintenanceLog, IncidentReport │ │ │
+│  │  │  - Baggage, Weather, Fuel, CustomFields                 │ │ │
 │  │  └─────────────────────────────────────────────────────────┘ │ │
 │  │  ┌──────────────┐  ┌──────────────┐  ┌────────────────────┐ │ │
 │  │  │   Forms      │  │ Serializers  │  │   Permissions      │ │ │
@@ -290,16 +292,20 @@ WebSocket consumers implement pub/sub for real-time updates:
 **Responsibility:** Data structure definition, business rules, and query logic
 
 **Components:**
-- **Entity Models:** Airport, Gate, Flight, Passenger, Staff, etc.
-- **Financial Models:** FiscalAssessment, Report, Document
+- **Entity Models:** Airport, Gate, Flight, Passenger, Staff, StaffAssignment
+- **Financial Models:** FiscalAssessment, Report, Document, ReportSchedule
 - **Operational Models:** Aircraft, CrewMember, MaintenanceLog, IncidentReport
 - **Audit Models:** EventLog
+- **Tracking Models:** Baggage, WeatherCondition, WeatherAlert
+- **Resource Models:** FuelInventory, FuelDispensing, MaintenanceSchedule
+- **Extension Models:** CustomField, CustomFieldValue
 
 **Key Features:**
-- Custom managers for common queries
-- Enum-based status fields
+- Custom managers for common queries (FlightManager, GateManager)
+- Enum-based status fields (GateStatus, FlightStatus, StaffRole, PassengerStatus)
 - Database indexes for performance
-- Automatic timestamp tracking
+- Automatic timestamp tracking (created_at, updated_at)
+- UUID-based identifiers for public-facing models (Passenger, Staff)
 
 #### Views (`core/views.py`)
 
@@ -325,12 +331,13 @@ BaseUpdateView ──┬── FiscalAssessmentUpdateView
                  └── DocumentUpdateView
 
 Special Views:
-- DashboardView
-- AnalyticsDashboardView
-- AirportComparisonView
-- FlightStatusPortalView (public)
-- BaggageTrackingView (public)
-- DataImportWizardView
+- DashboardView (main operations dashboard)
+- AnalyticsDashboardView (Chart.js visualizations)
+- AirportComparisonView (multi-airport comparison)
+- FlightStatusPortalView (public, no auth required)
+- BaggageTrackingView (public, no auth required)
+- DataImportWizardView (CSV import wizard)
+- ReportScheduleListView/CreateView/UpdateView/DeleteView
 ```
 
 #### API (`core/api.py`)
@@ -354,10 +361,12 @@ IncidentReportViewSet
 ReportViewSet
 DocumentViewSet
 
-Special Views:
-- DashboardSummaryView (cached)
+Special Endpoints:
+- DashboardSummaryView (cached, 5 min)
 - AnalyticsDashboardView
-- TrendDataAPIView
+- TrendDataAPIView (6-month historical data)
+- MapDataView (geographic visualization)
+- WeatherSearchView (Open-Meteo integration)
 ```
 
 #### Forms (`core/forms.py`)
@@ -372,13 +381,13 @@ FiscalAssessmentApprovalForm
 ReportCreateForm
 DocumentCreateForm
 ReportScheduleForm
-```
 
-**Security Features:**
+Security Features:
 - HoneypotFieldMixin for bot protection
 - Explicit field allowlists
 - Type validation (Decimal, Integer, Date)
-- Cross-field validation
+- Cross-field validation (date ranges, numeric constraints)
+```
 
 #### Permissions (`core/permissions.py`)
 
@@ -426,24 +435,24 @@ NotificationConsumer   → /ws/notifications/
 
 #### Tasks (`core/tasks.py`)
 
-**Responsibility:** Background job processing
+**Responsibility:** Background job processing via Django-Q2
 
 **Tasks:**
 ```
-generate_report_task()         → Generate report content
-generate_scheduled_report()    → Process scheduled reports
-send_report_email()            → Email report delivery
-check_scheduled_reports()      → Queue due reports
-warm_cache()                   → Pre-populate cache
-backup_database()              → Database backup
+generate_report_task(report_id: int) → Generate report content
+generate_scheduled_report() → Process scheduled reports
+send_report_email(recipient: str, subject: str, content: str) → Email delivery
+check_scheduled_reports() → Queue due reports (hourly)
+warm_cache() → Pre-populate cache (every 30 min)
+backup_database() → Database backup
 ```
 
 **Scheduling (Django-Q2):**
 ```python
 'schedules': {
-    'check_scheduled_reports': {'func': '...', 'schedule': 3600},
-    'fetch_weather_data': {'func': '...', 'schedule': 900},
-    'warm_cache': {'func': '...', 'schedule': 1800},
+    'check_scheduled_reports': {'func': 'core.tasks.check_scheduled_reports', 'schedule': 3600},  # Hourly
+    'fetch_weather_data': {'func': 'core.weather_service.fetch_weather_for_all_airports', 'schedule': 900},  # 15 min
+    'warm_cache': {'func': 'core.tasks.warm_cache', 'schedule': 1800},  # 30 min
 }
 ```
 

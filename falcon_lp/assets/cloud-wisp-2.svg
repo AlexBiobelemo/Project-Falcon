@@ -1,0 +1,20 @@
+<svg viewBox="0 0 500 250" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="blur2">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="10" />
+    </filter>
+    <linearGradient id="cloudGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:rgba(182,166,255,0.12);stop-opacity:1" />
+      <stop offset="50%" style="stop-color:rgba(106,228,255,0.06);stop-opacity:1" />
+      <stop offset="100%" style="stop-color:rgba(255,210,122,0.03);stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <g filter="url(#blur2)" opacity="0.5">
+    <ellipse cx="100" cy="150" rx="140" ry="70" fill="url(#cloudGrad2)" />
+    <ellipse cx="250" cy="120" rx="160" ry="80" fill="url(#cloudGrad2)" />
+    <ellipse cx="400" cy="160" rx="120" ry="60" fill="url(#cloudGrad2)" />
+    <ellipse cx="180" cy="90" rx="100" ry="55" fill="url(#cloudGrad2)" />
+    <ellipse cx="320" cy="100" rx="110" ry="60" fill="url(#cloudGrad2)" />
+    <ellipse cx="450" cy="130" rx="80" ry="45" fill="url(#cloudGrad2)" />
+  </g>
+</svg>

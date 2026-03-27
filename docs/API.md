@@ -1,9 +1,11 @@
 # API Documentation
 
-> **Project:** Blue Falcon - Airport Operations Management System  
-> **API Version:** v1  
-> **Base URL:** `/api/v1/`  
-> **Last Updated:** March 15, 2026  
+> **Project:** Blue Falcon - Airport Operations Management System
+> **API Version:** v1
+> **Base URL:** `/api/v1/`
+> **Last Updated:** March 26, 2026
+> **Django Version:** 5.2.12
+> **DRF Version:** 3.16.0
 
 ---
 
@@ -37,38 +39,40 @@ Development: http://localhost:8000/api/v1/
 
 | Resource | Endpoint | Description |
 |----------|----------|-------------|
-| Airports | `/api/v1/airports/` | Airport facilities |
-| Gates | `/api/v1/gates/` | Airport gates |
-| Flights | `/api/v1/flights/` | Flight operations |
-| Passengers | `/api/v1/passengers/` | Passenger records |
-| Staff | `/api/v1/staff/` | Staff members |
+| Airports | `/api/v1/airports/` | Airport facilities management |
+| Gates | `/api/v1/gates/` | Airport gates with terminal assignment |
+| Flights | `/api/v1/flights/` | Flight operations and tracking |
+| Passengers | `/api/v1/passengers/` | Passenger records with UUID identifiers |
+| Staff | `/api/v1/staff/` | Staff members registry |
 | Staff Assignments | `/api/v1/staff-assignments/` | Staff-to-flight assignments |
-| Events | `/api/v1/events/` | Event logs (read-only) |
+| Events | `/api/v1/events/` | Event logs (read-only audit trail) |
 | Assessments | `/api/v1/assessments/` | Fiscal assessments |
 | Aircraft | `/api/v1/aircraft/` | Aircraft registry |
 | Crew | `/api/v1/crew/` | Crew members |
 | Maintenance | `/api/v1/maintenance/` | Maintenance logs |
 | Incidents | `/api/v1/incidents/` | Incident reports |
 | Reports | `/api/v1/reports/` | Generated reports |
-| Documents | `/api/v1/documents/` | Documents |
+| Documents | `/api/v1/documents/` | Documents and templates |
 
 ### Custom Endpoints
 
 | Endpoint | Description |
 |----------|-------------|
-| `/api/v1/dashboard-summary/` | Dashboard aggregate metrics |
-| `/api/v1/trend-data/` | Historical trend data |
-| `/api/v1/analytics/` | Analytics data |
-| `/api/v1/map-data/` | Map visualization data |
-| `/api/v1/weather/search/` | Weather data lookup |
+| `/api/v1/dashboard-summary/` | Dashboard aggregate metrics (cached, 5 min) |
+| `/api/v1/trend-data/` | Historical trend data for charts (6-month range) |
+| `/api/v1/analytics/` | Detailed analytics metrics |
+| `/api/v1/map-data/` | Geographic data for map visualization |
+| `/api/v1/weather/search/` | Weather data from Open-Meteo API |
 
 ### API Documentation UIs
 
-Interactive API documentation is available at:
+Interactive API documentation is automatically generated and available at:
 
-- **Swagger UI:** `/api/schema/swagger-ui/`
-- **ReDoc:** `/api/schema/redoc/`
-- **OpenAPI Schema:** `/api/schema/`
+- **Swagger UI:** `/api/schema/swagger-ui/` - Interactive API testing interface
+- **ReDoc:** `/api/schema/redoc/` - Clean, readable API documentation
+- **OpenAPI Schema:** `/api/schema/` - Raw OpenAPI 3.0 schema (YAML/JSON)
+
+**Note:** API documentation requires authentication in production environments.
 
 ---
 
@@ -78,9 +82,11 @@ The API supports two authentication methods:
 
 ### 1. Token Authentication (Recommended for API Clients)
 
-Token authentication is **CSRF-exempt** and recommended for programmatic API access.
+Token authentication is **CSRF-exempt** and recommended for programmatic API access, mobile apps, and third-party integrations.
 
 #### Obtain Token
+
+**Endpoint:** `POST /api/api-token-auth/`
 
 ```bash
 curl -X POST http://localhost:8000/api/api-token-auth/ \
@@ -88,7 +94,7 @@ curl -X POST http://localhost:8000/api/api-token-auth/ \
   -d '{"username": "your-username", "password": "your-password"}'
 ```
 
-Response:
+**Response:**
 ```json
 {
   "token": "9944b09199c62bcf9418ad846dd0e4bbdfc6ee4b"
@@ -104,11 +110,18 @@ curl -X GET http://localhost:8000/api/v1/flights/ \
   -H "Authorization: Bearer 9944b09199c62bcf9418ad846dd0e4bbdfc6ee4b"
 ```
 
+**Token Management:**
+- Tokens are created automatically on first authentication
+- Tokens persist until explicitly deleted
+- To revoke a token, delete it via the admin interface or API
+
 ### 2. Session Authentication (For Browser Clients)
 
-Session authentication requires CSRF tokens and is suitable for browser-based clients.
+Session authentication requires CSRF tokens and is suitable for browser-based clients and web applications.
 
 #### Login
+
+**Endpoint:** `POST /accounts/login/`
 
 ```bash
 curl -X POST http://localhost:8000/accounts/login/ \
@@ -125,14 +138,17 @@ curl -X GET http://localhost:8000/api/v1/flights/ \
   -H "X-CSRFToken: your-csrf-token"
 ```
 
+**Note:** CSRF token can be obtained from the `csrftoken` cookie or from the HTML form hidden input.
+
 ### Authentication Comparison
 
 | Feature | Token Auth | Session Auth |
 |---------|-----------|--------------|
-| CSRF Protection | Not Required | Required |
+| CSRF Required | No | Yes |
 | Use Case | API Clients, Mobile Apps | Browser Clients |
 | State | Stateless | Stateful |
-| Header | `Authorization: Bearer <token>` | `Cookie: sessionid=<session>` |
+| Header | `Authorization: Bearer <token>` | `Cookie: sessionid=<session>` + `X-CSRFToken` |
+| Persistence | Until revoked | Until expiration (2 weeks default) |
 
 ---
 

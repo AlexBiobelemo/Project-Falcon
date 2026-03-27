@@ -1,549 +1,416 @@
 /**
- * Blue Falcon Landing Page - Main JavaScript
- * Handles interactivity, animations, and dynamic features
+ * Blue Falcon - Portfolio Landing Page
  */
 
-document.addEventListener('DOMContentLoaded', () => {
-    // Initialize all modules
-    Navigation.init();
-    MobileMenu.init();
-    SmoothScroll.init();
-    AnimateOnScroll.init();
-    CounterAnimation.init();
-    ParallaxEffect.init();
-    FormHandler.init();
-});
+(function () {
+  "use strict";
 
-/**
- * Navigation Module
- * Handles navbar scroll effects and active state
- */
-const Navigation = {
-    init() {
-        this.navbar = document.getElementById('navbar');
-        this.navLinks = document.querySelectorAll('.nav-link');
-        
-        this.bindEvents();
-        this.checkScroll();
-    },
-    
-    bindEvents() {
-        window.addEventListener('scroll', () => this.checkScroll());
-    },
-    
-    checkScroll() {
-        const scrollPosition = window.scrollY;
-        
-        // Add scrolled class when page is scrolled
-        if (scrollPosition > 50) {
-            this.navbar?.classList.add('scrolled');
-        } else {
-            this.navbar?.classList.remove('scrolled');
-        }
-        
-        // Update active nav link based on scroll position
-        this.updateActiveNavLink(scrollPosition);
-    },
-    
-    updateActiveNavLink(scrollPosition) {
-        const sections = document.querySelectorAll('section[id]');
-        const sectionOffset = 100;
-        
-        sections.forEach(section => {
-            const sectionTop = section.offsetTop - sectionOffset;
-            const sectionHeight = section.offsetHeight;
-            const sectionId = section.getAttribute('id');
-            
-            if (scrollPosition >= sectionTop && scrollPosition < sectionTop + sectionHeight) {
-                this.navLinks.forEach(link => {
-                    link.classList.remove('active');
-                    if (link.getAttribute('href') === `#${sectionId}`) {
-                        link.classList.add('active');
-                    }
-                });
-            }
-        });
-    }
-};
+  const CONFIG = {
+    prefersReducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    isLowEnd:
+      typeof navigator !== "undefined" &&
+      ((navigator.deviceMemory && navigator.deviceMemory <= 4) ||
+        (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4)),
+    tiltStrength: 8,
+    scrollThreshold: 50,
+    animationStagger: 100,
+  };
 
-/**
- * Mobile Menu Module
- * Handles mobile navigation toggle
- */
-const MobileMenu = {
-    init() {
-        this.toggle = document.getElementById('mobileMenuToggle');
-        this.menu = document.getElementById('navMenu');
-        this.menuLinks = this.menu?.querySelectorAll('a');
-        
-        this.bindEvents();
-    },
-    
-    bindEvents() {
-        this.toggle?.addEventListener('click', () => this.toggleMenu());
-        
-        // Close menu when clicking a link
-        this.menuLinks?.forEach(link => {
-            link.addEventListener('click', () => this.closeMenu());
-        });
-        
-        // Close menu on resize
-        window.addEventListener('resize', () => {
-            if (window.innerWidth > 768) {
-                this.closeMenu();
-            }
-        });
-    },
-    
-    toggleMenu() {
-        this.menu?.classList.toggle('active');
-        this.toggle?.classList.toggle('active');
-        
-        // Toggle aria-expanded
-        const isExpanded = this.menu?.classList.contains('active');
-        this.toggle?.setAttribute('aria-expanded', isExpanded);
-    },
-    
-    closeMenu() {
-        this.menu?.classList.remove('active');
-        this.toggle?.classList.remove('active');
-        this.toggle?.setAttribute('aria-expanded', 'false');
-    }
-};
+  const prefersReduced = CONFIG.prefersReducedMotion || CONFIG.isLowEnd;
 
-/**
- * Smooth Scroll Module
- * Handles smooth scrolling for anchor links
- */
-const SmoothScroll = {
-    init() {
-        this.links = document.querySelectorAll('a[href^="#"]');
-        this.bindEvents();
-    },
-    
-    bindEvents() {
-        this.links.forEach(link => {
-            link.addEventListener('click', (e) => {
-                const href = link.getAttribute('href');
-                
-                // Skip if it's just "#" or external link
-                if (href === '#' || href.length < 2) return;
-                
-                const target = document.querySelector(href);
-                
-                if (target) {
-                    e.preventDefault();
-                    this.scrollTo(target);
-                }
-            });
-        });
-    },
-    
-    scrollTo(target) {
-        const offsetTop = target.offsetTop - 80; // Account for fixed navbar
-        
-        window.scrollTo({
-            top: offsetTop,
-            behavior: 'smooth'
-        });
-    }
-};
+  const clamp = (num, min, max) => Math.min(Math.max(num, min), max);
+  const lerp = (start, end, t) => start + (end - start) * t;
 
-/**
- * Animate On Scroll Module
- * Triggers animations when elements come into view
- */
-const AnimateOnScroll = {
-    init() {
-        this.elements = document.querySelectorAll('.feature-card, .capability-card, .security-card, .testimonial-card, .tech-category');
-        
-        // Add animation class to elements
-        this.elements.forEach(el => {
-            el.classList.add('animate-on-scroll');
-        });
-        
-        this.bindEvents();
-        this.checkElements(); // Check on load
-    },
-    
-    bindEvents() {
-        window.addEventListener('scroll', () => this.checkElements());
-    },
-    
-    checkElements() {
-        const triggerBottom = window.innerHeight * 0.85;
-        
-        this.elements.forEach(el => {
-            const elementTop = el.getBoundingClientRect().top;
-            
-            if (elementTop < triggerBottom) {
-                el.classList.add('visible');
-            }
-        });
-    }
-};
+  function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
+  }
 
-/**
- * Counter Animation Module
- * Animates numbers counting up
- */
-const CounterAnimation = {
-    init() {
-        this.counters = document.querySelectorAll('.stat-number[data-count]');
-        this.animated = false;
-        
-        this.bindEvents();
-        this.checkCounters(); // Check on load
-    },
-    
-    bindEvents() {
-        window.addEventListener('scroll', () => this.checkCounters());
-    },
-    
-    checkCounters() {
-        if (this.animated) return;
-        
-        const heroSection = document.getElementById('hero');
-        if (!heroSection) return;
-        
-        const heroBottom = heroSection.getBoundingClientRect().bottom;
-        const triggerPoint = window.innerHeight * 0.75;
-        
-        if (heroBottom > triggerPoint) {
-            this.animated = true;
-            this.animateAll();
-        }
-    },
-    
-    animateAll() {
-        this.counters.forEach(counter => {
-            const target = parseInt(counter.getAttribute('data-count'));
-            const duration = 2000; // 2 seconds
-            const step = target / (duration / 16); // 60fps
-            let current = 0;
-            
-            const updateCounter = () => {
-                current += step;
-                
-                if (current < target) {
-                    counter.textContent = Math.floor(current);
-                    requestAnimationFrame(updateCounter);
-                } else {
-                    counter.textContent = target;
-                }
-            };
-            
-            updateCounter();
-        });
-    }
-};
+  function throttle(func, limit) {
+    let inThrottle;
+    return function (...args) {
+      if (!inThrottle) {
+        func.apply(this, args);
+        inThrottle = true;
+        setTimeout(() => (inThrottle = false), limit);
+      }
+    };
+  }
 
-/**
- * Parallax Effect Module
- * Adds subtle parallax to floating elements
- */
-const ParallaxEffect = {
-    init() {
-        this.floatingCards = document.querySelectorAll('.floating-card');
-        
-        if (this.floatingCards.length > 0) {
-            this.bindEvents();
-        }
-    },
-    
-    bindEvents() {
-        window.addEventListener('scroll', () => this.update());
-    },
-    
-    update() {
-        const scrollPosition = window.scrollY;
-        const heroSection = document.getElementById('hero');
-        
-        if (!heroSection) return;
-        
-        const heroRect = heroSection.getBoundingClientRect();
-        
-        // Only apply parallax when hero is in view
-        if (heroRect.bottom > 0 && heroRect.top < window.innerHeight) {
-            this.floatingCards.forEach((card, index) => {
-                const speed = 0.1 + (index * 0.05);
-                const offset = scrollPosition * speed;
-                card.style.transform = `translateY(${offset}px) rotate(${index * 2}deg)`;
-            });
-        }
-    }
-};
+  function initNavbar() {
+    const navbar = document.querySelector(".navbar");
+    if (!navbar) return;
 
-/**
- * Form Handler Module
- * Handles form submissions (for demo purposes)
- */
-const FormHandler = {
-    init() {
-        this.forms = document.querySelectorAll('form');
-        this.bindEvents();
-    },
-    
-    bindEvents() {
-        this.forms.forEach(form => {
-            form.addEventListener('submit', (e) => this.handleSubmit(e, form));
-        });
-    },
-    
-    handleSubmit(e, form) {
-        e.preventDefault();
-        
-        // Get form data
-        const formData = new FormData(form);
-        const data = Object.fromEntries(formData);
-        
-        // Show success message (demo)
-        this.showNotification('Thank you! We\'ll be in touch soon.', 'success');
-        
-        // Reset form
-        form.reset();
-    },
-    
-    showNotification(message, type = 'info') {
-        // Create notification element
-        const notification = document.createElement('div');
-        notification.className = `notification notification-${type}`;
-        notification.textContent = message;
-        
-        // Style notification
-        Object.assign(notification.style, {
-            position: 'fixed',
-            bottom: '20px',
-            right: '20px',
-            padding: '1rem 1.5rem',
-            background: type === 'success' ? '#198754' : '#58a6ff',
-            color: 'white',
-            borderRadius: '0.5rem',
-            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-            zIndex: '1000',
-            animation: 'slideIn 0.3s ease',
-            maxWidth: '300px'
-        });
-        
-        document.body.appendChild(notification);
-        
-        // Remove after 3 seconds
-        setTimeout(() => {
-            notification.style.animation = 'slideOut 0.3s ease';
-            setTimeout(() => notification.remove(), 300);
-        }, 3000);
-    }
-};
+    const updateNavbar = () => {
+      const scrolled = window.scrollY > CONFIG.scrollThreshold;
+      navbar.setAttribute("data-elevate", scrolled ? "1" : "0");
+    };
 
-/**
- * Chart Animation Module
- * Animates chart bars on scroll
- */
-const ChartAnimation = {
-    init() {
-        this.chartBars = document.querySelectorAll('.chart-bars .bar');
-        this.animated = false;
-        
-        if (this.chartBars.length > 0) {
-            this.bindEvents();
-            this.checkChart();
-        }
-    },
-    
-    bindEvents() {
-        window.addEventListener('scroll', () => this.checkChart());
-    },
-    
-    checkChart() {
-        if (this.animated) return;
-        
-        const chart = document.querySelector('.chart-bars');
-        if (!chart) return;
-        
-        const chartTop = chart.getBoundingClientRect().top;
-        const triggerPoint = window.innerHeight * 0.75;
-        
-        if (chartTop < triggerPoint) {
-            this.animated = true;
-            this.animateBars();
-        }
-    },
-    
-    animateBars() {
-        this.chartBars.forEach((bar, index) => {
-            const targetHeight = bar.style.height;
-            bar.style.height = '0%';
-            
-            setTimeout(() => {
-                bar.style.transition = 'height 0.6s ease';
-                bar.style.height = targetHeight;
-            }, index * 100);
-        });
-    }
-};
+    window.addEventListener("scroll", throttle(updateNavbar, 100), { passive: true });
+    updateNavbar();
+  }
 
-// Initialize chart animation
-document.addEventListener('DOMContentLoaded', () => {
-    ChartAnimation.init();
-});
+  function initMobileNav() {
+    const toggle = document.querySelector(".nav-toggle");
+    const menu = document.querySelector(".nav-menu");
+    const actions = document.querySelector(".nav-actions");
 
-/**
- * Intersection Observer for lazy loading
- */
-const LazyLoad = {
-    init() {
-        if ('IntersectionObserver' in window) {
-            this.observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        this.loadElement(entry.target);
-                    }
-                });
-            }, {
-                rootMargin: '50px',
-                threshold: 0.1
-            });
-            
-            this.observeElements();
-        }
-    },
-    
-    observeElements() {
-        const lazyElements = document.querySelectorAll('[data-lazy]');
-        lazyElements.forEach(el => this.observer.observe(el));
-    },
-    
-    loadElement(element) {
-        const src = element.getAttribute('data-lazy');
-        if (src) {
-            if (element.tagName === 'IMG') {
-                element.src = src;
-            } else {
-                element.style.backgroundImage = `url(${src})`;
-            }
-            element.removeAttribute('data-lazy');
-        }
-    }
-};
+    if (!toggle || !menu) return;
 
-// Initialize lazy loading
-document.addEventListener('DOMContentLoaded', () => {
-    LazyLoad.init();
-});
-
-/**
- * Tooltip Module
- * Shows tooltips on hover
- */
-const Tooltip = {
-    init() {
-        this.tooltipElements = document.querySelectorAll('[data-tooltip]');
-        this.bindEvents();
-    },
-    
-    bindEvents() {
-        this.tooltipElements.forEach(el => {
-            el.addEventListener('mouseenter', (e) => this.show(e));
-            el.addEventListener('mouseleave', () => this.hide());
-        });
-    },
-    
-    show(e) {
-        const tooltipText = e.target.getAttribute('data-tooltip');
-        
-        this.tooltip = document.createElement('div');
-        this.tooltip.className = 'tooltip';
-        this.tooltip.textContent = tooltipText;
-        
-        Object.assign(this.tooltip.style, {
-            position: 'absolute',
-            padding: '0.5rem 0.75rem',
-            background: 'rgba(15, 23, 42, 0.95)',
-            color: 'white',
-            borderRadius: '0.375rem',
-            fontSize: '0.875rem',
-            zIndex: '700',
-            pointerEvents: 'none',
-            animation: 'fadeIn 0.2s ease'
-        });
-        
-        document.body.appendChild(this.tooltip);
-        this.updatePosition(e);
-    },
-    
-    updatePosition(e) {
-        const rect = e.target.getBoundingClientRect();
-        const tooltipRect = this.tooltip.getBoundingClientRect();
-        
-        this.tooltip.style.top = `${rect.top - tooltipRect.height - 10}px`;
-        this.tooltip.style.left = `${rect.left + (rect.width / 2) - (tooltipRect.width / 2)}px`;
-    },
-    
-    hide() {
-        if (this.tooltip) {
-            this.tooltip.remove();
-            this.tooltip = null;
-        }
-    }
-};
-
-// Initialize tooltips
-document.addEventListener('DOMContentLoaded', () => {
-    Tooltip.init();
-});
-
-/**
- * Add CSS animations for notifications
- */
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideIn {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-    
-    @keyframes slideOut {
-        from {
-            transform: translateX(0);
-            opacity: 1;
-        }
-        to {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-    }
-    
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-        }
-        to {
-            opacity: 1;
-        }
-    }
-`;
-document.head.appendChild(style);
-
-/**
- * Performance monitoring (development only)
- */
-if (window.location.hostname === 'localhost') {
-    window.addEventListener('load', () => {
-        const timing = performance.timing;
-        const loadTime = timing.loadEventEnd - timing.navigationStart;
-        console.log(`Page Load Time: ${loadTime}ms`);
+    toggle.addEventListener("click", () => {
+      const expanded = toggle.getAttribute("aria-expanded") === "true";
+      toggle.setAttribute("aria-expanded", !expanded);
+      menu.classList.toggle("active");
+      actions?.classList.toggle("active");
     });
-}
 
-/**
- * Console welcome message
- */
-console.log('%c🦅 Blue Falcon', 'font-size: 24px; font-weight: bold; color: #58a6ff;');
-console.log('%cAirport Operations Management System', 'font-size: 14px; color: #b0b0b0;');
-console.log('%cBuilt with Django | Enterprise-Grade Security', 'font-size: 12px; color: #888888;');
+    // Close menu on link click
+    menu.querySelectorAll("a").forEach((link) => {
+      link.addEventListener("click", () => {
+        toggle.setAttribute("aria-expanded", "false");
+        menu.classList.remove("active");
+        actions?.classList.remove("active");
+      });
+    });
+
+    // Close menu when clicking outside
+    document.addEventListener("click", (e) => {
+      if (
+        menu.classList.contains("active") &&
+        !menu.contains(e.target) &&
+        !toggle.contains(e.target) &&
+        (!actions || !actions.contains(e.target))
+      ) {
+        toggle.setAttribute("aria-expanded", "false");
+        menu.classList.remove("active");
+        actions?.classList.remove("active");
+      }
+    });
+  }
+
+  function initSmoothScroll() {
+    document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+      anchor.addEventListener("click", function (e) {
+        const href = this.getAttribute("href");
+        if (href === "#") return;
+
+        const target = document.querySelector(href);
+        if (target) {
+          e.preventDefault();
+          const offsetTop = target.offsetTop - 80;
+          window.scrollTo({
+            top: offsetTop,
+            behavior: prefersReduced ? "auto" : "smooth",
+          });
+        }
+      });
+    });
+  }
+
+  function initTilt() {
+    if (prefersReduced) return;
+
+    const cards = document.querySelectorAll(".tilt-card, [data-tilt]");
+
+    cards.forEach((card) => {
+      let rafId = null;
+
+      const handleMouseMove = (e) => {
+        if (rafId) return;
+
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+
+        const rotateX = ((y - centerY) / centerY) * -CONFIG.tiltStrength;
+        const rotateY = ((x - centerX) / centerX) * CONFIG.tiltStrength;
+
+        // Set glow position for cards with ::before glow effect
+        card.style.setProperty("--mx", `${(x / rect.width) * 100}%`);
+        card.style.setProperty("--my", `${(y / rect.height) * 100}%`);
+
+        rafId = requestAnimationFrame(() => {
+          card.style.transform = `perspective(1000px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) translateY(-4px)`;
+          rafId = null;
+        });
+      };
+
+      const handleMouseLeave = () => {
+        if (rafId) cancelAnimationFrame(rafId);
+        card.style.transform = "";
+        card.style.setProperty("--mx", "50%");
+        card.style.setProperty("--my", "0%");
+      };
+
+      card.addEventListener("mousemove", handleMouseMove);
+      card.addEventListener("mouseleave", handleMouseLeave);
+    });
+  }
+
+  function initCounters() {
+    // Select both old stat-value and new stat-card-value elements
+    const counters = document.querySelectorAll(".stat-value[data-count], .stat-card-value[data-count]");
+    if (!counters.length) return;
+
+    const animateCounter = (counter) => {
+      const target = parseFloat(counter.getAttribute("data-count"));
+      const duration = 2000;
+      const startTime = performance.now();
+      const suffix = counter.nextElementSibling?.classList.contains("stat-suffix") || 
+                     counter.nextElementSibling?.classList.contains("stat-card-suffix")
+        ? counter.nextElementSibling.textContent
+        : "";
+
+      const updateCounter = (currentTime) => {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+
+        // Easing function (ease-out-quart)
+        const eased = 1 - Math.pow(1 - progress, 4);
+        const current = target * eased;
+
+        if (target % 1 === 0) {
+          counter.textContent = Math.floor(current).toLocaleString();
+        } else {
+          counter.textContent = current.toFixed(1);
+        }
+
+        if (progress < 1) {
+          requestAnimationFrame(updateCounter);
+        } else {
+          counter.textContent = target.toLocaleString();
+        }
+      };
+
+      requestAnimationFrame(updateCounter);
+    };
+
+    // Use Intersection Observer to trigger animation when visible
+    if ("IntersectionObserver" in window) {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              animateCounter(entry.target);
+              observer.unobserve(entry.target);
+            }
+          });
+        },
+        { threshold: 0.1 }
+      );
+
+      counters.forEach((counter) => observer.observe(counter));
+    } else {
+      counters.forEach(animateCounter);
+    }
+  }
+
+  function initParticles() {
+    const container = document.getElementById("particles");
+    if (!container || prefersReduced) return;
+
+    const particleCount = 30;
+
+    for (let i = 0; i < particleCount; i++) {
+      const particle = document.createElement("div");
+      particle.className = "particle";
+
+      const size = Math.random() * 4 + 2;
+      const left = Math.random() * 100;
+      const delay = Math.random() * 20;
+      const duration = Math.random() * 20 + 15;
+
+      particle.style.cssText = `
+        width: ${size}px;
+        height: ${size}px;
+        left: ${left}%;
+        bottom: -10px;
+        animation-delay: ${delay}s;
+        animation-duration: ${duration}s;
+      `;
+
+      container.appendChild(particle);
+    }
+  }
+
+  function initLatencyDisplay() {
+    const latencyEl = document.getElementById("latencyDisplay");
+    if (!latencyEl) return;
+
+    const updateLatency = () => {
+      const baseLatency = 18;
+      const variance = Math.floor(Math.random() * 12) - 6;
+      const latency = baseLatency + variance;
+      latencyEl.textContent = latency;
+    };
+
+    updateLatency();
+    setInterval(updateLatency, 2000);
+  }
+
+  function initScrollReveal() {
+    if (prefersReduced) return;
+
+    const revealElements = document.querySelectorAll(
+      ".section-header, .about-card, .feature-card, .stack-item, .library-card, .module-item"
+    );
+
+    revealElements.forEach((el) => {
+      el.style.opacity = "0";
+      el.style.transform = "translateY(30px)";
+      el.style.transition = "opacity 0.6s ease, transform 0.6s ease";
+    });
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setTimeout(() => {
+              entry.target.style.opacity = "1";
+              entry.target.style.transform = "translateY(0)";
+            }, entry.target.dataset.delay || 0);
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.1, rootMargin: "0px 0px -50px 0px" }
+    );
+
+    revealElements.forEach((el, index) => {
+      el.dataset.delay = (index % 5) * CONFIG.animationStagger;
+      observer.observe(el);
+    });
+  }
+
+  function initActiveNav() {
+    const sections = document.querySelectorAll("section[id]");
+    const navLinks = document.querySelectorAll(".nav-menu a");
+
+    if (!sections.length || !navLinks.length) return;
+
+    const updateActiveNav = throttle(() => {
+      const scrollPos = window.scrollY + 150;
+
+      sections.forEach((section) => {
+        const sectionTop = section.offsetTop;
+        const sectionHeight = section.offsetHeight;
+        const sectionId = section.getAttribute("id");
+
+        if (scrollPos >= sectionTop && scrollPos < sectionTop + sectionHeight) {
+          navLinks.forEach((link) => {
+            link.classList.remove("active");
+            if (link.getAttribute("href") === `#${sectionId}`) {
+              link.classList.add("active");
+            }
+          });
+        }
+      });
+    }, 100);
+
+    window.addEventListener("scroll", updateActiveNav, { passive: true });
+    updateActiveNav();
+  }
+
+  // ==========================================================================
+  // Hero Dashboard Animation
+  // ==========================================================================
+
+  function initHeroAnimation() {
+    if (prefersReduced) return;
+
+    const mockupStats = document.querySelectorAll(".mockup-stat-card");
+    const mockupRows = document.querySelectorAll(".mockup-table-row");
+
+    // Animate stat cards
+    mockupStats.forEach((card, index) => {
+      card.style.opacity = "0";
+      card.style.transform = "translateY(20px)";
+      card.style.transition = `opacity 0.4s ease ${0.8 + index * 0.1}s, transform 0.4s ease ${0.8 + index * 0.1}s`;
+
+      setTimeout(() => {
+        card.style.opacity = "1";
+        card.style.transform = "translateY(0)";
+      }, 100);
+    });
+
+    // Animate table rows
+    mockupRows.forEach((row, index) => {
+      row.style.opacity = "0";
+      row.style.transform = "translateX(-20px)";
+      row.style.transition = `opacity 0.3s ease ${1.2 + index * 0.15}s, transform 0.3s ease ${1.2 + index * 0.15}s`;
+
+      setTimeout(() => {
+        row.style.opacity = "1";
+        row.style.transform = "translateX(0)";
+      }, 100);
+    });
+  }
+
+  function initKeyboardNav() {
+    document.addEventListener("keydown", (e) => {
+      // Close mobile menu on Escape
+      if (e.key === "Escape") {
+        const toggle = document.querySelector(".nav-toggle");
+        const menu = document.querySelector(".nav-menu");
+        const actions = document.querySelector(".nav-actions");
+
+        if (toggle && menu && toggle.getAttribute("aria-expanded") === "true") {
+          toggle.setAttribute("aria-expanded", "false");
+          menu.classList.remove("active");
+          actions?.classList.remove("active");
+        }
+      }
+    });
+  }
+
+  function optimizePerformance() {
+    // Add passive listeners where possible
+    const scrollElements = document.querySelectorAll(".section");
+    
+    scrollElements.forEach((el) => {
+      el.style.contentVisibility = "auto";
+      el.style.containIntrinsicSize = "800px";
+    });
+
+    // Lazy load images if any
+    const images = document.querySelectorAll("img[loading='lazy']");
+    if ("loading" in HTMLImageElement.prototype) {
+      images.forEach((img) => {
+        img.src = img.dataset.src || img.src;
+      });
+    }
+  }
+
+  function init() {
+    // Wait for DOM to be ready
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", init);
+      return;
+    }
+
+    // Initialize all features
+    initNavbar();
+    initMobileNav();
+    initSmoothScroll();
+    initTilt();
+    initCounters();
+    initParticles();
+    initLatencyDisplay();
+    initScrollReveal();
+    initActiveNav();
+    initHeroAnimation();
+    initKeyboardNav();
+    optimizePerformance();
+  }
+
+  init();
+})();
