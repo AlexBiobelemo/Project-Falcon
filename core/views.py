@@ -2124,7 +2124,7 @@ class FlightStatusPortalView(View):
 
     def get(self, request: HttpRequest) -> HttpResponse:
         """Render flight status portal."""
-        from .models import Flight, FlightStatus, Airport
+        from .models import Flight, FlightStatus, Airport, Baggage
         from django.db.models import Q
 
         search_query = request.GET.get('q', '')
@@ -2160,6 +2160,24 @@ class FlightStatusPortalView(View):
         # Get airports for filter
         airports = Airport.objects.filter(is_active=True)
 
+        # Demo hints (random examples to help first-time users)
+        demo_flight_hint = None
+        demo_baggage_hint = None
+        if not search_query:
+            import random
+
+            demo_flights_qs = Flight.objects.filter(
+                Q(scheduled_departure__date=today) | Q(scheduled_arrival__date=today)
+            ).values_list('flight_number', flat=True)
+            flight_count = demo_flights_qs.count()
+            if flight_count:
+                demo_flight_hint = demo_flights_qs[random.randrange(flight_count)]
+
+            demo_baggage_qs = Baggage.objects.values_list('tag_number', flat=True)
+            baggage_count = demo_baggage_qs.count()
+            if baggage_count:
+                demo_baggage_hint = demo_baggage_qs[random.randrange(baggage_count)]
+
         context = {
             "page_title": "Flight Status",
             "flights": flights[:50],  # Limit to 50 for performance
@@ -2168,6 +2186,8 @@ class FlightStatusPortalView(View):
             "selected_status": status_filter,
             "selected_airport": airport_filter,
             "search_query": search_query,
+            "demo_flight_hint": demo_flight_hint,
+            "demo_baggage_hint": demo_baggage_hint,
             "is_public": True,
         }
         return render(request, self.template_name, context)
@@ -2180,7 +2200,8 @@ class BaggageTrackingView(View):
 
     def get(self, request: HttpRequest) -> HttpResponse:
         """Render baggage tracking page."""
-        from .models import Baggage
+        from .models import Baggage, Flight
+        from django.db.models import Q
 
         tag_number = request.GET.get('tag', '')
         baggage = None
@@ -2194,11 +2215,32 @@ class BaggageTrackingView(View):
             except Baggage.DoesNotExist:
                 error = f"Baggage with tag number '{tag_number}' not found."
 
+        # Demo hints (random examples to help first-time users)
+        demo_baggage_hint = None
+        demo_flight_hint = None
+        if not tag_number:
+            import random
+
+            demo_baggage_qs = Baggage.objects.values_list('tag_number', flat=True)
+            baggage_count = demo_baggage_qs.count()
+            if baggage_count:
+                demo_baggage_hint = demo_baggage_qs[random.randrange(baggage_count)]
+
+            today = timezone.now().date()
+            demo_flights_qs = Flight.objects.filter(
+                Q(scheduled_departure__date=today) | Q(scheduled_arrival__date=today)
+            ).values_list('flight_number', flat=True)
+            flight_count = demo_flights_qs.count()
+            if flight_count:
+                demo_flight_hint = demo_flights_qs[random.randrange(flight_count)]
+
         context = {
             "page_title": "Baggage Tracking",
             "baggage": baggage,
             "error": error,
             "tag_number": tag_number,
+            "demo_baggage_hint": demo_baggage_hint,
+            "demo_flight_hint": demo_flight_hint,
             "is_public": True,
         }
         return render(request, self.template_name, context)
