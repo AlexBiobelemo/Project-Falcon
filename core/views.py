@@ -2131,11 +2131,19 @@ class FlightStatusPortalView(View):
         status_filter = request.GET.get('status', '')
         airport_filter = request.GET.get('airport', '')
 
-        # Start with all flights today
+        # Start with all flights today (fallback to recent flights if there are none)
         today = timezone.now().date()
-        flights = Flight.objects.filter(
+        base_flights = Flight.objects.select_related('gate')
+        today_flights = base_flights.filter(
             Q(scheduled_departure__date=today) | Q(scheduled_arrival__date=today)
-        ).select_related('gate').order_by('scheduled_departure')
+        ).order_by('scheduled_departure')
+
+        showing_recent_flights = False
+        if not today_flights.exists() and not (search_query or status_filter or airport_filter):
+            showing_recent_flights = True
+            flights = base_flights.order_by('-scheduled_departure')
+        else:
+            flights = today_flights
 
         # Apply filters
         if search_query:
@@ -2185,6 +2193,7 @@ class FlightStatusPortalView(View):
             "selected_airport": airport_filter,
             "search_query": search_query,
             "demo_flight_hint": demo_flight_hint,
+            "flights_title": "Recent Flights" if showing_recent_flights else "Today's Flights",
             "is_public": True,
         }
         return render(request, self.template_name, context)
