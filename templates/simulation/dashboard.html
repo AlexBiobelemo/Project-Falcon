@@ -46,6 +46,9 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'core:document_list' %}" {% if '/documents/' in request.path %}aria-current="page"{% endif %}>Documents</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'public-baggage-tracking' %}" {% if '/baggage/public' in request.path %}aria-current="page"{% endif %}>Baggage Tracking</a>
+                    </li>
                 </ul>
                 <ul class="navbar-nav">
                     {% if user.is_authenticated %}

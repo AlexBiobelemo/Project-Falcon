@@ -4,6 +4,7 @@ This module defines URL patterns for fiscal assessments, reports, and documents.
 """
 
 from django.urls import path
+from django.views.generic.base import RedirectView
 
 from . import views
 
@@ -190,7 +191,7 @@ urlpatterns = [
     ),
     path(
         "baggage/track/",
-        views.BaggageTrackingView.as_view(),
+        RedirectView.as_view(url="/baggage/public/", permanent=False, query_string=True),
         name="baggage_tracking"
     ),
 

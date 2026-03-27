@@ -15,6 +15,11 @@ def root_dashboard_view(request):
     from core.views import DashboardView
     return DashboardView.as_view()(request)
 
+def public_baggage_tracking_view(request):
+    """Serve the public baggage tracking portal (no auth required)."""
+    from core.views import BaggageTrackingView
+    return BaggageTrackingView.as_view()(request)
+
 # HTTP fallback for WebSocket notifications (prevents 404 in logs)
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
@@ -37,6 +42,7 @@ urlpatterns = [
     # If you add a real icon later, serve it from /static/favicon.ico.
     path('favicon.ico', lambda request: JsonResponse({}, status=204), name='favicon'),
     path('', root_dashboard_view, name='home'),
+    path('baggage/public/', public_baggage_tracking_view, name='public-baggage-tracking'),
     path('admin/', admin_site.urls),
     path('core/', include('core.urls', namespace='core')),
 
